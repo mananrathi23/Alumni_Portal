@@ -1,0 +1,13 @@
+# Ignore backend dependencies and environment
+/backend/node_modules/
+/backend/.env
+/backend/package-lock.json
+
+# Ignore local system files
+.DS_Store
+
+# Keep only frontend code in master
+/backend/
+
+# Ignore logs
+/logs

@@ -14,7 +14,35 @@ const Login = () => {
     formState: { errors, isSubmitting },
   } = useForm()
 
-  const onSubmit = (data) => console.log(data)
+  const onSubmit = async (data) => {
+  const loginData = {
+    email: data.email,
+    password: data.password,
+    role: selectedRole
+  };
+
+  try {
+    const res = await fetch("http://localhost:12000/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(loginData)
+    });
+
+    const result = await res.json();
+
+    if (result.message) {
+      alert(result.message);
+    } else {
+      alert(result.error);
+    }
+  } catch (err) {
+    alert("Server error");
+  }
+};
+
+
 
   const [selectedRole, setSelectedRole] = useState("Alumni");
 

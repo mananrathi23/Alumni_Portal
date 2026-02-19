@@ -17,14 +17,43 @@ const Auth = () => {
     formState: { errors, isSubmitting },
   } = useForm();
 
-  const onSubmit = (data) => {
-    console.log({ ...data, role: selectedRole, isLogin });
-    // Here you would typically send the data to your backend API
+const onSubmit = async (data) => {
+  const payload = {
+    email: data.email,
+    password: data.password,
+    role: selectedRole,
+    fullName: data.fullName
   };
+
+  const url = isLogin
+    ? "http://localhost:12000/login"
+    : "http://localhost:12000/signup";
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+
+    if (result.message) {
+      alert(result.message);
+    } else {
+      alert(result.error);
+    }
+  } catch (err) {
+    alert("Server error");
+  }
+};
+
+
 
   const handleSocialLogin = (provider) => {
     console.log(`Logging in with ${provider}`);
-    // Here you would implement OAuth flow for Google/LinkedIn
   };
 
   const roles = [

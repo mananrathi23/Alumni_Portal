@@ -11,7 +11,7 @@ app.use(express.json());
 
 
 mongoose.connect(
-  "mongodb+srv://bansal0001:P1r2a3t4h5a6m7@cluster0.gxcpfi0.mongodb.net/alumniDB"
+  process.env.MONGO_URI
 )
 .then(() => {
   console.log("MongoDB Atlas connected");

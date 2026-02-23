@@ -5,8 +5,10 @@ import { GiTeacher } from "react-icons/gi";
 import { MdAdminPanelSettings } from "react-icons/md";
 import { useForm } from "react-hook-form";
 import { NavLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const Auth = () => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [selectedRole, setSelectedRole] = useState("Alumni");
 
@@ -18,36 +20,54 @@ const Auth = () => {
   } = useForm();
 
 const onSubmit = async (data) => {
-  const payload = {
-    email: data.email,
-    password: data.password,
-    role: selectedRole,
-    fullName: data.fullName
-  };
-
-  const url = isLogin
-    ? "http://localhost:12000/login"
-    : "http://localhost:12000/signup";
-
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await res.json();
-
-    if (result.message) {
-      alert(result.message);
-    } else {
-      alert(result.error);
-    }
-  } catch (err) {
-    alert("Server error");
+  if (selectedRole === "Student") {
+    navigate("/student/dashboard");
+  } else {
+    alert("Dashboard is available only for students");
   }
+  // const payload = {
+  //   email: data.email,
+  //   password: data.password,
+  //   role: selectedRole,
+  //   fullName: data.fullName
+  // };
+
+  // const url = isLogin
+  //   ? "http://localhost:12000/login"
+  //   : "http://localhost:12000/signup";
+
+  // try {
+  //   const res = await fetch(url, {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json"
+  //     },
+  //     body: JSON.stringify(payload)
+  //   });
+
+  //   const result = await res.json();
+
+  //   if (result.message) {
+
+  //   // FRONTEND TEMPORARY ROLE CHECK
+  //   if (selectedRole === "Student") {
+  //     navigate("/student/dashboard");
+  //   } else {
+  //     alert("Dashboard not available for this role yet");
+  //   }
+
+  // /*
+  //   🔴 BACKEND CHANGE (LATER):
+  //   Instead of selectedRole, use:
+  //   result.user.role  OR decoded JWT role
+  // */
+
+  // } else {
+  //   alert(result.error);
+  // }
+  // } catch (err) {
+  //   alert("Server error");
+  // }
 };
 
 

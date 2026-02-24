@@ -1,41 +1,53 @@
 import React from "react";
 import { FaUsers, FaBriefcase, FaComments, FaCalendarAlt } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 
 const DashboardHome = () => {
   const navigate = useNavigate();
 
-  // 🔴 Backend change later
-  const student = {
-    name: "Michael Chen",
-    department: "Computer Science",
-    year: "Junior",
-  };
+  /* =====================================
+     GET DATA FROM STUDENT LAYOUT
+     =====================================
+     🔴 Backend integration:
+     student comes from StudentLayout after login
+  */
+  const { student } = useOutletContext();
 
+  /* =====================================
+     TEMPORARY STATS (FRONTEND ONLY)
+     =====================================
+     🔴 Backend later:
+     - Move stats into student object
+     - Or fetch via separate API
+  */
   const stats = {
-    alumni: 3,
-    jobs: 4,
-    forum: 3,
-    events: 3,
+    alumni: student.stats?.alumniCount ?? 0,
+    jobs: student.stats?.openPositions ?? 0,
+    forum: student.stats?.discussions ?? 0,
+    events: student.stats?.events ?? 0,
   };
 
   return (
     <div className="space-y-6">
 
-      {/* Welcome Banner */}
+      {/*WELCOME BANNER*/}
       <div className="rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
         <h2 className="text-2xl font-semibold">
           Welcome back, {student.name}!
+          {/* 🔴 Backend: student.name */}
         </h2>
+
         <p className="mt-1 text-white/90">
           {student.department} • {student.year}
+          {/* 🔴 Backend: department & year */}
         </p>
+
         <p className="mt-4 text-white/90">
           Connect with alumni, explore opportunities, and grow your network.
         </p>
       </div>
 
-      {/* Cards */}
+      {/*STATS CARDS*/}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
         {/* Alumni */}

@@ -1,5 +1,6 @@
 # Ignore backend dependencies and environment
 /backend/.env
+/frontend/node_modules
 
 # Ignore local system files
 .DS_Store

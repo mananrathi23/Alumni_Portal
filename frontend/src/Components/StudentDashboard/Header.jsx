@@ -28,7 +28,9 @@ const Header = ({ student }) => {
         {[
           ["Dashboard", "/student/dashboard"],
           ["Forum", "/student/forum"],
+          ["Messages", "/student/messages"],
           ["Alumni", "/student/alumni"],
+          ["Requests", "/student/requests"],
           ["Jobs", "/student/jobs"],
           ["Events", "/student/events"],
         ].map(([label, path]) => (

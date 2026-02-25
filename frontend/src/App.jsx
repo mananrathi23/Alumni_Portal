@@ -4,8 +4,10 @@ import StudentLayout from "./Components/StudentDashboard/StudentLayout.jsx";
 import DashboardHome from "./Components/StudentDashboard/DashboardHome.jsx";
 import Forum from "./Components/StudentDashboard/Forum.jsx";
 import Alumni from "./Components/StudentDashboard/Alumni.jsx";
-// import Jobs from "./Components/StudentDashboard/Jobs.jsx";
-// import Events from "./Components/StudentDashboard/Events.jsx";
+import Jobs from "./Components/StudentDashboard/Jobs.jsx";
+import Events from "./Components/StudentDashboard/Events.jsx";
+import Messages from "./Components/StudentDashboard/Messages.jsx";
+import Requests from "./Components/StudentDashboard/Requests.jsx";
 
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
@@ -35,14 +37,22 @@ function App() {
           path: "alumni",
           element: <Alumni />,
         },
-        // {
-        //   path: "jobs",
-        //   element: <Jobs />,
-        // },
-        // {
-        //   path: "events",
-        //   element: <Events />,
-        // },
+        {
+          path: "jobs",
+          element: <Jobs />,
+        },
+        {
+          path: "events",
+          element: <Events />,
+        },
+        {
+          path: "messages",
+          element: <Messages />,
+        },
+        {
+          path: "requests",
+          element: <Requests />,
+        },
       ],
     },
   ]);

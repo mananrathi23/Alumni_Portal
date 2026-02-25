@@ -1,7 +1,6 @@
-// src/Components/StudentDashboard/Forum.jsx
-
 import React, { useState } from "react";
 import { FaPlus, FaSearch } from "react-icons/fa";
+import CreatePostModal from "./CreatePostModal";
 
 const Forum = () => {
 
@@ -14,6 +13,7 @@ const Forum = () => {
   */
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
+  const [showModal, setShowModal] = useState(false);
 
   const posts = [];
 
@@ -33,7 +33,7 @@ const Forum = () => {
           </p>
         </div>
 
-        <button
+        <button onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition"
           /* 🔴 Backend later:
              - open modal
@@ -92,7 +92,9 @@ const Forum = () => {
           <></>
         )}
       </div>
-
+        {showModal && (
+  <CreatePostModal onClose={() => setShowModal(false)} />
+)}
     </div>
   );
 };

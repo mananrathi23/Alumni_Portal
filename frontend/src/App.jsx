@@ -1,63 +1,77 @@
-import Auth from "./Components/Auth.jsx";
-import MainPage from "./Components/MainPage.jsx";
-import StudentLayout from "./Components/StudentDashboard/StudentLayout.jsx";
-import DashboardHome from "./Components/StudentDashboard/DashboardHome.jsx";
-import Forum from "./Components/StudentDashboard/Forum.jsx";
-import Alumni from "./Components/StudentDashboard/Alumni.jsx";
-import Jobs from "./Components/StudentDashboard/Jobs.jsx";
-import Events from "./Components/StudentDashboard/Events.jsx";
-import Messages from "./Components/StudentDashboard/Messages.jsx";
-import Requests from "./Components/StudentDashboard/Requests.jsx";
-
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { useState } from 'react'
+import MainPage from './Components/MainPage.jsx'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import Auth from './Components/Authentication/Auth.jsx'
+import OtpVerification from './Components/Authentication/OtpVerification.jsx'
+import ResetPassword from './Components/Authentication/ResetPassword.jsx'
+import StudentLayout from './Components/StudentDashboard/StudentLayout.jsx'
+import DashboardHome from './Components/StudentDashboard/DashboardHome.jsx'
+import Forum from './Components/StudentDashboard/Forum.jsx'
+import Alumni from './Components/StudentDashboard/Alumni.jsx'
+import Jobs from './Components/StudentDashboard/Jobs.jsx'
+import Events from './Components/StudentDashboard/Events.jsx'
+import Messages from './Components/StudentDashboard/Messages.jsx'
+import Requests from './Components/StudentDashboard/Requests.jsx'
 
 function App() {
   const router = createBrowserRouter([
     {
-      path: "/",
+      path: '/',
       element: <MainPage />,
     },
     {
-      path: "/login",
+      path: '/login',
       element: <Auth />,
     },
     {
-      path: "/student",
+      path: '/otp-verification/:email/:phone',
+      element: <OtpVerification />,
+    },
+    {
+      path: '/password/reset/:token',
+      element: <ResetPassword />,
+    },
+    {
+      path: '/student',
       element: <StudentLayout />,
       children: [
         {
-          path: "dashboard",
+          path: 'dashboard',
           element: <DashboardHome />,
         },
         {
-          path: "forum",
+          path: 'forum',
           element: <Forum />,
         },
         {
-          path: "alumni",
+          path: 'alumni',
           element: <Alumni />,
         },
         {
-          path: "jobs",
+          path: 'jobs',
           element: <Jobs />,
         },
         {
-          path: "events",
+          path: 'events',
           element: <Events />,
         },
         {
-          path: "messages",
+          path: 'messages',
           element: <Messages />,
         },
         {
-          path: "requests",
+          path: 'requests',
           element: <Requests />,
         },
       ],
     },
   ]);
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+    </>
+  )
 }
 
-export default App;
+export default App

@@ -1,11 +1,11 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Context } from "../../main.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-const Register = () => {
+const Register = ({selectedRole}) => {
   const { isAuthenticated } = useContext(Context);
   const navigateTo = useNavigate();
   const {
@@ -21,6 +21,7 @@ const Register = () => {
 
   const handleRegister = async (data) => {
     data.phone = `+91${data.phone}`;
+    data.role=selectedRole;
     await axios
       .post("http://localhost:4000/api/v1/user/register", data, {
         withCredentials: true,
@@ -36,7 +37,10 @@ const Register = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit((data) => handleRegister(data))} className="w-full space-y-4">
+    <form
+      onSubmit={handleSubmit((data) => handleRegister(data))}
+      className="w-full space-y-4"
+    >
       <div>
         <label className="block mb-1 text-sm font-medium">Full Name</label>
         <input
@@ -44,10 +48,12 @@ const Register = () => {
           placeholder="Enter your Name"
           className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-300 hover:bg-gray-100"
           {...register("name", {
-            required: { value: true, message: "Name is required" }
+            required: { value: true, message: "Name is required" },
           })}
         />
-        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+        {errors.name && (
+          <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+        )}
       </div>
 
       <div>
@@ -56,9 +62,13 @@ const Register = () => {
           type="email"
           placeholder="Enter your email"
           className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-300 hover:bg-gray-100"
-          {...register("email", { required: { value: true, message: "Email is required" } })}
+          {...register("email", {
+            required: { value: true, message: "Email is required" },
+          })}
         />
-        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+        {errors.email && (
+          <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+        )}
       </div>
 
       <div>
@@ -69,12 +79,106 @@ const Register = () => {
             type="number"
             placeholder="Enter your Phone No."
             className="w-full p-3 bg-transparent outline-none"
-            {...register("phone", { required: { value: true, message: "Phone No. is required" } })}
+            {...register("phone", {
+              required: { value: true, message: "Phone No. is required" },
+            })}
           />
         </div>
-        {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
+        {errors.phone && (
+          <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
+        )}
       </div>
+      <div>
+        <label className="block mb-1 text-sm font-medium">Department</label>
+        <select
+          className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200"
+          {...register("department", { required: "Department is required" })}
+        >
+          <option value="">Select Department</option>
 
+          {selectedRole === "Teacher" ? (
+            <>
+              <option value="Mathematics">Mathematics</option>
+              <option value="Electrical">Electrical</option>
+              <option value="Computer Science">Computer Science</option>
+              <option value="Mechanical">Mechanical</option>
+            </>
+          ) : (
+            <>
+              <option value="BCA">BCA</option>
+              <option value="BTech">BTech</option>
+              <option value="BBA">BBA</option>
+              <option value="BDes">BDes</option>
+            </>
+          )}
+        </select>
+      </div>
+      {selectedRole === "Student" && (
+        <div>
+          <label className="block mb-1 text-sm font-medium">Year</label>
+          <select
+            className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200"
+            {...register("year", { required: "Year is required" })}
+          >
+            <option value="">Select Year</option>
+
+            {watch("department") === "BBA" || watch("department") === "BCA" ? (
+              <>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+              </>
+            ) : (
+              <>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+              </>
+            )}
+          </select>
+        </div>
+      )}
+      {selectedRole === "Alumni" && (
+        <>
+          <div>
+            <label>Graduation Year</label>
+            <input
+              type="number"
+              className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200"
+              {...register("graduationYear", { required: "Required" })}
+            />
+          </div>
+
+          <div>
+            <label>Current Company</label>
+            <input
+              type="text"
+              className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200"
+              {...register("company", { required: "Required" })}
+            />
+          </div>
+
+          <div>
+            <label>Current Role</label>
+            <input
+              type="text"
+              className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200"
+              {...register("jobRole", { required: "Required" })}
+            />
+          </div>
+        </>
+      )}
+      {selectedRole === "Teacher" && (
+        <div>
+          <label>Designation</label>
+          <input
+            type="text"
+            className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200"
+            {...register("designation", { required: "Required" })}
+          />
+        </div>
+      )}
       <div>
         <label className="block mb-1 text-sm font-medium">Password</label>
         <input
@@ -83,26 +187,37 @@ const Register = () => {
           className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-300 hover:bg-gray-100"
           {...register("password", {
             required: { value: true, message: "Password is required" },
-            minLength: { value: 6, message: "Password must be at least 6 characters" }
+            minLength: {
+              value: 8,
+              message: "Password must be at least 8 characters",
+            },
           })}
         />
-        {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+        {errors.password && (
+          <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+        )}
       </div>
 
       <div>
-        <label className="block mb-1 text-sm font-medium">Confirm Password</label>
+        <label className="block mb-1 text-sm font-medium">
+          Confirm Password
+        </label>
         <input
           type="password"
           placeholder="Confirm your password"
           className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-300 hover:bg-gray-100"
           {...register("confirmPassword", {
             required: { value: true, message: "Please confirm your password" },
-            validate: (value) => value === watch("password") || "Passwords don't match"
+            validate: (value) =>
+              value === watch("password") || "Passwords don't match",
           })}
         />
-        {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>}
+        {errors.confirmPassword && (
+          <p className="text-red-500 text-sm mt-1">
+            {errors.confirmPassword.message}
+          </p>
+        )}
       </div>
-
       <button
         disabled={isSubmitting}
         type="submit"

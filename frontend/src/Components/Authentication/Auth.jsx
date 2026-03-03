@@ -10,6 +10,7 @@ import SocialLogin from "./SocialLogin";
 const Auth = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useContext(Context);
+  const [selectedRole, setSelectedRole] = useState("Alumni");
   const [isLogin, setIsLogin] = useState(true);
 
   if (isAuthenticated) {
@@ -32,7 +33,7 @@ const Auth = () => {
             Connect, learn, and grow together
           </p>
         </div>
-        <SocialLogin/>
+        <SocialLogin />
         {/* Auth Mode Toggle */}
         <div className="w-full flex rounded-lg bg-gray-100 p-1">
           <button
@@ -56,8 +57,15 @@ const Auth = () => {
             Sign Up
           </button>
         </div>
-        <RoleSelection/>
-        {isLogin ? <Login /> : <Register />}
+        <RoleSelection
+          selectedRole={selectedRole}
+          setSelectedRole={setSelectedRole}
+        />
+        {isLogin ? (
+          <Login selectedRole={selectedRole} />
+        ) : (
+          <Register selectedRole={selectedRole} />
+        )}
       </div>
     </div>
   );

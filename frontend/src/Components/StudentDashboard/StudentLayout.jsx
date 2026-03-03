@@ -1,31 +1,26 @@
 import Header from "./Header";
 import { Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
+import axios from "axios";
 
 const StudentLayout = () => {
   const [student, setStudent] = useState(null);
 
   useEffect(() => {
-    /* 🔴 BACKEND INTEGRATION (LATER)
-       fetch("/api/student/me", {
-         headers: {
-           Authorization: `Bearer ${token}`
-         }
-       })
-       .then(res => res.json())
-       .then(data => setStudent(data));
-    */
-    setStudent({
-      name: "Michael Chen",
-      department: "Computer Science",
-      year: "Junior",
-      stats: {
-        alumniCount: 3,
-        openPositions: 4,
-        discussions: 3,
-        events: 3,
-      },
-    });
+    const fetchStudent = async () => {
+      try {
+        const { data } = await axios.get(
+          "http://localhost:4000/api/v1/user/me",
+          { withCredentials: true },
+        );
+
+        setStudent(data.user);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchStudent();
   }, []);
 
   if (!student) return null;

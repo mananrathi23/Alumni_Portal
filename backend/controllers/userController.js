@@ -9,7 +9,7 @@ import crypto from "crypto";
 
 export const register = catchAsyncError(async (req, res, next) => {
   try {
-    const { name, email, phone, password, verificationMethod } = req.body;
+    const { name, email, phone, password, verificationMethod, department, year, role, graduationYear, company, jobRole, designation } = req.body;
     if (!name || !email || !phone || !password || !verificationMethod) {
       return next(new ErrorHandler("All fields are required.", 400));
     }
@@ -60,6 +60,18 @@ export const register = catchAsyncError(async (req, res, next) => {
       email,
       phone,
       password,
+      department,
+      year,
+      graduationYear,
+      company,
+      jobRole,
+      designation,
+      stats:{
+        alumniCount: 0,
+        openPositions: 0,
+        discussions: 0,
+        events:0,
+      }
     };
 
     const user = await User.create(userData);

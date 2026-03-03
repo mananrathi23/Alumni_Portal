@@ -7,12 +7,37 @@ const userSchema = new mongoose.Schema({
   name: String,
   email: String,
   password: {
-    type: String, 
+    type: String,
     minLength: [8, "Password must have at least 8 characters."],
     maxLength: [32, "Password cannot have more than 32 characters."],
     select: false,
   },
   phone: String,
+  role: {
+    type: String,
+    enum: ["Student", "Alumni", "Teacher"],
+    required: true,
+  },
+
+  graduationYear: Number,
+  company: String,
+  jobRole: String,
+  designation: String,
+  department: {
+    type: String,
+    default: "Not Assigned",
+  },
+  year: {
+    type: String,
+    default: "1st Year",
+  },
+
+  stats: {
+    alumniCount: { type: Number, default: 0 },
+    openPositions: { type: Number, default: 0 },
+    discussions: { type: Number, default: 0 },
+    events: { type: Number, default: 0 },
+  },
   accountVerified: { type: Boolean, default: false },
   verificationCode: Number,
   verificationCodeExpire: Date,

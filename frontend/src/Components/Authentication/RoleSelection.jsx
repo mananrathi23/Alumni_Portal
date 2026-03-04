@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PiStudent } from "react-icons/pi";
 import { FaUserGraduate } from "react-icons/fa";
 import { GiTeacher } from "react-icons/gi";
-import { MdAdminPanelSettings } from "react-icons/md";
+import { motion } from 'framer-motion';
 
 const RoleSelection = ({ selectedRole, setSelectedRole }) => {
 
@@ -14,22 +14,27 @@ const RoleSelection = ({ selectedRole, setSelectedRole }) => {
 
   return (
     <div className="w-full">
-      <p className="mb-3 font-medium">Select Your Role</p>
+      <p className="mb-4 font-medium text-slate-300">Select Your Role</p>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {roles.map((role) => (
-          <div
+        {roles.map((role, index) => (
+          <motion.div
             key={role.name}
             onClick={() => setSelectedRole(role.name)}
-            className={`flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 
+            className={`flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer transition-all duration-300 
             ${
             selectedRole === role.name
-            ? "bg-gradient-to-br from-purple-100 to-pink-100 border-purple-500 text-purple-600 shadow-md"
-            : "bg-gray-50 border-gray-200 hover:border-purple-400 hover:bg-purple-50"
+            ? "bg-gradient-to-br from-purple-900/40 to-pink-900/40 border-purple-500/60 text-purple-300 shadow-lg shadow-purple-500/20"
+            : "bg-slate-800/30 border-slate-700/30 text-slate-400 hover:border-purple-500/40 hover:bg-slate-800/50 hover:text-slate-300"
             }`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 + index * 0.1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
           >
             {role.icon}
             <span className="mt-2 text-sm">{role.name}</span>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

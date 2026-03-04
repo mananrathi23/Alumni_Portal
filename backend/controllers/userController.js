@@ -9,9 +9,12 @@ import crypto from "crypto";
 
 export const register = catchAsyncError(async (req, res, next) => {
   try {
-    const { name, email, phone, password, verificationMethod, department, year, role, graduationYear, company, jobRole, designation } = req.body;
+    const { name, email, phone, password, confirmPassword, verificationMethod, department, year, role, graduationYear, company, jobRole, designation } = req.body;
     if (!name || !email || !phone || !password || !verificationMethod) {
       return next(new ErrorHandler("All fields are required.", 400));
+    }
+    if (confirmPassword !== undefined && password !== confirmPassword) {
+      return next(new ErrorHandler("Passwords do not match.", 400));
     }
     function validatePhoneNumber(phone) {
       const phoneRegex = /^\+91[6-9]\d{9}$/;
@@ -20,6 +23,9 @@ export const register = catchAsyncError(async (req, res, next) => {
 
     if (!validatePhoneNumber(phone)) {
       return next(new ErrorHandler("Invalid phone number.", 400));
+    }
+    if (password.length < 8) {
+      return next(new ErrorHandler("Password must be at least 8 characters.", 400));
     }
 
     const existingUser = await User.findOne({
@@ -60,6 +66,7 @@ export const register = catchAsyncError(async (req, res, next) => {
       email,
       phone,
       password,
+      role,
       department,
       year,
       graduationYear,
@@ -179,7 +186,7 @@ export const verifyOTP = catchAsyncError(async (req, res, next) => {
       return next(new ErrorHandler("Invalid OTP", 400));
     }
     const currentTime = Date.now();  // Date format : 21324351
-    const verificationCodeExpire = new Date(User.verificationCodeExpire).getTime(); // time format : 23:23:11t12t1:123
+    const verificationCodeExpire = new Date(user.verificationCodeExpire).getTime(); // time format : 23:23:11t12t1:123
 
     console.log(currentTime);
     console.log(verificationCodeExpire);

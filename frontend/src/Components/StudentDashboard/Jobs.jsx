@@ -1,89 +1,67 @@
-// src/Components/StudentDashboard/Jobs.jsx
-
 import React, { useState } from "react";
-import { FaSearch, FaBriefcase } from "react-icons/fa";
+import { PiBriefcase, PiMagnifyingGlass } from "react-icons/pi";
+
+const FILTERS = ["All Opportunities", "Full-time", "Part-time", "Internships"];
 
 const Jobs = () => {
+  const [search, setSearch]           = useState("");
+  const [activeFilter, setActiveFilter] = useState("All Opportunities");
 
-  /* =====================================
-     FRONTEND STATE (TEMPORARY)
-     =====================================
-     🔴 Backend later:
-     - jobs list from API
-     - filters applied server-side
-  */
-  const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("All");
-
-  // TEMP: empty jobs list
+  // 🔴 Backend later: jobs from API
   const jobs = [];
 
-  const filters = ["All Opportunities", "Full-time", "Part-time", "Internships"];
-
   return (
-    <div className="bg-white rounded-xl border p-6 space-y-6">
+    <div className="max-w-4xl mx-auto space-y-5">
 
-      {/*HEADER*/}
+      {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-800">
-          Job & Internship Board
-        </h2>
-        <p className="text-sm text-gray-500">
-          Explore opportunities shared by alumni
-        </p>
+        <h2 className="text-xl font-bold text-white">Job & Internship Board</h2>
+        <p className="text-slate-400 text-sm mt-0.5">Explore opportunities shared by alumni</p>
       </div>
 
-      {/*SEARCH*/}
-      <div className="relative">
-        <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-        <input
-          type="text"
-          placeholder="Search jobs..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-          /* 🔴 Backend later:
-             debounce + query API */
-        />
-      </div>
+      {/* Search + filters */}
+      <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-4 space-y-3">
+        <div className="relative">
+          <PiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+          <input
+            type="text"
+            placeholder="Search jobs by title, company, or skill…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+          />
+        </div>
 
-      {/*FILTER TABS*/}
-      <div className="flex flex-wrap gap-2">
-        {filters.map((filter) => (
-          <button
-            key={filter}
-            onClick={() => setActiveFilter(filter)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition
-              ${
-                activeFilter === filter
-                  ? "bg-gray-900 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-150 ${
+                activeFilter === f
+                  ? "bg-sky-500 text-white shadow shadow-sky-500/30"
+                  : "bg-slate-800 text-slate-400 border border-white/[0.07] hover:text-white hover:border-sky-500/30"
               }`}
-          >
-            {filter}
-          </button>
-        ))}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/*RESULTS*/}
-      <div className="min-h-[260px] flex flex-col items-center justify-center text-center text-gray-500">
-
-        {jobs.length === 0 ? (
-          <>
-            <FaBriefcase className="text-5xl text-gray-300 mb-4" />
-            <p className="font-medium">No opportunities found</p>
-            <p className="text-sm mt-1">
-              Check back later for new postings
-            </p>
-          </>
-        ) : (
-          /* 🔴 Backend later:
-             map job cards here */
-          <></>
-        )}
-
-      </div>
-
+      {/* Empty state */}
+      {jobs.length === 0 ? (
+        <div className="min-h-72 flex flex-col items-center justify-center text-center bg-slate-900 border border-white/[0.07] rounded-xl">
+          <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
+            <PiBriefcase size={28} className="text-slate-600" />
+          </div>
+          <p className="text-slate-300 font-semibold">No opportunities yet</p>
+          <p className="text-slate-500 text-sm mt-1">Check back later for new postings from alumni</p>
+        </div>
+      ) : (
+        // 🔴 Backend later: map job cards here
+        <></>
+      )}
     </div>
   );
 };

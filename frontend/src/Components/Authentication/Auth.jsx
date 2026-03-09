@@ -1,127 +1,192 @@
 import React, { useState, useContext } from "react";
-import { PiStudent } from "react-icons/pi";
-import { useNavigate, Navigate } from "react-router-dom";
+import { PiGraduationCap, PiUsersThree, PiBriefcase, PiHandshake, PiCalendarCheck } from "react-icons/pi";
+import { Navigate } from "react-router-dom";
 import { Context } from "../../main";
 import Login from "./Login";
 import Register from "./Register";
 import RoleSelection from "./RoleSelection";
 import SocialLogin from "./SocialLogin";
-import { motion } from 'framer-motion';
+
+/* Left panel feature bullets — only features that exist in the project */
+const FEATURES = [
+  { icon: <PiUsersThree size={20} />, text: "Connect with alumni across industries & cohorts" },
+  { icon: <PiHandshake size={20} />,  text: "Find mentors who guide your career journey" },
+  { icon: <PiBriefcase size={20} />,  text: "Discover exclusive job & internship listings" },
+  { icon: <PiCalendarCheck size={20} />, text: "Attend events, meetups & annual reunions" },
+];
 
 const Auth = () => {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useContext(Context);
-  const [selectedRole, setSelectedRole] = useState("Alumni");
+  const { isAuthenticated, user } = useContext(Context);
   const [isLogin, setIsLogin] = useState(true);
+  const [selectedRole, setSelectedRole] = useState("Student");
 
-  if (isAuthenticated) {
-    return <Navigate to={"/student"} />;
+  const handleToggle = (loginMode) => {
+    setIsLogin(loginMode);
+    setSelectedRole("Student");
+  };
+
+  if (isAuthenticated && user) {
+    const role = user.role;
+    if (role === "Student") return <Navigate to="/student/dashboard" />;
+    if (role === "Teacher") return <Navigate to="/teacher/dashboard" />;
+    if (role === "Admin")   return <Navigate to="/admin/dashboard" />;
+    if (role === "Alumni")  return <Navigate to="/alumni/dashboard" />;
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-purple-950 flex items-center justify-center px-4 py-8 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <motion.div
-          className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-600/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
+    <div className="min-h-screen flex flex-col lg:flex-row">
+
+      {/* ══════════════════════════════════════════
+          LEFT PANEL — Branding & Features
+      ══════════════════════════════════════════ */}
+      <div
+        className="hidden lg:flex lg:w-1/2 xl:w-5/12 flex-col justify-between p-10 xl:p-14 relative overflow-hidden"
+        style={{ background: "linear-gradient(155deg, #0f172a 0%, #1e3a5f 50%, #0c4a6e 100%)" }}
+      >
+        {/* Background grid */}
+        <div
+          className="absolute inset-0 opacity-5 pointer-events-none"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
           }}
         />
+        {/* Glow orbs */}
+        <div className="absolute top-10 right-0 w-80 h-80 rounded-full opacity-20 pointer-events-none"
+          style={{ background: "radial-gradient(circle, #0ea5e9 0%, transparent 70%)" }} />
+        <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10 pointer-events-none"
+          style={{ background: "radial-gradient(circle, #38bdf8 0%, transparent 70%)" }} />
+
+        {/* Top: Logo + name */}
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="bg-sky-500 p-2.5 rounded-lg">
+            <PiGraduationCap className="text-white text-xl" />
+          </div>
+          <div>
+            <p className="text-white font-bold text-sm tracking-wider">ALUMNI PORTAL</p>
+            <p className="text-slate-400 text-xs tracking-widest uppercase">Student Network</p>
+          </div>
+        </div>
+
+        {/* Middle: Headline + features */}
+        <div className="relative z-10 space-y-8">
+          <div>
+            <h1 className="text-3xl xl:text-4xl font-extrabold text-white leading-tight mb-4"
+              style={{ letterSpacing: "-0.02em" }}>
+              Your campus network,<br />
+              <span className="text-sky-400">extended for life.</span>
+            </h1>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
+              Join thousands of students and alumni building meaningful careers
+              and lasting relationships through the Alumni Student Portal.
+            </p>
+          </div>
+
+          {/* Feature list */}
+          <ul className="space-y-4">
+            {FEATURES.map((f, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="mt-0.5 flex-shrink-0 bg-sky-500/20 border border-sky-500/30 text-sky-400 p-1.5 rounded-lg">
+                  {f.icon}
+                </span>
+                <span className="text-slate-300 text-sm leading-relaxed">{f.text}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-4 pt-2">
+            {[
+              { v: "10K+", l: "Alumni" },
+              { v: "500+", l: "Mentors" },
+              { v: "1.2K+", l: "Jobs" },
+            ].map((s, i) => (
+              <div key={i} className="text-center bg-white/5 border border-white/10 rounded-xl py-3">
+                <p className="text-sky-400 font-extrabold text-lg leading-none">{s.v}</p>
+                <p className="text-slate-500 text-xs mt-1 tracking-widest uppercase">{s.l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom: Footer note */}
+        <p className="relative z-10 text-slate-600 text-xs">
+          © 2026 Alumni Portal — All Rights Reserved
+        </p>
       </div>
 
-      <motion.div
-        className="relative bg-slate-900/80 backdrop-blur-xl w-full max-w-lg p-6 md:p-10 rounded-3xl shadow-2xl border border-slate-800/50 flex flex-col items-center gap-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* Logo */}
-        <motion.div
-          className="bg-linear-to-r from-purple-600 to-pink-600 text-white p-4 rounded-full text-3xl shadow-lg shadow-purple-500/50"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-          whileHover={{ scale: 1.1, rotate: 360 }}
-        >
-          <PiStudent />
-        </motion.div>
+      {/* ══════════════════════════════════════════
+          RIGHT PANEL — Auth Form
+      ══════════════════════════════════════════ */}
+      <div className="flex-1 flex flex-col bg-slate-950 lg:overflow-y-auto">
 
-        {/* Heading */}
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Alumni-Student Portal
-          </h1>
-          <p className="text-slate-400 mt-2 text-sm md:text-base">
-            Connect, learn, and grow together
-          </p>
-        </motion.div>
+        {/* Mobile top bar */}
+        <div className="lg:hidden flex items-center gap-3 px-5 py-4 border-b border-white/10"
+          style={{ background: "linear-gradient(135deg, #0f172a, #1e3a5f)" }}>
+          <div className="bg-sky-500 p-2 rounded-lg">
+            <PiGraduationCap className="text-white text-lg" />
+          </div>
+          <p className="text-white font-bold text-sm tracking-wider">ALUMNI PORTAL</p>
+        </div>
 
-        <SocialLogin />
+        <div className="flex-1 flex items-start lg:items-center justify-center px-5 sm:px-10 py-8 lg:py-12">
+          <div className="w-full max-w-md">
 
-        {/* Auth Mode Toggle */}
-        <motion.div
-          className="w-full flex rounded-xl bg-slate-800/50 p-1 border border-slate-700/30"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <button
-            onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
-              isLogin
-                ? "bg-linear-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30"
-                : "text-slate-400 hover:text-slate-300"
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => setIsLogin(false)}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
-              !isLogin
-                ? "bg-linear-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30"
-                : "text-slate-400 hover:text-slate-300"
-            }`}
-          >
-            Sign Up
-          </button>
-        </motion.div>
+            {/* Form heading */}
+            <div className="mb-7">
+              <h2 className="text-2xl font-bold text-white">
+                {isLogin ? "Welcome back" : "Create your account"}
+              </h2>
+              <p className="text-slate-400 text-sm mt-1">
+                {isLogin
+                  ? "Sign in to your Alumni Portal account"
+                  : "Join the Alumni Student Portal today"}
+              </p>
+            </div>
 
-        <RoleSelection
-          selectedRole={selectedRole}
-          setSelectedRole={setSelectedRole}
-        />
+            {/* Social login */}
+            <SocialLogin />
 
-        {isLogin ? (
-          <Login selectedRole={selectedRole} />
-        ) : (
-          <Register selectedRole={selectedRole} />
-        )}
-      </motion.div>
+            {/* Sign In / Sign Up toggle */}
+            <div className="flex rounded-lg bg-slate-800 p-1 border border-white/10 mb-6">
+              <button
+                onClick={() => handleToggle(true)}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold tracking-wide transition-all duration-200 ${
+                  isLogin ? "bg-sky-500 text-white shadow" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => handleToggle(false)}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold tracking-wide transition-all duration-200 ${
+                  !isLogin ? "bg-sky-500 text-white shadow" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Sign Up
+              </button>
+            </div>
+
+            {/* Role selection */}
+            <RoleSelection
+              selectedRole={selectedRole}
+              setSelectedRole={setSelectedRole}
+              isLogin={isLogin}
+            />
+
+            {/* Form */}
+            <div className="mt-5">
+              {isLogin
+                ? <Login selectedRole={selectedRole} />
+                : <Register selectedRole={selectedRole} />
+              }
+            </div>
+
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 };

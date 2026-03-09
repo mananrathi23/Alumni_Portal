@@ -1,42 +1,49 @@
-import React from 'react';
-import { PiStudent } from "react-icons/pi";
+import React from "react";
+import { PiGraduationCap } from "react-icons/pi";
 import { FaUserGraduate } from "react-icons/fa";
 import { GiTeacher } from "react-icons/gi";
-import { motion } from 'framer-motion';
+import { MdAdminPanelSettings } from "react-icons/md";
 
-const RoleSelection = ({ selectedRole, setSelectedRole }) => {
+const ALL_ROLES = [
+  { name: "Student", icon: <PiGraduationCap size={22} /> },
+  { name: "Alumni",  icon: <FaUserGraduate size={22} /> },
+  { name: "Teacher", icon: <GiTeacher size={22} /> },
+  { name: "Admin",   icon: <MdAdminPanelSettings size={22} /> },
+];
 
-  const roles = [
-    { name: "Student", icon: <PiStudent size={24} /> },
-    { name: "Alumni", icon: <FaUserGraduate size={24} /> },
-    { name: "Teacher", icon: <GiTeacher size={24} /> },
-  ];
+// Admin hidden during Sign Up
+const REGISTER_ROLES = ALL_ROLES.filter((r) => r.name !== "Admin");
+
+const RoleSelection = ({ selectedRole, setSelectedRole, isLogin }) => {
+  const roles = isLogin ? ALL_ROLES : REGISTER_ROLES;
 
   return (
     <div className="w-full">
-      <p className="mb-4 font-medium text-slate-300">Select Your Role</p>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {roles.map((role, index) => (
-          <motion.div
+      <p className="mb-3 text-sm font-semibold text-slate-400 tracking-widest uppercase">
+        Select Your Role
+      </p>
+      <div className={`grid gap-3 ${isLogin ? "grid-cols-2 md:grid-cols-4" : "grid-cols-3"}`}>
+        {roles.map((role) => (
+          <div
             key={role.name}
             onClick={() => setSelectedRole(role.name)}
-            className={`flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer transition-all duration-300 
-            ${
-            selectedRole === role.name
-            ? "bg-gradient-to-br from-purple-900/40 to-pink-900/40 border-purple-500/60 text-purple-300 shadow-lg shadow-purple-500/20"
-            : "bg-slate-800/30 border-slate-700/30 text-slate-400 hover:border-purple-500/40 hover:bg-slate-800/50 hover:text-slate-300"
-            }`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 + index * 0.1 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
+            className={`flex flex-col items-center justify-center p-3 rounded-xl border cursor-pointer transition-all duration-200 hover:-translate-y-0.5
+              ${selectedRole === role.name
+                ? "bg-sky-500/20 border-sky-500 text-sky-400 shadow-md shadow-sky-500/20"
+                : "bg-slate-800 border-white/10 text-slate-400 hover:border-sky-500/50 hover:text-slate-200"
+              }`}
           >
             {role.icon}
-            <span className="mt-2 text-sm">{role.name}</span>
-          </motion.div>
+            <span className="mt-1.5 text-xs font-medium">{role.name}</span>
+          </div>
         ))}
       </div>
+
+      {!isLogin && (
+        <p className="mt-2 text-xs text-slate-600 text-center">
+          Admin accounts are created by the system administrator only.
+        </p>
+      )}
     </div>
   );
 };

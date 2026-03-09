@@ -2,23 +2,26 @@ import { createContext, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import './index.css'
+import { SocketProvider } from "./SocketContext.jsx";
 
 export const Context = createContext({
   isAuthenticated: false,
-  setIsAuthenticated: () => {},
+  setIsAuthenticated: () => { },
   user: null,
-  setUser: () => {},
+  setUser: () => { },
 });
 
 const AppWrapper = () => {
   const [isAuthenticated, setIsAuthenticated] = useState();
-  const [user, setUser] = useState();
+  const [user, setUser] = useState(null);
 
   return (
     <Context.Provider
       value={{ isAuthenticated, setIsAuthenticated, user, setUser }}
     >
-      <App />
+      <SocketProvider>
+        <App />
+      </SocketProvider>
     </Context.Provider>
   );
 };

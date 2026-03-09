@@ -6,6 +6,9 @@ import { connection } from "./database/dbConnection.js";
 import { errorMiddleware } from "./middlewares/error.js";
 import userRouter from "./routes/userRouter.js";
 import { removeUnverifiedAccounts } from "./automation/removeUnverifiedAccounts.js";
+// import dashboardRouter from "./routes/dashboardRouter.js";
+import connectionRouter from "./routes/ConnectionRouter.js";
+import peopleRouter from "./routes/PeopleRouter.js";  
 
 export const app = express();
 config({ path: "./.env" });
@@ -23,6 +26,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1/user", userRouter);
+// app.use("/api/v1/dashboard",   dashboardRouter);
+app.use("/api/v1/connections", connectionRouter);
+app.use("/api/v1/people",      peopleRouter);
 
 removeUnverifiedAccounts();
 connection();

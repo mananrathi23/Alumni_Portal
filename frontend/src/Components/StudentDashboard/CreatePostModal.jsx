@@ -1,103 +1,102 @@
 import { useState } from "react";
-import { FaTimes } from "react-icons/fa";
+import { PiX } from "react-icons/pi";
+
+const CATEGORIES = ["Discussion", "Question", "Announcement"];
 
 const CreatePostModal = ({ onClose }) => {
   const [category, setCategory] = useState("Discussion");
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle]       = useState("");
+  const [content, setContent]   = useState("");
 
   const handlePublish = () => {
     /* 🔴 BACKEND INTEGRATION (LATER)
        POST /api/forum/posts
        body: { category, title, content }
     */
-
     console.log({ category, title, content });
-
-    onClose(); // close modal after publish
+    onClose();
   };
 
+  const inputClass = "w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-white/[0.07] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
 
-      {/* Modal Box */}
-      <div className="bg-white w-full max-w-lg rounded-xl p-6 relative">
-
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-        >
-          <FaTimes />
-        </button>
-
-        {/* Header */}
-        <h2 className="text-lg font-semibold text-gray-800">
-          Create New Post
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Share your thoughts, ask questions, or make announcements
-        </p>
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
+          <div>
+            <h2 className="text-white font-bold text-base">Create New Post</h2>
+            <p className="text-slate-500 text-xs mt-0.5">Share thoughts, ask questions, or announce</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
+          >
+            <PiX size={18} />
+          </button>
+        </div>
 
         {/* Form */}
-        <div className="space-y-4 mt-5">
+        <div className="px-5 py-5 space-y-4">
 
-          {/* Category */}
+          {/* Category chips */}
           <div>
-            <label className="text-sm font-medium text-gray-700">
-              Category
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option>Discussion</option>
-              <option>Question</option>
-              <option>Announcement</option>
-            </select>
+            <label className="block text-xs font-semibold text-slate-400 tracking-widest uppercase mb-2">Category</label>
+            <div className="flex gap-2">
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCategory(c)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                    category === c
+                      ? "bg-sky-500 text-white shadow shadow-sky-500/30"
+                      : "bg-slate-800 text-slate-400 border border-white/[0.07] hover:text-white"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Title */}
           <div>
-            <label className="text-sm font-medium text-gray-700">
-              Title
-            </label>
+            <label className="block text-xs font-semibold text-slate-400 tracking-widest uppercase mb-2">Title</label>
             <input
               type="text"
-              placeholder="Enter post title..."
+              placeholder="Enter a clear, descriptive title…"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className={inputClass}
             />
           </div>
 
           {/* Content */}
           <div>
-            <label className="text-sm font-medium text-gray-700">
-              Content
-            </label>
+            <label className="block text-xs font-semibold text-slate-400 tracking-widest uppercase mb-2">Content</label>
             <textarea
-              rows="4"
-              placeholder="Share your thoughts..."
+              rows={4}
+              placeholder="Share your thoughts, questions, or announcement…"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-50 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className={`${inputClass} resize-none`}
             />
           </div>
         </div>
 
-        {/* Footer Buttons */}
-        <div className="flex justify-end gap-3 mt-6">
+        {/* Footer */}
+        <div className="flex justify-end gap-3 px-5 pb-5">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border text-sm hover:bg-gray-100"
+            className="px-4 py-2 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-300 text-sm font-medium hover:text-white hover:bg-slate-700 transition-all"
           >
             Cancel
           </button>
           <button
             onClick={handlePublish}
-            className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm hover:bg-gray-800"
+            className="px-5 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-sm font-bold tracking-wide transition-all shadow shadow-sky-500/30 hover:-translate-y-0.5"
           >
             Publish Post
           </button>

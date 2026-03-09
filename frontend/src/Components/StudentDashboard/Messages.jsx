@@ -1,74 +1,64 @@
-// src/Components/StudentDashboard/Messages.jsx
-
 import React, { useState } from "react";
-import { FaSearch } from "react-icons/fa";
+import { PiMagnifyingGlass, PiEnvelope, PiChatsCircle } from "react-icons/pi";
 
 const Messages = () => {
-  /* =====================================
-     FRONTEND STATE (TEMPORARY)
-     =====================================
-     🔴 Backend later:
-     - conversations fetched from API
-     - selected conversation handled by id
-  */
   const [search, setSearch] = useState("");
 
-  // TEMP: no conversations yet
+  // 🔴 Backend later: conversations from API
   const conversations = [];
 
   return (
-    <div className="bg-white border rounded-xl h-[calc(100vh-140px)] flex overflow-hidden">
+    <div className="max-w-5xl mx-auto">
+      <div className="bg-slate-900 border border-white/[0.07] rounded-xl overflow-hidden"
+        style={{ height: "calc(100vh - 7rem)" }}>
+        <div className="flex h-full">
 
-      {/*LEFT PANEL*/}
-      <div className="w-full md:w-1/3 border-r p-4 flex flex-col gap-4">
+          {/* ── LEFT: Conversation list ── */}
+          <div className="w-full sm:w-72 lg:w-80 flex flex-col border-r border-white/[0.07] flex-shrink-0">
 
-        <h2 className="text-lg font-semibold text-gray-800">
-          Messages
-        </h2>
+            {/* Panel header */}
+            <div className="px-4 pt-4 pb-3 border-b border-white/[0.07]">
+              <h2 className="text-white font-bold text-base mb-3">Messages</h2>
+              <div className="relative">
+                <PiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
+                <input
+                  type="text"
+                  placeholder="Search conversations…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+            </div>
 
-        {/* Search */}
-        <div className="relative">
-          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-          <input
-            type="text"
-            placeholder="Search conversations..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            /* 🔴 Backend:
-               debounce + filter conversations */
-          />
-        </div>
+            {/* List */}
+            <div className="flex-1 overflow-y-auto">
+              {conversations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-3">
+                    <PiEnvelope size={22} className="text-slate-600" />
+                  </div>
+                  <p className="text-slate-400 font-medium text-sm">No conversations yet</p>
+                  <p className="text-slate-600 text-xs mt-1">Connect with alumni to start messaging</p>
+                </div>
+              ) : (
+                // 🔴 Backend later: map conversation items
+                <></>
+              )}
+            </div>
+          </div>
 
-        {/* Conversation List */}
-        <div className="flex-1 flex flex-col items-center justify-center text-center text-gray-500">
-          {conversations.length === 0 ? (
-            <>
-              <p className="font-medium">No conversations yet</p>
-              <p className="text-sm mt-1">
-                Start connecting with alumni!
-              </p>
-            </>
-          ) : (
-            /* 🔴 Backend later:
-               map conversation items here */
-            <></>
-          )}
+          {/* ── RIGHT: Chat area (hidden on mobile when no convo selected) ── */}
+          <div className="hidden sm:flex flex-1 flex-col items-center justify-center text-center px-8">
+            <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
+              <PiChatsCircle size={30} className="text-slate-600" />
+            </div>
+            <p className="text-slate-300 font-semibold">Select a conversation</p>
+            <p className="text-slate-500 text-sm mt-1">Choose someone from the left to start chatting</p>
+          </div>
+
         </div>
       </div>
-
-      {/*RIGHT PANEL*/}
-      <div className="hidden md:flex flex-1 items-center justify-center text-center text-gray-500 px-6">
-        <div>
-          <p className="font-medium">
-            Select a conversation to start messaging
-          </p>
-          <p className="text-sm mt-1">
-            Connect with alumni to grow your network
-          </p>
-        </div>
-      </div>
-
     </div>
   );
 };

@@ -1,52 +1,50 @@
 import React from "react";
-import { FaRegCommentDots } from "react-icons/fa";
+import { PiHandshake, PiUsersThree } from "react-icons/pi";
+import { useNavigate } from "react-router-dom";
 
 const Requests = () => {
-  /* =====================================
-     FRONTEND ONLY (TEMPORARY)
-     =====================================
-     🔴 Backend later:
-     - fetch mentorship requests for logged-in student
-     - status: pending / accepted / rejected
-  */
+  const navigate = useNavigate();
 
-  // TEMP: no requests
+  // 🔴 Backend later: mentorship requests from API
   const requests = [];
 
   return (
-    <div className="bg-white rounded-xl border p-6 space-y-6">
+    <div className="max-w-4xl mx-auto space-y-5">
 
-      {/*HEADER*/}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-800">
-          My Mentorship Requests
-        </h2>
-        <p className="text-sm text-gray-500">
-          Track your mentorship requests to alumni
-        </p>
-      </div>
-
-      {/*CONTENT*/}
-      <div className="min-h-[260px] flex flex-col items-center justify-center text-center text-gray-500">
-
-        {requests.length === 0 ? (
-          <>
-            <FaRegCommentDots className="text-5xl text-gray-300 mb-4" />
-            <p className="font-medium">
-              No mentorship requests yet
-            </p>
-            <p className="text-sm mt-1">
-              Browse the alumni directory and request mentorship
-            </p>
-          </>
-        ) : (
-          /* 🔴 Backend later:
-             map request cards here */
-          <></>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-white">My Mentorship Requests</h2>
+          <p className="text-slate-400 text-sm mt-0.5">Track your requests to alumni mentors</p>
+        </div>
+        {requests.length > 0 && (
+          <div className="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 rounded-full px-4 py-1.5">
+            <span className="text-sky-400 text-xs font-semibold">{requests.length} Request{requests.length !== 1 ? "s" : ""}</span>
+          </div>
         )}
-
       </div>
 
+      {/* Content */}
+      {requests.length === 0 ? (
+        <div className="min-h-72 flex flex-col items-center justify-center text-center bg-slate-900 border border-white/[0.07] rounded-xl px-6">
+          <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
+            <PiHandshake size={28} className="text-slate-600" />
+          </div>
+          <p className="text-slate-300 font-semibold">No mentorship requests yet</p>
+          <p className="text-slate-500 text-sm mt-1 max-w-xs">
+            Browse the alumni directory and send a mentorship request to someone in your field.
+          </p>
+          <button
+            onClick={() => navigate("/student/alumni")}
+            className="mt-5 flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-sm font-semibold hover:bg-sky-500/20 transition-all"
+          >
+            <PiUsersThree size={16} /> Browse Alumni
+          </button>
+        </div>
+      ) : (
+        // 🔴 Backend later: map request cards
+        <></>
+      )}
     </div>
   );
 };

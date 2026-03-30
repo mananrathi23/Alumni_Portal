@@ -17,6 +17,7 @@ const NAV_LINKS = [
   { label: "Requests",    path: "/student/requests",   icon: PiHandshake },
   { label: "Jobs",        path: "/student/jobs",       icon: PiBriefcase },
   { label: "Events",      path: "/student/events",     icon: PiCalendarCheck },
+  { label: "Mentorship",  path: "/student/mentorship", icon: PiUserCircle },
 ];
 
 const Header = ({ student }) => {

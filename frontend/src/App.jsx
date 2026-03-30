@@ -16,6 +16,7 @@ import StudentEvents from './Components/StudentDashboard/Events.jsx'
 import StudentMessages from './Components/StudentDashboard/Messages.jsx'
 import StudentRequests from './Components/StudentDashboard/Requests.jsx'
 import StudentProfile from './Components/StudentDashboard/Profile.jsx'
+import StudentMentorship from './Components/StudentDashboard/Mentorship.jsx'
 
 // ─── TEACHER ──────────────────────────────────────────────────────────────────
 import TeacherLayout from './Components/TeacherDashboard/TeacherLayout.jsx'
@@ -71,6 +72,7 @@ function App() {
         { path: 'messages',  element: <StudentMessages /> },
         { path: 'requests',  element: <StudentRequests /> },
         { path: 'profile',   element: <StudentProfile /> },
+        { path: 'mentorship', element: <StudentMentorship /> },
       ],
     },
 

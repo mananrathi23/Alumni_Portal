@@ -9,6 +9,7 @@ import { removeUnverifiedAccounts } from "./automation/removeUnverifiedAccounts.
 // import dashboardRouter from "./routes/dashboardRouter.js";
 import connectionRouter from "./routes/ConnectionRouter.js";
 import peopleRouter from "./routes/PeopleRouter.js";  
+import mentorshipRouter from "./routes/MentorshipRouter.js";
 
 export const app = express();
 config({ path: "./.env" });
@@ -28,7 +29,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/v1/user", userRouter);
 // app.use("/api/v1/dashboard",   dashboardRouter);
 app.use("/api/v1/connections", connectionRouter);
+app.use("/api/v1/connection", connectionRouter); // alias for existing frontend path
 app.use("/api/v1/people",      peopleRouter);
+app.use("/api/v1/mentorship", mentorshipRouter);
 
 removeUnverifiedAccounts();
 connection();

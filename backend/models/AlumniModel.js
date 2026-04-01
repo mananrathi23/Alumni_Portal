@@ -34,6 +34,14 @@ const alumniSchema = new mongoose.Schema({
   linkedIn: String,
   github: String,
   availableForMentorship: { type: Boolean, default: false },
+  mentorshipSlots: [
+    {
+      id: String,
+      day: String,
+      time: String,
+      booked: { type: Boolean, default: false },
+    },
+  ],
 
   // ── Auth Fields ──────────────────────────────────────────
   accountVerified: { type: Boolean, default: false },

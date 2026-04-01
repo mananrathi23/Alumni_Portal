@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import {
   PiHandshake, PiClock, PiPlus, PiTrash,
   PiCheck, PiX, PiChatCircleText, PiStar, PiStarFill,
@@ -260,7 +261,7 @@ const Mentorship = () => {
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-400 to-violet-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                            {r.studentName.charAt(0)}
+                            {(r.studentName || "?").charAt(0)}
                           </div>
                           <div>
                             <p className="text-white font-semibold text-sm">{r.studentName}</p>
@@ -312,7 +313,7 @@ const Mentorship = () => {
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-400 to-violet-600 flex items-center justify-center text-white font-bold text-sm">
-                          {r.studentName.charAt(0)}
+                          {(r.studentName || "?").charAt(0)}
                         </div>
                         <div>
                           <p className="text-white font-semibold text-sm">{r.studentName}</p>
@@ -398,7 +399,7 @@ const Mentorship = () => {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-white font-bold text-sm">
-                      {h.studentName.charAt(0)}
+                      {(h.studentName || "?").charAt(0)}
                     </div>
                     <div>
                       <p className="text-white font-semibold text-sm">{h.studentName}</p>

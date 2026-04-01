@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import {
   PiHandshake, PiUsersThree, PiClock, PiPlus, PiTrash,
   PiCheck, PiX, PiChatCircleText, PiStar, PiStarFill,
@@ -6,6 +7,7 @@ import {
   PiCalendarBlank, PiNotePencil, PiArrowRight,
   PiWarning, PiUserCircle, PiBookOpen,
 } from "react-icons/pi";
+import axios from "axios";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -17,36 +19,7 @@ const GOAL_LABELS = {
   general: "General Advice",
 };
 
-const MOCK_REQUESTS = [
-  {
-    id: "r1", studentName: "Arjun Mehta", department: "Computer Science", year: "3rd Year",
-    goal: "interview", note: "Preparing for product-based companies. Need help with DSA rounds.",
-    requestedSlot: { day: "Wed", time: "5:00 PM" }, requestedAt: "2h ago", status: "Pending",
-  },
-  {
-    id: "r2", studentName: "Priya Sharma", department: "Information Technology", year: "4th Year",
-    goal: "resume", note: "Final year, looking for SDE roles. Would love feedback on my resume.",
-    requestedSlot: { day: "Sat", time: "11:00 AM" }, requestedAt: "1d ago", status: "Pending",
-  },
-  {
-    id: "r3", studentName: "Rohit Singh", department: "Computer Science", year: "2nd Year",
-    goal: "career", note: "Confused between Data Science and Software Engineering paths.",
-    requestedSlot: { day: "Mon", time: "6:00 PM" }, requestedAt: "3d ago", status: "Accepted",
-  },
-];
 
-const MOCK_HISTORY = [
-  {
-    id: "h1", studentName: "Neha Gupta", goal: "technical", sessionDate: "Mar 18, 2026",
-    rating: 5, feedback: "Very helpful session, cleared all my doubts on system design.",
-    notes: "Discussed HLD concepts. Student has strong fundamentals.",
-  },
-  {
-    id: "h2", studentName: "Karan Patel", goal: "career", sessionDate: "Mar 10, 2026",
-    rating: 4, feedback: "Great insights on industry trends.",
-    notes: "Suggested exploring open source contributions.",
-  },
-];
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -151,7 +124,7 @@ const NotesModal = ({ request, onClose, onSave }) => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-white font-bold">Session Notes</h3>
-            <p className="text-slate-500 text-xs mt-0.5">For {request.studentName} · Private</p>
+            <p className="text-slate-500 text-xs mt-0.5">For {request.student?.name || request.studentName || "Unknown student"} · Private</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all"><PiX size={16} /></button>
         </div>
@@ -173,40 +146,61 @@ const NotesModal = ({ request, onClose, onSave }) => {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const Mentorship = () => {
+  const { alumni } = useOutletContext();
   const [tab, setTab] = useState("requests"); // requests | settings | history
-  const [requests, setRequests] = useState(MOCK_REQUESTS);
-  const [history] = useState(MOCK_HISTORY);
+  const [requests, setRequests] = useState([]);
+  const [history, setHistory] = useState([]);
   const [notesTarget, setNotesTarget] = useState(null);
-
-  // Settings state
-  const [available, setAvailable] = useState(true);
+  const [available, setAvailable] = useState(alumni?.availableForMentorship ?? false);
   const [maxMentees, setMaxMentees] = useState(3);
-  const [slots, setSlots] = useState([
-    { id: "Wed-5:00 PM", day: "Wed", time: "5:00 PM", booked: true },
-    { id: "Sat-11:00 AM", day: "Sat", time: "11:00 AM", booked: false },
-    { id: "Mon-6:00 PM", day: "Mon", time: "6:00 PM", booked: false },
-  ]);
+  const [slots, setSlots] = useState(
+    (alumni?.mentorshipSlots || []).map((s) => ({ id: s.id || `${s.day}-${s.time}`, ...s })),
+  );
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  useEffect(() => {
+    if (!alumni) return;
+    setAvailable(alumni.availableForMentorship ?? false);
+    setSlots((alumni.mentorshipSlots || []).map((s) => ({ id: s.id || `${s.day}-${s.time}`, ...s })));
+  }, [alumni]);
+
+  const fetchRequests = async () => {
+    try {
+      const res = await axios.get("http://localhost:4000/api/v1/mentorship/requests", { withCredentials: true });
+      setRequests(res.data.requests || []);
+    } catch (err) {
+      console.error("Failed to fetch mentorship requests", err);
+      setRequests([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  useEffect(() => {
+    setHistory(requests.filter((r) => r.status === "Completed"));
+  }, [requests]);
 
   const pending = requests.filter((r) => r.status === "Pending");
   const active  = requests.filter((r) => r.status === "Accepted");
 
   const respond = (id, status) => {
-    setRequests((prev) =>
-      prev.map((r) => r.id === id ? { ...r, status } : r)
-    );
-    if (status === "Accepted") {
-      // Auto-book the slot
-      const req = requests.find((r) => r.id === id);
-      if (req) {
-        setSlots((prev) =>
-          prev.map((s) =>
-            s.day === req.requestedSlot.day && s.time === req.requestedSlot.time
-              ? { ...s, booked: true }
-              : s
-          )
+    axios
+      .put(
+        `http://localhost:4000/api/v1/mentorship/requests/${id}/respond`,
+        { status },
+        { withCredentials: true },
+      )
+      .then((res) => {
+        setRequests((prev) =>
+          prev.map((r) => (r._id === id ? res.data.mentorship : r)),
         );
-      }
-    }
+      })
+      .catch((err) => {
+        console.log(err);
+        alert(err.response?.data?.message || "Error");
+      });
   };
 
   const TABS = [
@@ -217,15 +211,18 @@ const Mentorship = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-white">Mentorship</h2>
-          <p className="text-slate-400 text-sm mt-0.5">Manage your availability, requests, and sessions</p>
+          <p className="text-slate-400 text-sm mt-0.5">
+            Manage your availability, requests, and sessions
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-bold px-3 py-1 rounded-full border ${available ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-slate-800 border-slate-700 text-slate-500"}`}>
+          <span
+            className={`text-xs font-bold px-3 py-1 rounded-full border ${available ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-slate-800 border-slate-700 text-slate-500"}`}
+          >
             {available ? "● Available" : "○ Unavailable"}
           </span>
           {pending.length > 0 && (
@@ -243,11 +240,20 @@ const Mentorship = () => {
           { label: "Active", value: active.length, color: "emerald" },
           { label: "Completed", value: history.length, color: "sky" },
         ].map(({ label, value, color }) => {
-          const c = { amber: "text-amber-400 bg-amber-500/10 border-amber-500/20", emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", sky: "text-sky-400 bg-sky-500/10 border-sky-500/20" }[color];
+          const c = {
+            amber: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+            emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+            sky: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+          }[color];
           return (
-            <div key={label} className={`rounded-xl p-4 border ${c} text-center`}>
+            <div
+              key={label}
+              className={`rounded-xl p-4 border ${c} text-center`}
+            >
               <p className={`text-2xl font-bold ${c.split(" ")[0]}`}>{value}</p>
-              <p className="text-slate-400 text-xs mt-0.5 font-medium">{label}</p>
+              <p className="text-slate-400 text-xs mt-0.5 font-medium">
+                {label}
+              </p>
             </div>
           );
         })}
@@ -256,15 +262,20 @@ const Mentorship = () => {
       {/* Tabs */}
       <div className="flex gap-1 bg-slate-900 border border-white/[0.07] rounded-xl p-1">
         {TABS.map(({ key, label, count }) => (
-          <button key={key} onClick={() => setTab(key)}
+          <button
+            key={key}
+            onClick={() => setTab(key)}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all ${
               tab === key
                 ? "bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/30"
                 : "text-slate-400 hover:text-white"
-            }`}>
+            }`}
+          >
             {label}
             {count !== null && count > 0 && (
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === key ? "bg-emerald-500/30 text-emerald-300" : "bg-slate-700 text-slate-400"}`}>
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === key ? "bg-emerald-500/30 text-emerald-300" : "bg-slate-700 text-slate-400"}`}
+              >
                 {count}
               </span>
             )}
@@ -279,32 +290,53 @@ const Mentorship = () => {
             <div className="min-h-60 flex flex-col items-center justify-center text-center bg-slate-900 border border-white/[0.07] rounded-xl px-6">
               <PiHandshake size={28} className="text-slate-600 mb-3" />
               <p className="text-slate-300 font-semibold">No requests yet</p>
-              <p className="text-slate-500 text-sm mt-1">Students will reach out once you're marked available.</p>
+              <p className="text-slate-500 text-sm mt-1">
+                Students will reach out once you're marked available.
+              </p>
             </div>
           )}
 
           {/* Pending */}
           {pending.length > 0 && (
             <div>
-              <p className="text-xs text-slate-500 font-semibold tracking-widest uppercase mb-2 px-1">Pending Requests</p>
+              <p className="text-xs text-slate-500 font-semibold tracking-widest uppercase mb-2 px-1">
+                Pending Requests
+              </p>
               <div className="space-y-3">
                 {pending.map((r) => {
-                  const slotTaken = slots.find((s) => s.day === r.requestedSlot.day && s.time === r.requestedSlot.time && s.booked);
+                  const requestedSlot = r?.requestedSlot || {};
+                  const slotTaken = requestedSlot.day && requestedSlot.time
+                    ? slots.find(
+                        (s) =>
+                          s.day === requestedSlot.day &&
+                          s.time === requestedSlot.time &&
+                          s.booked,
+                      )
+                    : false;
                   return (
-                    <div key={r.id} className="bg-slate-900 border border-white/[0.07] rounded-xl p-4 sm:p-5 space-y-3">
+                    <div
+                      key={r._id || r.id}
+                      className="bg-slate-900 border border-white/[0.07] rounded-xl p-4 sm:p-5 space-y-3"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                            {r.studentName.charAt(0)}
+                            {(r.student?.name || r.studentName || "?").charAt(0)}
                           </div>
                           <div>
-                            <p className="text-white font-semibold text-sm">{r.studentName}</p>
-                            <p className="text-slate-500 text-xs">{r.year} · {r.department}</p>
+                            <p className="text-white font-semibold text-sm">
+                              {r.student?.name || r.studentName || "Unknown student"}
+                            </p>
+                            <p className="text-slate-500 text-xs">
+                              {r.student?.year || r.year || "?"} · {r.student?.department || r.department || "?"}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <GoalBadge goal={r.goal} />
-                          <span className="text-slate-600 text-xs">{r.requestedAt}</span>
+                          <span className="text-slate-600 text-xs">
+                            {r.requestedAt}
+                          </span>
                         </div>
                       </div>
 
@@ -316,7 +348,12 @@ const Mentorship = () => {
 
                       <div className="flex items-center gap-2">
                         <PiClock size={13} className="text-slate-500" />
-                        <span className="text-slate-400 text-xs">Requested: <span className="text-slate-200 font-medium">{r.requestedSlot.day} · {r.requestedSlot.time}</span></span>
+                        <span className="text-slate-400 text-xs">
+                          Requested:{" "}
+                          <span className="text-slate-200 font-medium">
+                            {(requestedSlot.day || "Unknown")} · {(requestedSlot.time || "Unknown")}
+                          </span>
+                        </span>
                         {slotTaken && (
                           <span className="flex items-center gap-1 text-amber-400 text-xs font-semibold ml-2">
                             <PiWarning size={12} /> Slot Booked
@@ -326,20 +363,28 @@ const Mentorship = () => {
 
                       {slotTaken && (
                         <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-                          <PiWarning size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                          <PiWarning
+                            size={14}
+                            className="text-amber-400 flex-shrink-0 mt-0.5"
+                          />
                           <p className="text-amber-300 text-xs">
-                            This slot is already booked. Accepting will notify the student to choose a different slot.
+                            This slot is already booked. Accepting will notify
+                            the student to choose a different slot.
                           </p>
                         </div>
                       )}
 
                       <div className="flex gap-2 pt-1">
-                        <button onClick={() => respond(r.id, "Rejected")}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold hover:bg-red-500/20 transition-all">
+                        <button
+                          onClick={() => respond(r._id || r.id, "Rejected")}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold hover:bg-red-500/20 transition-all"
+                        >
                           <PiX size={14} /> Decline
                         </button>
-                        <button onClick={() => respond(r.id, "Accepted")}
-                          className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold transition-all shadow shadow-emerald-500/30">
+                        <button
+                          onClick={() => respond(r._id, "Accepted")}
+                          className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold transition-all shadow shadow-emerald-500/30"
+                        >
                           <PiCheck size={14} /> Accept & Book Slot
                         </button>
                       </div>
@@ -353,31 +398,47 @@ const Mentorship = () => {
           {/* Active */}
           {active.length > 0 && (
             <div>
-              <p className="text-xs text-slate-500 font-semibold tracking-widest uppercase mb-2 px-1 mt-4">Active Mentorships</p>
+              <p className="text-xs text-slate-500 font-semibold tracking-widest uppercase mb-2 px-1 mt-4">
+                Active Mentorships
+              </p>
               <div className="space-y-3">
                 {active.map((r) => (
-                  <div key={r.id} className="bg-slate-900 border border-emerald-500/20 rounded-xl p-4 sm:p-5">
+                  <div
+                    key={r._id}
+                    className="bg-slate-900 border border-emerald-500/20 rounded-xl p-4 sm:p-5"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-sm">
-                          {r.studentName.charAt(0)}
+                          {(r.student?.name || r.studentName || "?").charAt(0)}
                         </div>
                         <div>
-                          <p className="text-white font-semibold text-sm">{r.studentName}</p>
-                          <p className="text-slate-500 text-xs">{r.year} · {r.department}</p>
+                          <p className="text-white font-semibold text-sm">{r.student?.name || r.studentName || "Unknown student"}</p>
+                          <p className="text-slate-500 text-xs">
+                            {r.student?.year || r.year || "?"} · {r.student?.department || r.department || "?"}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <GoalBadge goal={r.goal} />
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Active</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                          Active
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.05]">
                       <PiClock size={13} className="text-slate-500" />
-                      <span className="text-slate-400 text-xs">Slot: <span className="text-slate-200 font-medium">{r.requestedSlot.day} · {r.requestedSlot.time}</span></span>
+                      <span className="text-slate-400 text-xs">
+                        Slot:{" "}
+                        <span className="text-slate-200 font-medium">
+                          {(r.requestedSlot?.day || "Unknown")} · {(r.requestedSlot?.time || "Unknown")}
+                        </span>
+                      </span>
                       <div className="flex gap-2 ml-auto">
-                        <button onClick={() => setNotesTarget(r)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-300 text-xs font-semibold hover:bg-slate-700 transition-all">
+                        <button
+                          onClick={() => setNotesTarget(r)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-300 text-xs font-semibold hover:bg-slate-700 transition-all"
+                        >
                           <PiNotePencil size={13} /> Add Notes
                         </button>
                         <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-all">
@@ -396,19 +457,46 @@ const Mentorship = () => {
       {/* ── TAB: SETTINGS ── */}
       {tab === "settings" && (
         <div className="space-y-4">
-
           {/* Availability toggle */}
           <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white font-semibold text-sm">Available for Mentorship</p>
-                <p className="text-slate-500 text-xs mt-0.5">When on, students can find and request you as a mentor</p>
+                <p className="text-white font-semibold text-sm">
+                  Available for Mentorship
+                </p>
+                <p className="text-slate-500 text-xs mt-0.5">
+                  When on, students can find and request you as a mentor
+                </p>
               </div>
-              <button onClick={() => setAvailable((p) => !p)} className="flex-shrink-0">
-                {available
-                  ? <PiToggleRight size={36} className="text-emerald-400" />
-                  : <PiToggleLeft size={36} className="text-slate-600" />
-                }
+              <button
+                onClick={() => {
+                  const newVal = !available;
+                  setAvailable(newVal);
+
+                  axios
+                    .put(
+                      "http://localhost:4000/api/v1/mentorship/settings",
+                      { availableForMentorship: newVal },
+                      { withCredentials: true },
+                    )
+                    .then(() => {
+                      alert(`Mentorship availability is now ${newVal ? "enabled" : "disabled"}.`);
+                    })
+                    .catch((err) => {
+                      console.error("Availability toggle save failed:", err);
+                      const serverMessage = err.response?.data?.message;
+                      const statusCode = err.response?.status;
+                      alert(`Error updating availability${statusCode ? ` (HTTP ${statusCode})` : ""}: ${serverMessage || err.message || "Unknown error"}`);
+                      setAvailable(!newVal); // rollback on fail
+                    });
+                }}
+                className="flex-shrink-0"
+              >
+                {available ? (
+                  <PiToggleRight size={36} className="text-emerald-400" />
+                ) : (
+                  <PiToggleLeft size={36} className="text-slate-600" />
+                )}
               </button>
             </div>
           </div>
@@ -417,33 +505,84 @@ const Mentorship = () => {
           <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-white font-semibold text-sm">Weekly Mentee Limit</p>
-                <p className="text-slate-500 text-xs mt-0.5">Max students you can actively mentor per week</p>
+                <p className="text-white font-semibold text-sm">
+                  Weekly Mentee Limit
+                </p>
+                <p className="text-slate-500 text-xs mt-0.5">
+                  Max students you can actively mentor per week
+                </p>
               </div>
-              <span className="text-2xl font-bold text-emerald-400">{maxMentees}</span>
+              <span className="text-2xl font-bold text-emerald-400">
+                {maxMentees}
+              </span>
             </div>
-            <input type="range" min={1} max={10} value={maxMentees}
+            <input
+              type="range"
+              min={1}
+              max={10}
+              value={maxMentees}
               onChange={(e) => setMaxMentees(Number(e.target.value))}
-              className="w-full accent-emerald-500" />
+              className="w-full accent-emerald-500"
+            />
             <div className="flex justify-between text-xs text-slate-600 mt-1">
-              <span>1</span><span>5</span><span>10</span>
+              <span>1</span>
+              <span>5</span>
+              <span>10</span>
             </div>
             <p className="text-xs text-slate-500 mt-2">
-              Currently <span className="text-emerald-400 font-semibold">{active.length}</span> of <span className="text-emerald-400 font-semibold">{maxMentees}</span> slots used
+              Currently{" "}
+              <span className="text-emerald-400 font-semibold">
+                {active.length}
+              </span>{" "}
+              of{" "}
+              <span className="text-emerald-400 font-semibold">
+                {maxMentees}
+              </span>{" "}
+              slots used
             </p>
           </div>
 
           {/* Free time slots */}
           <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5">
             <div className="mb-4">
-              <p className="text-white font-semibold text-sm">Available Time Slots</p>
-              <p className="text-slate-500 text-xs mt-0.5">Students can only request sessions during these times. Booked slots are locked until the session ends.</p>
+              <p className="text-white font-semibold text-sm">
+                Available Time Slots
+              </p>
+              <p className="text-slate-500 text-xs mt-0.5">
+                Students can only request sessions during these times. Booked
+                slots are locked until the session ends.
+              </p>
             </div>
             <TimeSlotManager slots={slots} onChange={setSlots} />
           </div>
 
-          <button className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold transition-all shadow shadow-emerald-500/30">
-            Save Settings
+          <button
+            onClick={async () => {
+              setSavingSettings(true);
+              try {
+                await axios.put(
+                  "http://localhost:4000/api/v1/mentorship/settings",
+                  {
+                    availableForMentorship: available,
+                    mentorshipSlots: slots,
+                  },
+                  { withCredentials: true },
+                );
+                alert("Mentorship settings saved.");
+                fetchRequests();
+              } catch (err) {
+                console.error("Mentorship settings save failed:", err);
+                const serverMessage = err.response?.data?.message;
+                const statusCode = err.response?.status;
+                alert(`Error saving settings${statusCode ? ` (HTTP ${statusCode})` : ""}: ${serverMessage || err.message || "Unknown error"}`);
+              } finally {
+                setSavingSettings(false);
+              }
+            }}
+            disabled={savingSettings}
+            className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold transition-all shadow shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {savingSettings ? "Saving..." : "Save Settings"}
           </button>
         </div>
       )}
@@ -454,19 +593,26 @@ const Mentorship = () => {
           {history.length === 0 ? (
             <div className="min-h-60 flex flex-col items-center justify-center text-center bg-slate-900 border border-white/[0.07] rounded-xl px-6">
               <PiClockCountdown size={28} className="text-slate-600 mb-3" />
-              <p className="text-slate-300 font-semibold">No sessions completed yet</p>
-              <p className="text-slate-500 text-sm mt-1">Your mentorship history will appear here.</p>
+              <p className="text-slate-300 font-semibold">
+                No sessions completed yet
+              </p>
+              <p className="text-slate-500 text-sm mt-1">
+                Your mentorship history will appear here.
+              </p>
             </div>
           ) : (
             history.map((h) => (
-              <div key={h.id} className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 space-y-3">
+              <div
+                key={h.id}
+                className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 space-y-3"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-white font-bold text-sm">
-                      {h.studentName.charAt(0)}
+                      {(h.student?.name || h.studentName || "?").charAt(0)}
                     </div>
                     <div>
-                      <p className="text-white font-semibold text-sm">{h.studentName}</p>
+                      <p className="text-white font-semibold text-sm">{h.student?.name || h.studentName || "Unknown student"}</p>
                       <p className="text-slate-500 text-xs">{h.sessionDate}</p>
                     </div>
                   </div>
@@ -482,8 +628,13 @@ const Mentorship = () => {
                 )}
                 {h.notes && (
                   <div className="flex items-start gap-2 bg-sky-500/5 border border-sky-500/15 rounded-lg px-3 py-2">
-                    <PiNotePencil size={13} className="text-sky-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-slate-400 text-xs leading-relaxed">{h.notes}</p>
+                    <PiNotePencil
+                      size={13}
+                      className="text-sky-400 mt-0.5 flex-shrink-0"
+                    />
+                    <p className="text-slate-400 text-xs leading-relaxed">
+                      {h.notes}
+                    </p>
                   </div>
                 )}
               </div>

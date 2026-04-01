@@ -30,6 +30,14 @@ const teacherSchema = new mongoose.Schema({
   profilePhoto: { public_id: String, url: String },
   linkedIn: String,
   researchPapers: [{ title: String, url: String }],
+  mentorshipSlots: [
+    {
+      id: String,
+      day: String,
+      time: String,
+      booked: { type: Boolean, default: false },
+    },
+  ],
 
   // ── Auth Fields ──────────────────────────────────────────
   accountVerified: { type: Boolean, default: false },

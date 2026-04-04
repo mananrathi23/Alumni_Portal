@@ -43,6 +43,19 @@ const alumniSchema = new mongoose.Schema({
     },
   ],
 
+  // ── Mentorship stats (computed/cached) ──────────────────────
+  weeklyLimit: { type: Number, default: 5, min: 1, max: 20 },
+  mentorStats: {
+    totalSessions:    { type: Number, default: 0 },
+    totalRatings:     { type: Number, default: 0 },
+    sumRatings:       { type: Number, default: 0 },
+    averageRating:    { type: Number, default: 0 },
+    totalRequests:    { type: Number, default: 0 },
+    acceptedRequests: { type: Number, default: 0 },
+    avgResponseMs:    { type: Number, default: 0 }, // avg accept time in ms
+    score:            { type: Number, default: 0 }, // computed rank score
+  },
+
   // ── Auth Fields ──────────────────────────────────────────
   accountVerified: { type: Boolean, default: false },
   verificationCode: Number,

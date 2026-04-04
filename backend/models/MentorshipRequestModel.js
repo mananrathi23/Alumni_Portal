@@ -28,8 +28,19 @@ const mentorshipRequestSchema = new mongoose.Schema({
     default: "Pending",
   },
   requestedAt: { type: Date, default: Date.now },
+  // Exact datetime of the session (set when mentor accepts + slot day/time resolved)
+  sessionDateTime: { type: Date, default: null },
+  // Prevents sending duplicate reminder emails
+  reminderSent: { type: Boolean, default: false },
+  // Student's rating after session completion
+  rating: {
+    value:     { type: Number, min: 1, max: 5, default: null },
+    feedback:  { type: String, maxLength: 500, default: "" },
+    ratedAt:   { type: Date, default: null },
+  },
   respondedAt: Date,
   completedAt: Date,
+  meetingLink: { type: String, default: null },
 }, {
   timestamps: true,
 });
@@ -41,3 +52,4 @@ mentorshipRequestSchema.index(
 );
 
 export const MentorshipRequest = mongoose.model("MentorshipRequest", mentorshipRequestSchema);
+// Note: meetingLink field appended via patch

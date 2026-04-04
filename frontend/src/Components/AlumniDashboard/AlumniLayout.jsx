@@ -2,6 +2,8 @@ import Header from "./Header";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
+import { useSocket } from "../../SocketContext";
+import { toast } from "react-toastify";
 import { Context } from "../../main";
 import ProfileIncompleteModal from "./ProfileIncompleteModal";
 import { isAlumniProfileComplete } from "./Profile";
@@ -22,6 +24,22 @@ const AlumniLayout = () => {
       })
       .catch(() => { setIsAuthenticated(false); navigate("/login"); });
   }, []);
+
+  // ── Meeting reminder socket listener ──────────────────────────────────────
+  const { socketRef, isSocketReady } = useSocket();
+  useEffect(() => {
+    if (!isSocketReady || !socketRef.current) return;
+    const socket = socketRef.current;
+    const handler = (data) => {
+      const link = data.meetingLink;
+      const msg = data.mentorName
+        ? `⏰ Session with ${data.mentorName} starts in 15 min!${link ? " Join: " + link : ""}`
+        : `⏰ Session with ${data.studentName} starts in 15 min!`;
+      toast.info(msg, { autoClose: 10000 });
+    };
+    socket.on("mentorship:reminder", handler);
+    return () => socket.off("mentorship:reminder", handler);
+  }, [isSocketReady]);
 
   if (!alumni) {
     return (

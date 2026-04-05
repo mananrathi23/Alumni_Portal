@@ -198,8 +198,8 @@ const Mentorship = () => {
     setSavingSettings(true);
     try {
       await Promise.all([
-        axios.put(`\${API}/settings`, { availableForMentorship: available, mentorshipSlots: slots }, { withCredentials: true }),
-        axios.put(`\${API}/weekly-limit`, { weeklyLimit }, { withCredentials: true }),
+        axios.put(`${API}/settings`, { availableForMentorship: available, mentorshipSlots: slots }, { withCredentials: true }),
+        axios.put(`${API}/weekly-limit`, { weeklyLimit }, { withCredentials: true }),
       ]);
       toast.success("Settings saved.");
     } catch (err) { toast.error(err.response?.data?.message || "Failed to save settings."); }

@@ -1,6 +1,8 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import ErrorHandler        from "../middlewares/error.js";
 import { Event }           from "../models/EventModel.js";
+import { Alumni }          from "../models/AlumniModel.js";
+import { Teacher }         from "../models/TeacherModel.js";
 
 const POSTER_ROLES = ["Admin", "Alumni", "Teacher"];
 
@@ -48,7 +50,7 @@ export const createEvent = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Only Admin, Alumni, and Teachers can create events.", 403));
   }
 
-  const { title, description, date, time, location, link, type } = req.body;
+  const { title, description, date, time, location, link, type, registrationDeadline } = req.body;
 
   if (!title?.trim())       return next(new ErrorHandler("Title is required.", 400));
   if (!description?.trim()) return next(new ErrorHandler("Description is required.", 400));
@@ -58,14 +60,40 @@ export const createEvent = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Provide either a physical location or an online link.", 400));
   }
 
+  // ── Date validations ──────────────────────────────────────────────────────
+  const eventDate = new Date(date);
+  const now       = new Date();
+  const oneYearFromNow = new Date();
+  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+  if (eventDate <= now) {
+    return next(new ErrorHandler("Event date must be in the future.", 400));
+  }
+  if (eventDate > oneYearFromNow) {
+    return next(new ErrorHandler("Event cannot be scheduled more than 1 year in advance.", 400));
+  }
+
+  // Registration deadline must be before event date and in the future
+  let regDeadline = null;
+  if (registrationDeadline) {
+    regDeadline = new Date(registrationDeadline);
+    if (regDeadline <= now) {
+      return next(new ErrorHandler("Registration deadline must be in the future.", 400));
+    }
+    if (regDeadline >= eventDate) {
+      return next(new ErrorHandler("Registration deadline must be before the event date.", 400));
+    }
+  }
+
   const event = await Event.create({
     title:       title.trim(),
     description: description.trim(),
-    date:        new Date(date),
+    date:        eventDate,
     time:        time.trim(),
     location:    location?.trim() || "",
     link:        link?.trim()     || "",
     type:        type || "other",
+    registrationDeadline: regDeadline,
     organizer: {
       id:   req.user._id,
       name: req.user.name,
@@ -74,6 +102,13 @@ export const createEvent = catchAsyncError(async (req, res, next) => {
   });
 
   res.status(201).json({ success: true, event });
+
+  // Increment community score counter (fire-and-forget)
+  if (role === "Alumni") {
+    Alumni.findByIdAndUpdate(req.user._id, { $inc: { "mentorStats.eventsOrganized": 1 } }).catch(() => {});
+  } else if (role === "Teacher") {
+    Teacher.findByIdAndUpdate(req.user._id, { $inc: { "mentorStats.eventsOrganized": 1 } }).catch(() => {});
+  }
 });
 
 // ── PUT /api/v1/events/:eventId ───────────────────────────────────────────────
@@ -118,8 +153,28 @@ export const deleteEvent = catchAsyncError(async (req, res, next) => {
 export const registerForEvent = catchAsyncError(async (req, res, next) => {
   const event = await Event.findById(req.params.eventId);
   if (!event || !event.isActive) return next(new ErrorHandler("Event not found.", 404));
-  if (new Date(event.date) < new Date()) {
+
+  const role = req.user.constructor.modelName;
+
+  // Admin cannot register for events
+  if (role === "Admin") {
+    return next(new ErrorHandler("Admins cannot register for events.", 403));
+  }
+
+  // The person who posted the event cannot register for their own event
+  if (event.organizer?.id?.toString() === req.user._id.toString()) {
+    return next(new ErrorHandler("You cannot register for an event you created.", 403));
+  }
+
+  const now = new Date();
+
+  if (new Date(event.date) < now) {
     return next(new ErrorHandler("Cannot register for a past event.", 400));
+  }
+
+  // Block if registration deadline has passed
+  if (event.registrationDeadline && new Date(event.registrationDeadline) < now) {
+    return next(new ErrorHandler("Registration deadline for this event has passed.", 400));
   }
 
   const userId    = req.user._id.toString();

@@ -20,30 +20,31 @@ const alumniSchema = new mongoose.Schema({
     select: false,
   },
 
-  // ── Alumni-Specific Fields ───────────────────────────────
-  graduationYear: { type: Number, default: new Date().getFullYear() },
-  department: { type: String, default: "Not Set" },
-  degree: String, // e.g. "B.Tech", "MBA"
-  currentCompany: String,
-  currentDesignation: String,
-  currentLocation: String,
-  industry: String, // e.g. "IT", "Finance"
-  skills: [String],
-  bio: { type: String, maxLength: [500, "Bio cannot exceed 500 characters."] },
-  profilePhoto: { public_id: String, url: String },
-  linkedIn: String,
-  github: String,
+  // ── Alumni-Specific Fields ───────────────────────────────────────────────
+  graduationYear:      { type: Number, default: new Date().getFullYear() },
+  enrollmentYear:      { type: Number, default: null }, // Year enrolled in the programme (used for "Class of")
+  department:          { type: String, default: "Not Set" },
+  degree:              String,
+  currentCompany:      String,
+  currentDesignation:  String,
+  currentLocation:     String,
+  industry:            String,
+  skills:              [String],
+  bio:                 { type: String, maxLength: [500, "Bio cannot exceed 500 characters."] },
+  profilePhoto:        { public_id: String, url: String },
+  linkedIn:            String,
+  github:              String,
+
+  // ── Mentorship ───────────────────────────────────────────────────────────
   availableForMentorship: { type: Boolean, default: false },
   mentorshipSlots: [
     {
-      id: String,
-      day: String,
-      time: String,
+      id:     String,
+      day:    String,
+      time:   String,
       booked: { type: Boolean, default: false },
     },
   ],
-
-  // ── Mentorship stats (computed/cached) ──────────────────────
   weeklyLimit: { type: Number, default: 5, min: 1, max: 20 },
   mentorStats: {
     totalSessions:    { type: Number, default: 0 },
@@ -52,17 +53,30 @@ const alumniSchema = new mongoose.Schema({
     averageRating:    { type: Number, default: 0 },
     totalRequests:    { type: Number, default: 0 },
     acceptedRequests: { type: Number, default: 0 },
-    avgResponseMs:    { type: Number, default: 0 }, // avg accept time in ms
-    score:            { type: Number, default: 0 }, // computed rank score
+    avgResponseMs:    { type: Number, default: 0 },
+    jobsPosted:       { type: Number, default: 0 },   // community score contribution
+    eventsOrganized:  { type: Number, default: 0 },   // community score contribution
+    score:            { type: Number, default: 0 },
   },
 
-  // ── Auth Fields ──────────────────────────────────────────
-  accountVerified: { type: Boolean, default: false },
-  verificationCode: Number,
+  // ── Google Calendar OAuth tokens ─────────────────────────────────────────
+  // select: false keeps tokens out of all regular queries for security.
+  // Use .select("+googleTokens") to fetch them explicitly when needed.
+  googleTokens: {
+    access_token:  { type: String, select: false },
+    refresh_token: { type: String, select: false },
+    scope:         { type: String, select: false },
+    token_type:    { type: String, select: false },
+    expiry_date:   { type: Number, select: false },
+  },
+
+  // ── Auth Fields ──────────────────────────────────────────────────────────
+  accountVerified:        { type: Boolean, default: false },
+  verificationCode:       Number,
   verificationCodeExpire: Date,
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-  createdAt: { type: Date, default: Date.now },
+  resetPasswordToken:     String,
+  resetPasswordExpire:    Date,
+  createdAt:              { type: Date, default: Date.now },
 });
 
 // Hash password before saving
@@ -78,12 +92,10 @@ alumniSchema.methods.comparePassword = async function (enteredPassword) {
 
 // Generate 5-digit OTP
 alumniSchema.methods.generateVerificationCode = function () {
-  const firstDigit = Math.floor(Math.random() * 9) + 1;
-  const remainingDigits = Math.floor(Math.random() * 10000)
-    .toString()
-    .padStart(4, "0");
+  const firstDigit     = Math.floor(Math.random() * 9) + 1;
+  const remainingDigits = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
   const verificationCode = parseInt(firstDigit + remainingDigits);
-  this.verificationCode = verificationCode;
+  this.verificationCode       = verificationCode;
   this.verificationCodeExpire = Date.now() + 10 * 60 * 1000;
   return verificationCode;
 };
@@ -100,10 +112,7 @@ alumniSchema.methods.generateToken = function () {
 // Generate reset password token
 alumniSchema.methods.generateResetPasswordToken = function () {
   const resetToken = crypto.randomBytes(20).toString("hex");
-  this.resetPasswordToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
+  this.resetPasswordToken  = crypto.createHash("sha256").update(resetToken).digest("hex");
   this.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
   return resetToken;
 };

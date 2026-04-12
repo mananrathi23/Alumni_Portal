@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+﻿import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -125,28 +125,73 @@ const RequestModal = ({ mentor, onClose, onSuccess }) => {
 };
 
 // ── Mentor Card ───────────────────────────────────────────────────────────────
-const MentorCard = ({ mentor, onRequest }) => {
+const MentorCard = ({ mentor, onRequest, matchScore, matchBreakdown }) => {
   const slots     = mentor.availableSlots || mentor.mentorshipSlots || [];
   const freeSlots = slots.filter(s => !s.booked);
   const roleColor = mentor.role === "Alumni" ? "emerald" : "violet";
 
+  // Badge from server (smart-match) or compute locally from score
+  const score = mentor.mentorStats?.score || 0;
+  const badge = mentor.badge || (
+    score >= 8.5 ? "🏆 Elite Mentor" :
+    score >= 6.5 ? "⭐ Expert Mentor" :
+    score >= 4.5 ? "🌟 Rising Mentor" :
+    score >= 2.0 ? "🌱 New Mentor" : null
+  );
+
+  const badgeCls = {
+    "🏆 Elite Mentor":  "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    "⭐ Expert Mentor": "bg-orange-500/15 text-orange-300 border-orange-500/30",
+    "🌟 Rising Mentor": "bg-sky-500/15 text-sky-300 border-sky-500/30",
+    "🌱 New Mentor":    "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  }[badge] || "bg-slate-700 text-slate-400 border-slate-600";
+
   return (
     <div className="bg-slate-900 border border-white/[0.07] rounded-xl overflow-hidden">
       <div className="p-4 sm:p-5">
+        {/* Match score banner */}
+        {matchScore !== undefined && (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-sky-500/10 border border-sky-500/20">
+            <div className="flex items-center justify-between">
+              <span className="text-sky-400 text-xs font-bold">Match Score: {matchScore} pts</span>
+              <span className="text-sky-300 text-[10px]">Best match for your profile</span>
+            </div>
+            {matchBreakdown?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {matchBreakdown.map((b, i) => (
+                  <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400">{b}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-base flex-shrink-0 ${roleColor==="emerald"?"bg-gradient-to-br from-emerald-400 to-emerald-600":"bg-gradient-to-br from-violet-400 to-violet-600"}`}>
-              {mentor.name?.charAt(0)?.toUpperCase() || "?"}
-            </div>
+            {mentor.profilePhoto?.url ? (
+              <img src={mentor.profilePhoto.url} alt={mentor.name}
+                className="w-10 h-10 rounded-xl object-cover flex-shrink-0"/>
+            ) : (
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-base flex-shrink-0 ${roleColor==="emerald"?"bg-gradient-to-br from-emerald-400 to-emerald-600":"bg-gradient-to-br from-violet-400 to-violet-600"}`}>
+                {mentor.name?.charAt(0)?.toUpperCase() || "?"}
+              </div>
+            )}
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-white font-semibold text-sm">{mentor.name}</p>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleColor==="emerald"?"bg-emerald-500/15 text-emerald-400 border-emerald-500/25":"bg-violet-500/15 text-violet-400 border-violet-500/25"}`}>{mentor.role}</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleColor==="emerald"?"bg-emerald-500/15 text-emerald-400 border-emerald-500/25":"bg-violet-500/15 text-violet-400 border-violet-500/25"}`}>
+                  {mentor.role}
+                </span>
+                {badge && (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeCls}`}>
+                    {badge}
+                  </span>
+                )}
               </div>
               <p className="text-slate-500 text-xs mt-0.5">
                 {mentor.currentDesignation||mentor.designation||""}
-                {(mentor.currentCompany) && <span> · {mentor.currentCompany}</span>}
-                {mentor.graduationYear && <span className="text-slate-600"> · Class of {mentor.graduationYear}</span>}
+                {mentor.currentCompany && <span> · {mentor.currentCompany}</span>}
+                {mentor.department && <span className="text-slate-600"> · {mentor.department}</span>}
               </p>
             </div>
           </div>
@@ -156,27 +201,26 @@ const MentorCard = ({ mentor, onRequest }) => {
 
         {(mentor.skills||[]).length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3">
-            {mentor.skills.slice(0,5).map(s => <span key={s} className="px-2 py-0.5 rounded-md bg-slate-800 border border-white/[0.05] text-slate-400 text-xs font-medium">{s}</span>)}
+            {mentor.skills.slice(0,5).map(s => (
+              <span key={s} className="px-2 py-0.5 rounded-md bg-slate-800 border border-white/[0.05] text-slate-400 text-xs font-medium">{s}</span>
+            ))}
           </div>
         )}
 
-        {/* Mentor ranking badges */}
-        {mentor.mentorStats && (
+        {/* Stats row */}
+        {mentor.mentorStats?.averageRating > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
-            {mentor.mentorStats.score >= 4 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-400 text-[10px] font-bold">⭐ Top Mentor</span>
-            )}
-            {mentor.mentorStats.averageRating >= 4.5 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/15 border border-orange-500/25 text-orange-400 text-[10px] font-bold">🔥 Highly Rated</span>
-            )}
-            {mentor.mentorStats.totalSessions >= 10 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/25 text-violet-400 text-[10px] font-bold">🎓 Experienced</span>
-            )}
-            {mentor.mentorStats.averageRating > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-700 border border-slate-600 text-slate-300 text-[10px] font-semibold">
+              ★ {mentor.mentorStats.averageRating} ({mentor.mentorStats.totalRatings} review{mentor.mentorStats.totalRatings !== 1 ? "s" : ""})
+            </span>
+            {mentor.mentorStats.totalSessions > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-700 border border-slate-600 text-slate-300 text-[10px] font-semibold">
-                ★ {mentor.mentorStats.averageRating} ({mentor.mentorStats.totalRatings} review{mentor.mentorStats.totalRatings !== 1 ? "s" : ""})
+                🎓 {mentor.mentorStats.totalSessions} session{mentor.mentorStats.totalSessions !== 1 ? "s" : ""}
               </span>
             )}
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-700 border border-slate-600 text-slate-300 text-[10px] font-semibold">
+              Score: {score.toFixed(1)}/10
+            </span>
           </div>
         )}
 
@@ -184,7 +228,9 @@ const MentorCard = ({ mentor, onRequest }) => {
           <div className="flex items-center gap-2">
             <PiClock size={12} className="text-slate-600"/>
             <span className="text-slate-500 text-xs">
-              {freeSlots.length > 0 ? <span className="text-emerald-400 font-medium">{freeSlots.length} slot{freeSlots.length>1?"s":""} free</span> : <span className="text-slate-600">No slots available</span>}
+              {freeSlots.length > 0
+                ? <span className="text-emerald-400 font-medium">{freeSlots.length} free slot{freeSlots.length>1?"s":""}</span>
+                : <span className="text-slate-600">No slots available</span>}
             </span>
           </div>
           <button onClick={() => onRequest(mentor)} disabled={freeSlots.length===0}
@@ -193,14 +239,13 @@ const MentorCard = ({ mentor, onRequest }) => {
           </button>
         </div>
 
-        {slots.length > 0 && (
+        {freeSlots.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
-            {slots.map(s => (
+            {freeSlots.map(s => (
               <div key={s.id||`${s.day}-${s.time}`}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${s.booked?"bg-slate-800/40 border-slate-700/50 text-slate-600":"bg-slate-800 border-white/[0.07] text-slate-300"}`}>
-                <PiCalendarBlank size={11} className={s.booked?"text-slate-600":"text-sky-400"}/>
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium bg-slate-800 border-white/[0.07] text-slate-300">
+                <PiCalendarBlank size={11} className="text-sky-400"/>
                 {s.day} · {s.time}
-                {s.booked && <span className="text-[10px] text-slate-600 ml-1">Booked</span>}
               </div>
             ))}
           </div>
@@ -226,6 +271,37 @@ const Mentorship = () => {
   const [requestTarget, setRequestTarget] = useState(null);
   const [rateTarget, setRateTarget]       = useState(null);
 
+  // ── Smart match state ──────────────────────────────────────────────────────
+  const [smartMode,    setSmartMode]    = useState(false);
+  const [smartResults, setSmartResults] = useState([]);
+  const [smartLoading, setSmartLoading] = useState(false);
+  const [smartGoal,    setSmartGoal]    = useState("career");
+  const [matchBasis,   setMatchBasis]   = useState([]);
+
+  const runSmartMatch = async () => {
+    setSmartLoading(true);
+    setSmartMode(true);
+    try {
+      const res = await axios.get(`${API}/smart-match`, {
+        params: { goal: smartGoal },
+        withCredentials: true,
+      });
+      setSmartResults(res.data.mentors || []);
+      setMatchBasis(res.data.matchBasis || []);
+      if (!res.data.mentors?.length) {
+        toast.info("No strong matches found yet. Try browsing all mentors.");
+      }
+    } catch {
+      toast.error("Smart match failed. Try again.");
+    } finally {
+      setSmartLoading(false);
+    }
+  };
+
+  const clearSmartMatch = () => {
+    setSmartMode(false);
+    setSmartResults([]);
+  };
 
   const fetchMentors = async () => {
     setLoadingMentors(true);
@@ -334,6 +410,89 @@ const Mentorship = () => {
       {/* ── Find Mentor ── */}
       {tab === "find" && (
         <div className="space-y-4">
+
+          {/* ── Smart Match Panel ── */}
+          <div className="bg-slate-900 border border-sky-500/20 rounded-xl p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-white font-semibold text-sm flex items-center gap-2">
+                  <PiClockCountdown className="text-sky-400" size={16}/> Smart Mentor Match
+                </p>
+                <p className="text-slate-500 text-xs mt-0.5">
+                  Find mentors best suited to your branch, skills, and goal
+                </p>
+              </div>
+              {smartMode && (
+                <button onClick={clearSmartMatch}
+                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg border border-white/[0.07] hover:bg-slate-800 transition-all">
+                  <PiX size={12}/> Clear
+                </button>
+              )}
+            </div>
+
+            {/* Goal selector */}
+            <div className="flex flex-wrap gap-2">
+              {GOAL_OPTIONS.map(g => (
+                <button key={g.value} onClick={() => setSmartGoal(g.value)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    smartGoal === g.value
+                      ? "bg-sky-500/15 text-sky-400 border-sky-500/30"
+                      : "bg-slate-800 text-slate-400 border-white/[0.06] hover:text-white"
+                  }`}>
+                  {g.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={runSmartMatch}
+              disabled={smartLoading}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-sm font-bold transition-all shadow shadow-sky-500/20 disabled:opacity-50"
+            >
+              {smartLoading
+                ? <><PiCircleNotch size={15} className="animate-spin"/> Finding matches…</>
+                : <><PiInfo size={15}/> Find My Best Mentors</>
+              }
+            </button>
+
+            {/* Match basis explanation */}
+            {matchBasis.length > 0 && (
+              <div className="pt-1">
+                <p className="text-slate-500 text-[10px] font-semibold tracking-widest uppercase mb-1.5">Matching based on:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {matchBasis.map((b, i) => (
+                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/[0.05]">{b}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Smart match results */}
+          {smartMode && !smartLoading && (
+            <div>
+              <p className="text-sky-400 text-xs font-semibold mb-3">
+                {smartResults.length > 0
+                  ? `${smartResults.length} mentor${smartResults.length !== 1 ? "s" : ""} matched for "${GOAL_OPTIONS.find(g => g.value === smartGoal)?.label}"`
+                  : "No matches found. Try a different goal or complete your profile with skills and department."}
+              </p>
+              {smartResults.length > 0 && (
+                <div className="space-y-3">
+                  {smartResults.map(m => (
+                    <MentorCard key={m._id} mentor={m} onRequest={setRequestTarget}
+                      matchScore={m.matchScore} matchBreakdown={m.matchBreakdown}/>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                <p className="text-slate-600 text-xs text-center">
+                  ↓ All available mentors are shown below
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Regular search + filter */}
           <div className="flex gap-2">
             <div className="relative flex-1">
               <PiMagnifyingGlass size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"/>

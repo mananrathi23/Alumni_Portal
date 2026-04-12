@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../../main";
+import ProfilePhotoUpload from "../ProfilePhotoUpload.jsx";
 import {
   PiGraduationCap, PiPencilSimple, PiCheck, PiX,
   PiLinkedinLogo, PiGithubLogo, PiBriefcase,
@@ -40,6 +41,7 @@ const Profile = () => {
     enrollmentNumber: student?.enrollmentNumber || "",
     section:          student?.section || "",
     cgpa:             student?.cgpa || "",
+    enrollmentYear:   student?.enrollmentYear || "",
     bio:              student?.bio || "",
     linkedIn:         student?.linkedIn || "",
     github:           student?.github || "",
@@ -64,7 +66,11 @@ const Profile = () => {
     try {
       const res = await axios.put(
         "http://localhost:4000/api/v1/user/update-profile",
-        { ...form, cgpa: form.cgpa ? Number(form.cgpa) : undefined },
+        {
+          ...form,
+          cgpa:           form.cgpa           ? Number(form.cgpa)           : undefined,
+          enrollmentYear: form.enrollmentYear  ? Number(form.enrollmentYear) : undefined,
+        },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       );
       toast.success("Profile updated successfully!");
@@ -121,6 +127,15 @@ const Profile = () => {
         )}
       </div>
 
+      {/* Profile Photo */}
+      <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 flex justify-center">
+        <ProfilePhotoUpload
+          user={student}
+          accentColor="sky"
+          onUploaded={(photo) => setUser((prev) => ({ ...prev, profilePhoto: photo }))}
+        />
+      </div>
+
       {/* Incomplete banner */}
       {!complete && !editing && (
         <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
@@ -173,6 +188,26 @@ const Profile = () => {
                 onChange={(e) => set("enrollmentNumber", e.target.value)} className={inputClass} />
             ) : (
               <p className="text-slate-300 text-sm">{student?.enrollmentNumber || <span className="text-slate-600">Not set</span>}</p>
+            )}
+          </div>
+
+          {/* Enrollment Year */}
+          <div>
+            <label className={labelClass}>Enrollment Year</label>
+            {editing ? (
+              <input
+                type="number"
+                placeholder="e.g. 2026"
+                min="2000"
+                max="2040"
+                value={form.enrollmentYear}
+                onChange={(e) => set("enrollmentYear", e.target.value ? Number(e.target.value) : "")}
+                className={inputClass}
+              />
+            ) : (
+              <p className="text-slate-300 text-sm">
+                {student?.enrollmentYear ? `Class of ${student.enrollmentYear}` : <span className="text-slate-600">Not set</span>}
+              </p>
             )}
           </div>
 

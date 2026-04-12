@@ -1,6 +1,8 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import ErrorHandler        from "../middlewares/error.js";
 import { Job }             from "../models/JobModel.js";
+import { Alumni }          from "../models/AlumniModel.js";
+import { Teacher }         from "../models/TeacherModel.js";
 
 const POSTER_ROLES = ["Admin", "Alumni", "Teacher"];
 
@@ -60,6 +62,15 @@ export const createJob = catchAsyncError(async (req, res, next) => {
   if (!jobRole?.trim())     return next(new ErrorHandler("Role/position is required.", 400));
   if (!description?.trim()) return next(new ErrorHandler("Description is required.", 400));
 
+  // Deadline must be in the future if provided
+  let parsedDeadline = null;
+  if (deadline) {
+    parsedDeadline = new Date(deadline);
+    if (parsedDeadline <= new Date()) {
+      return next(new ErrorHandler("Application deadline must be a future date.", 400));
+    }
+  }
+
   const job = await Job.create({
     company:     company.trim(),
     role:        jobRole.trim(),
@@ -68,7 +79,7 @@ export const createJob = catchAsyncError(async (req, res, next) => {
     link:        link?.trim() || "",
     type:        type || "full-time",
     skills:      Array.isArray(skills) ? skills : [],
-    deadline:    deadline ? new Date(deadline) : null,
+    deadline:    parsedDeadline,
     postedBy: {
       id:   req.user._id,
       name: req.user.name,
@@ -77,6 +88,13 @@ export const createJob = catchAsyncError(async (req, res, next) => {
   });
 
   res.status(201).json({ success: true, job });
+
+  // Increment community score counter (fire-and-forget)
+  if (role === "Alumni") {
+    Alumni.findByIdAndUpdate(req.user._id, { $inc: { "mentorStats.jobsPosted": 1 } }).catch(() => {});
+  } else if (role === "Teacher") {
+    Teacher.findByIdAndUpdate(req.user._id, { $inc: { "mentorStats.jobsPosted": 1 } }).catch(() => {});
+  }
 });
 
 // ── PUT /api/v1/jobs/:jobId ───────────────────────────────────────────────────

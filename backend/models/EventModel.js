@@ -41,6 +41,9 @@ const eventSchema = new mongoose.Schema(
     // Students who RSVP'd
     registeredStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }],
 
+    // Last date to register for this event (optional)
+    registrationDeadline: { type: Date, default: null },
+
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

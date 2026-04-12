@@ -14,10 +14,11 @@ const NAV_LINKS = [
   { label: "Forum",       path: "/student/forum",      icon: PiChatsCircle },
   { label: "Messages",    path: "/student/messages",   icon: PiEnvelope },
   { label: "Connections", path: "/student/alumni",     icon: PiUsersThree },
+  { label: "Batchmates",  path: "/student/batchmates", icon: PiUsersThree },
   { label: "Requests",    path: "/student/requests",   icon: PiHandshake },
   { label: "Jobs",        path: "/student/jobs",       icon: PiBriefcase },
   { label: "Events",      path: "/student/events",     icon: PiCalendarCheck },
-  { label: "Mentorship",   path: "/student/mentorship", icon: PiUserCircle },
+  { label: "Mentorship",  path: "/student/mentorship", icon: PiUserCircle },
 ];
 
 const Header = ({ student }) => {

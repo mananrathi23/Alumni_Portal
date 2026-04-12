@@ -1,5 +1,5 @@
 import express from "express";
-import { isAuthenticated } from "../middlewares/auth.js";
+import { isAuthenticated, isStaff } from "../middlewares/auth.js";
 import {
   getJobs, getJob, createJob, updateJob, deleteJob,
 } from "../controllers/JobController.js";
@@ -8,9 +8,9 @@ const router = express.Router();
 router.use(isAuthenticated);
 
 router.get("/",          getJobs);
-router.post("/",         createJob);
+router.post("/",         isStaff, createJob);    // Alumni + Teacher + Admin
 router.get("/:jobId",    getJob);
-router.put("/:jobId",    updateJob);
-router.delete("/:jobId", deleteJob);
+router.put("/:jobId",    isStaff, updateJob);
+router.delete("/:jobId", isStaff, deleteJob);
 
 export default router;

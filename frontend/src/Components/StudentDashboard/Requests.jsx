@@ -118,29 +118,6 @@ const Requests = () => {
         </button>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-4 gap-2">
-        {[
-          { label:"Total", value: requests.length, color:"slate" },
-          { label:"Pending", value: counts.Pending, color:"amber" },
-          { label:"Accepted", value: counts.Accepted, color:"emerald" },
-          { label:"Declined", value: counts.Rejected, color:"red" },
-        ].map(({ label, value, color }) => {
-          const c = {
-            slate:"text-slate-400 bg-slate-800 border-slate-700",
-            amber:"text-amber-400 bg-amber-500/10 border-amber-500/20",
-            emerald:"text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-            red:"text-red-400 bg-red-500/10 border-red-500/20",
-          }[color];
-          return (
-            <div key={label} className={`rounded-xl p-3 border ${c} text-center`}>
-              <p className={`text-xl font-bold ${c.split(" ")[0]}`}>{value}</p>
-              <p className="text-slate-500 text-[11px] mt-0.5 font-medium">{label}</p>
-            </div>
-          );
-        })}
-      </div>
-
       {/* Filter tabs */}
       <div className="flex gap-1 bg-slate-900 border border-white/[0.07] rounded-xl p-1">
         {FILTERS.map(f => (
@@ -167,13 +144,9 @@ const Requests = () => {
           <p className="text-slate-300 font-semibold">No {filter !== "All" ? filter.toLowerCase() : ""} requests</p>
           <p className="text-slate-500 text-sm mt-1 max-w-xs">
             {filter === "All"
-              ? "Browse mentors and send a request to get started."
-              : `No ${filter.toLowerCase()} requests found.`}
+              ? "Send a mentorship request to get started."
+              : `No ${filter.toLowerCase()} requests yet.`}
           </p>
-          <button onClick={() => navigate("/student/mentorship")}
-            className="mt-5 flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-sm font-semibold hover:bg-sky-500/20 transition-all">
-            <PiUsersThree size={16}/> Browse Mentors <PiArrowRight size={13}/>
-          </button>
         </div>
       ) : (
         <div className="space-y-3">

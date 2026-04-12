@@ -1,23 +1,20 @@
 // MentorshipChat.jsx — Real-time chat for accepted mentorship sessions
-// Works for Student, Alumni, and Teacher dashboards
-// Usage: <MentorshipChat mentorshipId={...} currentUser={...} otherPerson={{ name, role }} onClose={...} />
+// Fix 4: Chat is read-only after session Completed/expired
+// Fix 5: Meeting link auto-posted on acceptance; no manual link button needed
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useSocket } from "../SocketContext";
 import {
   PiX, PiPaperPlaneTilt, PiLink, PiCircleNotch,
-  PiCheckCircle, PiWarningCircle, PiChatCircleText,
+  PiCheckCircle, PiWarningCircle, PiChatCircleText, PiLockSimple,
 } from "react-icons/pi";
 
 const API = "http://localhost:4000/api/v1/mentorship";
 
-// Format timestamp as "HH:MM AM/PM"
 function formatTime(iso) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
-// Format date as "Today", "Yesterday", or "Mar 5"
 function formatDay(iso) {
   const d = new Date(iso);
   const today = new Date();
@@ -28,22 +25,24 @@ function formatDay(iso) {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = "sky", onClose }) => {
+const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = "sky", onClose, sessionStatus: initialStatus }) => {
   const { socketRef, isSocketReady } = useSocket();
-  const [messages, setMessages]       = useState([]);
-  const [text, setText]               = useState("");
-  const [loading, setLoading]         = useState(true);
-  const [sending, setSending]         = useState(false);
-  const [error, setError]             = useState(null);
-  const [isTyping, setIsTyping]       = useState(false);
-  const [meetingLink, setMeetingLink] = useState("");
-  const [showLinkInput, setShowLinkInput] = useState(false);
-  const [settingLink, setSettingLink]   = useState(false);
+  const [messages,  setMessages]  = useState([]);
+  const [text,      setText]      = useState("");
+  const [loading,   setLoading]   = useState(true);
+  const [sending,   setSending]   = useState(false);
+  const [error,     setError]     = useState(null);
+  const [isTyping,  setIsTyping]  = useState(false);
+  // Fix 4: track session status for read-only mode
+  const [sessionStatus, setSessionStatus] = useState(initialStatus || "Accepted");
+
   const bottomRef     = useRef(null);
   const typingTimeout = useRef(null);
-  const isMentor      = currentUser.role === "Alumni" || currentUser.role === "Teacher";
 
-  // ── Fetch history on mount ─────────────────────────────────────────────────
+  // Session is read-only if Completed
+  const isReadOnly = sessionStatus === "Completed";
+
+  // ── Fetch history ──────────────────────────────────────────────────────────
   useEffect(() => {
     setLoading(true);
     axios.get(`${API}/chat/${mentorshipId}`, { withCredentials: true })
@@ -52,7 +51,7 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
       .finally(() => setLoading(false));
   }, [mentorshipId]);
 
-  // ── Socket: join room + listen for events ──────────────────────────────────
+  // ── Socket listeners ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!isSocketReady || !socketRef.current) return;
     const socket = socketRef.current;
@@ -62,7 +61,6 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
     const onNewMessage = (data) => {
       if (data.mentorshipId?.toString() === mentorshipId?.toString()) {
         setMessages(prev => {
-          // Deduplicate by _id
           const ids = new Set(prev.map(m => m._id));
           return ids.has(data.message._id) ? prev : [...prev, data.message];
         });
@@ -70,36 +68,43 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
       }
     };
 
-    const onTyping    = () => setIsTyping(true);
-    const onStopTyping = () => setIsTyping(false);
+    // Fix 4: listen for session_expired → switch to read-only
+    const onSessionExpired = (data) => {
+      if (data.requestId?.toString() === mentorshipId?.toString()) {
+        setSessionStatus("Completed");
+      }
+    };
 
-    socket.on("chat:new_message",  onNewMessage);
-    socket.on("chat:typing",       onTyping);
-    socket.on("chat:stop_typing",  onStopTyping);
+    socket.on("chat:new_message",        onNewMessage);
+    socket.on("chat:typing",             () => setIsTyping(true));
+    socket.on("chat:stop_typing",        () => setIsTyping(false));
+    socket.on("mentorship:session_expired", onSessionExpired);
+    socket.on("mentorship:completed",    onSessionExpired);
 
     return () => {
       socket.emit("chat:leave", mentorshipId);
-      socket.off("chat:new_message",  onNewMessage);
-      socket.off("chat:typing",       onTyping);
-      socket.off("chat:stop_typing",  onStopTyping);
+      socket.off("chat:new_message",        onNewMessage);
+      socket.off("chat:typing",             () => setIsTyping(true));
+      socket.off("chat:stop_typing",        () => setIsTyping(false));
+      socket.off("mentorship:session_expired", onSessionExpired);
+      socket.off("mentorship:completed",    onSessionExpired);
     };
   }, [isSocketReady, mentorshipId]);
 
-  // ── Auto-scroll to bottom when new message arrives ────────────────────────
+  // ── Auto-scroll ────────────────────────────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // ── Send message ──────────────────────────────────────────────────────────
+  // ── Send message ───────────────────────────────────────────────────────────
   const sendMessage = async () => {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sending || isReadOnly) return;
     setSending(true);
-    // Optimistic UI
     const optimistic = {
-      _id:       `opt-${Date.now()}`,
-      text:      trimmed,
-      sender:    { id: currentUser._id, name: currentUser.name, role: currentUser.role },
+      _id: `opt-${Date.now()}`,
+      text: trimmed,
+      sender: { id: currentUser._id, name: currentUser.name, role: currentUser.role },
       createdAt: new Date().toISOString(),
       optimistic: true,
     };
@@ -107,21 +112,23 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
     setText("");
     try {
       const res = await axios.post(`${API}/chat/${mentorshipId}`, { text: trimmed }, { withCredentials: true });
-      // Replace optimistic with real
       setMessages(prev => prev.map(m => m._id === optimistic._id ? res.data.message : m));
-    } catch {
-      // Rollback optimistic
+    } catch (err) {
       setMessages(prev => prev.filter(m => m._id !== optimistic._id));
-      setError("Message failed to send. Try again.");
+      const msg = err.response?.data?.message || "Message failed to send.";
+      // If session ended mid-chat, reflect that in UI
+      if (err.response?.status === 403) {
+        setSessionStatus("Completed");
+      }
+      setError(msg);
     } finally {
       setSending(false);
     }
   };
 
-  // ── Typing indicator ──────────────────────────────────────────────────────
   const handleTextChange = (e) => {
     setText(e.target.value);
-    if (!socketRef.current) return;
+    if (!socketRef.current || isReadOnly) return;
     socketRef.current.emit("chat:typing", { mentorshipId, userName: currentUser.name });
     clearTimeout(typingTimeout.current);
     typingTimeout.current = setTimeout(() => {
@@ -133,21 +140,7 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-  // ── Set meeting link (mentor only) ────────────────────────────────────────
-  const saveMeetingLink = async () => {
-    if (!meetingLink.trim()) return;
-    setSettingLink(true);
-    try {
-      await axios.put(`${API}/requests/${mentorshipId}/meeting-link`,
-        { link: meetingLink.trim() }, { withCredentials: true });
-      setShowLinkInput(false);
-      setMeetingLink("");
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to set meeting link.");
-    } finally { setSettingLink(false); }
-  };
-
-  // ── Group messages by day ─────────────────────────────────────────────────
+  // ── Group messages by day ──────────────────────────────────────────────────
   const grouped = messages.reduce((acc, msg) => {
     const day = formatDay(msg.createdAt);
     if (!acc[day]) acc[day] = [];
@@ -156,55 +149,41 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
   }, {});
 
   const accent = {
-    sky:     { ring: "ring-sky-500",     bg: "bg-sky-500",     text: "text-sky-400",     bubble: "bg-sky-500 text-white" },
-    emerald: { ring: "ring-emerald-500", bg: "bg-emerald-500", text: "text-emerald-400", bubble: "bg-emerald-500 text-white" },
-    violet:  { ring: "ring-violet-500",  bg: "bg-violet-500",  text: "text-violet-400",  bubble: "bg-violet-500 text-white" },
-  }[accentColor] || { ring: "ring-sky-500", bg: "bg-sky-500", text: "text-sky-400", bubble: "bg-sky-500 text-white" };
+    sky:    { bg: "bg-sky-500",     text: "text-sky-400",     bubble: "bg-sky-500 text-white" },
+    emerald:{ bg: "bg-emerald-500", text: "text-emerald-400", bubble: "bg-emerald-500 text-white" },
+    violet: { bg: "bg-violet-500",  text: "text-violet-400",  bubble: "bg-violet-500 text-white" },
+  }[accentColor] || { bg: "bg-sky-500", text: "text-sky-400", bubble: "bg-sky-500 text-white" };
 
   return (
     <div className="flex flex-col h-full bg-slate-900 rounded-xl border border-white/[0.07] overflow-hidden">
 
       {/* ── Header ── */}
-      <div className={`flex items-center justify-between px-4 py-3 border-b border-white/[0.07] bg-slate-900/80`}>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.07] bg-slate-900/80">
         <div className="flex items-center gap-3">
           <div className={`w-8 h-8 rounded-lg ${accent.bg} flex items-center justify-center text-white font-bold text-sm`}>
             {otherPerson?.name?.charAt(0)?.toUpperCase() || "?"}
           </div>
           <div>
             <p className="text-white font-semibold text-sm">{otherPerson?.name || "Mentor"}</p>
-            <p className={`text-xs ${accent.text}`}>{otherPerson?.role || ""} · Session Chat</p>
+            <p className={`text-xs ${accent.text}`}>
+              {otherPerson?.role || ""} · {isReadOnly ? "Session ended" : "Active Session"}
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {isMentor && (
-            <button onClick={() => setShowLinkInput(p => !p)}
-              title="Share Meeting Link"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
-              <PiLink size={16} />
-            </button>
-          )}
-          {onClose && (
-            <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
-              <PiX size={16} />
-            </button>
-          )}
-        </div>
+        {onClose && (
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+            <PiX size={16} />
+          </button>
+        )}
       </div>
 
-      {/* ── Meeting link input (mentor only) ── */}
-      {showLinkInput && isMentor && (
-        <div className="px-4 py-3 border-b border-white/[0.07] bg-slate-800/50 flex gap-2">
-          <input
-            type="url"
-            value={meetingLink}
-            onChange={e => setMeetingLink(e.target.value)}
-            placeholder="Paste Google Meet or Zoom link…"
-            className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-          />
-          <button onClick={saveMeetingLink} disabled={settingLink}
-            className={`px-3 py-2 rounded-lg ${accent.bg} text-white text-sm font-semibold disabled:opacity-50 transition-all`}>
-            {settingLink ? <PiCircleNotch size={16} className="animate-spin"/> : "Share"}
-          </button>
+      {/* ── Read-only banner (Fix 4) ── */}
+      {isReadOnly && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/60 border-b border-white/[0.06]">
+          <PiLockSimple size={14} className="text-slate-400 flex-shrink-0" />
+          <p className="text-slate-400 text-xs">
+            This session has ended. Chat history is read-only.
+          </p>
         </div>
       )}
 
@@ -214,7 +193,7 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
           <div className="h-full flex items-center justify-center">
             <PiCircleNotch size={24} className={`${accent.text} animate-spin`} />
           </div>
-        ) : error ? (
+        ) : error && messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center">
             <PiWarningCircle size={24} className="text-red-400 mb-2" />
             <p className="text-slate-400 text-sm">{error}</p>
@@ -223,22 +202,34 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
           <div className="h-full flex flex-col items-center justify-center text-center">
             <PiChatCircleText size={28} className="text-slate-600 mb-3" />
             <p className="text-slate-400 font-medium text-sm">No messages yet</p>
-            <p className="text-slate-600 text-xs mt-1">Start the conversation!</p>
+            <p className="text-slate-600 text-xs mt-1">
+              {isReadOnly ? "Session ended with no messages." : "Start the conversation!"}
+            </p>
           </div>
         ) : (
           Object.entries(grouped).map(([day, dayMessages]) => (
             <div key={day}>
-              {/* Day separator */}
               <div className="flex items-center gap-3 my-4">
                 <div className="flex-1 h-px bg-white/[0.06]" />
                 <span className="text-slate-600 text-[11px] font-medium">{day}</span>
                 <div className="flex-1 h-px bg-white/[0.06]" />
               </div>
-
               <div className="space-y-2">
                 {dayMessages.map((msg) => {
-                  const isOwn = msg.sender?.id?.toString() === currentUser._id?.toString();
-                  const isLink = msg.meetingLink;
+                  const isOwn   = msg.sender?.id?.toString() === currentUser._id?.toString();
+                  const isLink  = !!msg.meetingLink;
+                  const isSys   = msg.isSystem || msg.sender?.role === "System";
+
+                  // System messages — centered, neutral style
+                  if (isSys) {
+                    return (
+                      <div key={msg._id} className="flex justify-center my-2">
+                        <div className="px-4 py-2 bg-slate-800/60 border border-white/[0.06] rounded-xl text-xs text-slate-400 text-center max-w-sm">
+                          {msg.text}
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div key={msg._id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
@@ -250,13 +241,18 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
                           isOwn
                             ? `${accent.bubble} rounded-br-sm`
                             : "bg-slate-800 text-slate-200 rounded-bl-sm"
-                        } ${msg.optimistic ? "opacity-70" : ""} ${isLink ? "border border-sky-500/30" : ""}`}>
+                        } ${msg.optimistic ? "opacity-70" : ""} ${isLink ? "border border-emerald-500/30" : ""}`}>
                           {isLink ? (
-                            <a href={msg.meetingLink} target="_blank" rel="noreferrer"
-                              className="underline flex items-center gap-1.5">
-                              <PiLink size={13} /> {msg.text}
-                            </a>
-                          ) : msg.text}
+                            <div>
+                              <p className="mb-1.5 whitespace-pre-line">{msg.text.split("\n")[0]}</p>
+                              <a href={msg.meetingLink} target="_blank" rel="noreferrer"
+                                className="flex items-center gap-1.5 text-emerald-300 underline underline-offset-2 text-xs font-medium break-all">
+                                <PiLink size={12} /> {msg.meetingLink}
+                              </a>
+                            </div>
+                          ) : (
+                            <span className="whitespace-pre-line">{msg.text}</span>
+                          )}
                         </div>
                         <span className="text-[10px] text-slate-600 px-1">
                           {formatTime(msg.createdAt)}
@@ -271,7 +267,6 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
           ))
         )}
 
-        {/* Typing indicator */}
         {isTyping && (
           <div className="flex justify-start">
             <div className="bg-slate-800 rounded-2xl rounded-bl-sm px-4 py-2.5 flex gap-1 items-center">
@@ -292,27 +287,34 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
         </div>
       )}
 
-      {/* ── Input area ── */}
-      <div className="px-4 py-3 border-t border-white/[0.07] flex gap-2 items-end">
-        <textarea
-          value={text}
-          onChange={handleTextChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message… (Enter to send)"
-          rows={1}
-          className="flex-1 px-3 py-2.5 rounded-xl bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sky-500 max-h-32 overflow-y-auto"
-          style={{ minHeight: "42px" }}
-        />
-        <button
-          onClick={sendMessage}
-          disabled={!text.trim() || sending}
-          className={`p-2.5 rounded-xl ${accent.bg} text-white flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90`}>
-          {sending
-            ? <PiCircleNotch size={18} className="animate-spin" />
-            : <PiPaperPlaneTilt size={18} />
-          }
-        </button>
-      </div>
+      {/* ── Input area OR read-only footer ── */}
+      {isReadOnly ? (
+        <div className="px-4 py-3 border-t border-white/[0.07] flex items-center justify-center gap-2 bg-slate-900/60">
+          <PiLockSimple size={14} className="text-slate-600" />
+          <p className="text-slate-600 text-xs">Chat is closed for this session</p>
+        </div>
+      ) : (
+        <div className="px-4 py-3 border-t border-white/[0.07] flex gap-2 items-end">
+          <textarea
+            value={text}
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message… (Enter to send)"
+            rows={1}
+            className={`flex-1 px-3 py-2.5 rounded-xl bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-${accentColor}-500 max-h-32 overflow-y-auto`}
+            style={{ minHeight: "42px" }}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!text.trim() || sending}
+            className={`p-2.5 rounded-xl ${accent.bg} text-white flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90`}>
+            {sending
+              ? <PiCircleNotch size={18} className="animate-spin" />
+              : <PiPaperPlaneTilt size={18} />
+            }
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -96,7 +96,7 @@ function JobModal({ existing, onClose, onSaved, accentColor }) {
           <div><label className={lbl}>Required Skills <span className="text-slate-600 normal-case font-normal">(comma-separated)</span></label><input value={form.skills} onChange={e => set("skills",e.target.value)} placeholder="React, Node.js, Python" className={inp}/></div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className={lbl}>Apply Link</label><input value={form.link} onChange={e => set("link",e.target.value)} placeholder="https://…" className={inp}/></div>
-            <div><label className={lbl}>Deadline</label><input type="date" value={form.deadline} onChange={e => set("deadline",e.target.value)} className={inp}/></div>
+            <div><label className={lbl}>Application Deadline</label><input type="date" value={form.deadline} min={new Date(Date.now()+86400000).toISOString().slice(0,10)} onChange={e => set("deadline",e.target.value)} className={inp}/><p className="text-slate-600 text-[10px] mt-1">Must be a future date</p></div>
           </div>
         </div>
         <div className="flex justify-end gap-3 px-5 pb-5">

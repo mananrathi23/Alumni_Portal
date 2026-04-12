@@ -1,5 +1,6 @@
-import express from "express";
 import { config } from "dotenv";
+config({ path: "./.env" });
+import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { connection } from "./database/dbConnection.js";
@@ -11,10 +12,12 @@ import mentorshipRouter from "./routes/MentorshipRouter.js";
 import forumRouter      from "./routes/ForumRouter.js";
 import eventRouter      from "./routes/EventRouter.js";
 import jobRouter        from "./routes/JobRouter.js";
+import newsRouter       from "./routes/NewsRouter.js";
+import batchmatesRouter from "./routes/BatchmatesRouter.js";
+import incubationRouter from "./routes/IncubationRouter.js";
 import { removeUnverifiedAccounts } from "./automation/removeUnverifiedAccounts.js";
 
 export const app = express();
-config({ path: "./.env" });
 
 app.use(cors({
   origin:      [process.env.FRONTEND_URL],
@@ -35,6 +38,9 @@ app.use("/api/v1/mentorship",  mentorshipRouter);
 app.use("/api/v1/forum",       forumRouter);
 app.use("/api/v1/events",      eventRouter);
 app.use("/api/v1/jobs",        jobRouter);
+app.use("/api/v1/news",        newsRouter);
+app.use("/api/v1/batchmates",  batchmatesRouter);
+app.use("/api/v1/incubation",  incubationRouter);
 
 removeUnverifiedAccounts();
 connection();

@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { label: "Forum",       path: "/alumni/forum",       icon: PiChatsCircle },
   { label: "Messages",    path: "/alumni/messages",    icon: PiEnvelope },
   { label: "Connections", path: "/alumni/students",    icon: PiUsersThree },
+  { label: "Batchmates",  path: "/alumni/batchmates",  icon: PiUsersThree },
   { label: "Mentorship",  path: "/alumni/mentorship",  icon: PiHandshake },
   { label: "Jobs",        path: "/alumni/jobs",        icon: PiBriefcase },
   { label: "Events",      path: "/alumni/events",      icon: PiCalendarCheck },

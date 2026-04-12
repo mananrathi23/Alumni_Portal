@@ -20,27 +20,28 @@ const teacherSchema = new mongoose.Schema({
     select: false,
   },
 
-  // ── Teacher-Specific Fields ──────────────────────────────
-  employeeId: { type: String, sparse: true },
-  department: { type: String, default: "Not Set" },
-  designation: { type: String, default: "Not Set" }, // e.g. "Assistant Professor"
-  qualifications: [String], // e.g. ["B.Tech", "M.Tech", "PhD"]
-  experience: { type: Number, min: 0 }, // in years
-  bio: { type: String, maxLength: [500, "Bio cannot exceed 500 characters."] },
-  profilePhoto: { public_id: String, url: String },
-  linkedIn: String,
+  // ── Teacher-Specific Fields ──────────────────────────────────────────────
+  employeeId:     { type: String, sparse: true },
+  department:     { type: String, default: "Not Set" },
+  designation:    { type: String, default: "Not Set" },
+  joiningYear:    { type: Number, default: null }, // Year joined institution
+  qualifications: [String],
+  experience:     { type: Number, min: 0 },
+  bio:            { type: String, maxLength: [500, "Bio cannot exceed 500 characters."] },
+  profilePhoto:   { public_id: String, url: String },
+  linkedIn:       String,
   researchPapers: [{ title: String, url: String }],
+
+  // ── Mentorship ───────────────────────────────────────────────────────────
   mentorshipSlots: [
     {
-      id: String,
-      day: String,
-      time: String,
+      id:     String,
+      day:    String,
+      time:   String,
       booked: { type: Boolean, default: false },
     },
   ],
-
   availableForMentorship: { type: Boolean, default: false },
-  // ── Mentorship stats (computed/cached) ──────────────────────
   weeklyLimit: { type: Number, default: 5, min: 1, max: 20 },
   mentorStats: {
     totalSessions:    { type: Number, default: 0 },
@@ -50,16 +51,29 @@ const teacherSchema = new mongoose.Schema({
     totalRequests:    { type: Number, default: 0 },
     acceptedRequests: { type: Number, default: 0 },
     avgResponseMs:    { type: Number, default: 0 },
+    jobsPosted:       { type: Number, default: 0 },
+    eventsOrganized:  { type: Number, default: 0 },
     score:            { type: Number, default: 0 },
   },
 
-  // ── Auth Fields ──────────────────────────────────────────
-  accountVerified: { type: Boolean, default: false },
-  verificationCode: Number,
+  // ── Google Calendar OAuth tokens ─────────────────────────────────────────
+  // select: false keeps tokens out of all regular queries for security.
+  // Use .select("+googleTokens") to fetch them explicitly when needed.
+  googleTokens: {
+    access_token:  { type: String, select: false },
+    refresh_token: { type: String, select: false },
+    scope:         { type: String, select: false },
+    token_type:    { type: String, select: false },
+    expiry_date:   { type: Number, select: false },
+  },
+
+  // ── Auth Fields ──────────────────────────────────────────────────────────
+  accountVerified:        { type: Boolean, default: false },
+  verificationCode:       Number,
   verificationCodeExpire: Date,
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-  createdAt: { type: Date, default: Date.now },
+  resetPasswordToken:     String,
+  resetPasswordExpire:    Date,
+  createdAt:              { type: Date, default: Date.now },
 });
 
 // Hash password before saving
@@ -75,12 +89,10 @@ teacherSchema.methods.comparePassword = async function (enteredPassword) {
 
 // Generate 5-digit OTP
 teacherSchema.methods.generateVerificationCode = function () {
-  const firstDigit = Math.floor(Math.random() * 9) + 1;
-  const remainingDigits = Math.floor(Math.random() * 10000)
-    .toString()
-    .padStart(4, "0");
+  const firstDigit      = Math.floor(Math.random() * 9) + 1;
+  const remainingDigits = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
   const verificationCode = parseInt(firstDigit + remainingDigits);
-  this.verificationCode = verificationCode;
+  this.verificationCode       = verificationCode;
   this.verificationCodeExpire = Date.now() + 10 * 60 * 1000;
   return verificationCode;
 };
@@ -97,10 +109,7 @@ teacherSchema.methods.generateToken = function () {
 // Generate reset password token
 teacherSchema.methods.generateResetPasswordToken = function () {
   const resetToken = crypto.randomBytes(20).toString("hex");
-  this.resetPasswordToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
+  this.resetPasswordToken  = crypto.createHash("sha256").update(resetToken).digest("hex");
   this.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
   return resetToken;
 };

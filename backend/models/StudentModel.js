@@ -23,6 +23,7 @@ const studentSchema = new mongoose.Schema({
   // ── Student-Specific Fields ──────────────────────────────
   enrollmentNumber: { type: String, sparse: true },
   department: { type: String, default: "Not Set" },
+  enrollmentYear: { type: Number, default: null }, // Year enrolled in the programme
   year: {
     type: String,
     enum: ["1st Year", "2nd Year", "3rd Year", "4th Year"],

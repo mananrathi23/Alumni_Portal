@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../../main";
+import ProfilePhotoUpload from "../ProfilePhotoUpload.jsx";
 import {
   PiPencilSimple, PiCheck, PiX, PiLinkedinLogo,
   PiGithubLogo, PiBriefcase, PiGraduationCap, PiStar, PiUser,
@@ -24,6 +25,7 @@ const Profile = () => {
   const [form, setForm] = useState({
     department:          alumni?.department || "",
     degree:              alumni?.degree || "",
+    enrollmentYear:      alumni?.enrollmentYear || "",
     graduationYear:      alumni?.graduationYear || "",
     currentCompany:      alumni?.currentCompany || "",
     currentDesignation:  alumni?.currentDesignation || "",
@@ -84,6 +86,15 @@ const Profile = () => {
         )}
       </div>
 
+      {/* Profile Photo */}
+      <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 flex justify-center">
+        <ProfilePhotoUpload
+          user={alumni}
+          accentColor="emerald"
+          onUploaded={(photo) => setUser((prev) => ({ ...prev, profilePhoto: photo }))}
+        />
+      </div>
+
       {!complete && !editing && (
         <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
           <PiStar size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
@@ -115,7 +126,8 @@ const Profile = () => {
           {[
             { label: "Department", key: "department", type: "select", opts: DEPARTMENTS },
             { label: "Degree", key: "degree", placeholder: "e.g. B.Tech" },
-            { label: "Graduation Year", key: "graduationYear", placeholder: "e.g. 2020", type: "number" },
+            { label: "Enrollment Year", key: "enrollmentYear", placeholder: "e.g. 2018", type: "number" },
+            { label: "Graduation Year", key: "graduationYear", placeholder: "e.g. 2022", type: "number" },
             { label: "Current Company", key: "currentCompany", placeholder: "e.g. Google" },
             { label: "Current Designation", key: "currentDesignation", placeholder: "e.g. Software Engineer" },
             { label: "Current Location", key: "currentLocation", placeholder: "e.g. Bangalore" },

@@ -14,7 +14,7 @@ const chatMessageSchema = new mongoose.Schema(
     sender: {
       id:   { type: mongoose.Schema.Types.ObjectId, required: true },
       name: { type: String, required: true },
-      role: { type: String, enum: ["Student", "Alumni", "Teacher"], required: true },
+      role: { type: String, enum: ["Student", "Alumni", "Teacher", "System"], required: true },
     },
 
     // Message content
@@ -27,6 +27,9 @@ const chatMessageSchema = new mongoose.Schema(
 
     // Optional: meeting link shared in chat
     meetingLink: { type: String, default: null },
+
+    // System messages (slot refresh, session expiry notices)
+    isSystem: { type: Boolean, default: false },
 
     // Read receipt — receiver has seen it
     readBy: [{ type: mongoose.Schema.Types.ObjectId }],

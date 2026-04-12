@@ -7,6 +7,7 @@ import { Admin } from "../models/AdminModel.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { generateEmailTemplate } from "../utils/emailTemplate.js";
 import { sendToken } from "../utils/sendToken.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import crypto from "crypto";
 
 function getModelByRole(role) {
@@ -22,7 +23,7 @@ function getModelByRole(role) {
 // REGISTER 
 export const register = catchAsyncError(async (req, res, next) => {
   try {
-    const { name, email, phone, password, verificationMethod, role } = req.body;
+    const { name, email, phone, password, verificationMethod, role, enrollmentYear } = req.body;
 
     if (!name || !email || !phone || !password || !verificationMethod || !role) {
       return next(new ErrorHandler("All fields are required.", 400));
@@ -77,7 +78,12 @@ export const register = catchAsyncError(async (req, res, next) => {
       );
     }
 
-    const user = await Model.create({ name, email, phone, password });
+    const userData = { name, email, phone, password };
+    // Save enrollmentYear at signup for Student and Alumni — used for "Class of YEAR" grouping
+    if (enrollmentYear && (role === "Student" || role === "Alumni")) {
+      userData.enrollmentYear = Number(enrollmentYear);
+    }
+    const user = await Model.create(userData);
     const verificationCode = user.generateVerificationCode();
     await user.save();
 
@@ -200,7 +206,7 @@ export const verifyOTP = catchAsyncError(async (req, res, next) => {
 
 // LOGIN
 export const login = catchAsyncError(async (req, res, next) => {
-  const { email, password, role } = req.body;
+  const { email, password, role, keepSignedIn } = req.body;
 
   if (!email || !password || !role) {
     return next(new ErrorHandler("Email, password and role are required.", 400));
@@ -221,7 +227,8 @@ export const login = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Invalid email or Password.", 400));
   }
 
-  sendToken(user, 200, "User Logged In Successfully", res);
+  // keepSignedIn = true → 30 day cookie, false/undefined → 7 day cookie
+  sendToken(user, 200, "User Logged In Successfully", res, !!keepSignedIn);
 });
 
 //  LOGOUT 
@@ -241,9 +248,11 @@ export const logout = catchAsyncError(async (req, res, next) => {
 //  GET LOGGED-IN USER 
 export const getUser = catchAsyncError(async (req, res, next) => {
   const user = req.user;
+  // Attach role from the model name so frontend can use it for route protection
+  const role = user.constructor.modelName; // "Student" | "Teacher" | "Alumni" | "Admin"
   res.status(200).json({
     success: true,
-    user,
+    user: { ...user.toObject(), role },
   });
 });
 
@@ -334,9 +343,9 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
   const role = user.constructor.modelName; // "Student" | "Teacher" | "Alumni" | "Admin"
 
   const allowedFields = {
-    Student: ["department", "year", "section", "cgpa", "skills", "bio", "linkedIn", "github", "enrollmentNumber"],
-    Teacher: ["department", "designation", "subjectsTaught", "qualifications", "experience", "bio", "linkedIn", "employeeId"],
-    Alumni:  ["department", "degree", "graduationYear", "currentCompany", "currentDesignation", "currentLocation", "industry", "skills", "bio", "linkedIn", "github", "availableForMentorship"],
+    Student: ["department", "year", "section", "cgpa", "skills", "bio", "linkedIn", "github", "enrollmentNumber", "enrollmentYear"],
+    Teacher: ["department", "designation", "subjectsTaught", "qualifications", "experience", "bio", "linkedIn", "employeeId", "joiningYear"],
+    Alumni:  ["department", "degree", "enrollmentYear", "graduationYear", "currentCompany", "currentDesignation", "currentLocation", "industry", "skills", "bio", "linkedIn", "github", "availableForMentorship"],
     Admin:   ["department"],
   };
 
@@ -358,5 +367,28 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
     success: true,
     message: "Profile updated successfully.",
     user,
+  });
+});
+// UPLOAD PROFILE PHOTO
+// Accepts { photo: "data:image/...;base64,..." } in the request body
+export const uploadProfilePhoto = catchAsyncError(async (req, res, next) => {
+  const { photo } = req.body;
+  if (!photo) return next(new ErrorHandler("No photo provided.", 400));
+
+  const user = req.user;
+
+  // Delete old photo from Cloudinary if it exists
+  if (user.profilePhoto?.public_id) {
+    await deleteFromCloudinary(user.profilePhoto.public_id).catch(() => {});
+  }
+
+  const uploaded = await uploadToCloudinary(photo);
+  user.profilePhoto = { public_id: uploaded.public_id, url: uploaded.url };
+  await user.save({ validateModifiedOnly: true });
+
+  res.status(200).json({
+    success: true,
+    message: "Profile photo updated.",
+    profilePhoto: user.profilePhoto,
   });
 });

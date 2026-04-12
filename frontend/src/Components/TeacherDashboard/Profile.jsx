@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../../main";
+import ProfilePhotoUpload from "../ProfilePhotoUpload.jsx";
 import {
   PiPencilSimple, PiCheck, PiX, PiLinkedinLogo,
   PiGithubLogo, PiBriefcase, PiStar, PiUser,
@@ -27,6 +28,7 @@ const Profile = () => {
     department:  teacher?.department  || "",
     designation: teacher?.designation || "",
     employeeId:  teacher?.employeeId  || "",
+    joiningYear: teacher?.joiningYear || "",
     bio:         teacher?.bio         || "",
     linkedIn:    teacher?.linkedIn    || "",
     github:      teacher?.github      || "",
@@ -81,6 +83,15 @@ const Profile = () => {
         )}
       </div>
 
+      {/* Profile Photo */}
+      <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 flex justify-center">
+        <ProfilePhotoUpload
+          user={teacher}
+          accentColor="violet"
+          onUploaded={(photo) => setUser((prev) => ({ ...prev, profilePhoto: photo }))}
+        />
+      </div>
+
       {!complete && !editing && (
         <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
           <PiStar size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
@@ -130,6 +141,26 @@ const Profile = () => {
               )}
             </div>
           ))}
+
+          {/* Joining Year */}
+          <div>
+            <label className={lbl}>Year Joined Institution</label>
+            {editing ? (
+              <input
+                type="number"
+                placeholder="e.g. 2015"
+                min="1970"
+                max={new Date().getFullYear()}
+                value={form.joiningYear}
+                onChange={(e) => set("joiningYear", e.target.value ? Number(e.target.value) : "")}
+                className={inp}
+              />
+            ) : (
+              <p className="text-slate-300 text-sm">
+                {teacher?.joiningYear ? `Joined ${teacher.joiningYear}` : <span className="text-slate-600">Not set</span>}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 

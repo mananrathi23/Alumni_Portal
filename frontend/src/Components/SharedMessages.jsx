@@ -205,6 +205,7 @@ export default function SharedMessages({ role, accentColor }) {
                 currentUser={{ _id: user?._id, name: user?.name, role }}
                 otherPerson={getOther(selectedSession)}
                 accentColor={color}
+                sessionStatus={selectedSession.status}
                 onClose={() => { setMobileShowChat(false); setSelectedId(null); }}
               />
             ) : (

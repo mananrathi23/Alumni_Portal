@@ -20,6 +20,7 @@ import StudentProfile from './Components/StudentDashboard/Profile.jsx'
 import StudentMentorship from './Components/StudentDashboard/Mentorship.jsx'
 import StudentBatchmates from './Components/StudentDashboard/Batchmates.jsx'
 import StudentIncubation from './Components/StudentDashboard/Incubation.jsx'
+import StudentConnections from './Components/StudentDashboard/StudentConnections.jsx'
 
 // ─── TEACHER ──────────────────────────────────────────────────────────────────
 import TeacherLayout from './Components/TeacherDashboard/TeacherLayout.jsx'
@@ -33,6 +34,7 @@ import TeacherMentorship from './Components/TeacherDashboard/Mentorship.jsx'
 import TeacherProfile from './Components/TeacherDashboard/Profile.jsx'
 import TeacherBatchmates from './Components/TeacherDashboard/Batchmates.jsx'
 import TeacherIncubation from './Components/TeacherDashboard/Incubation.jsx'
+import TeacherConnections from './Components/TeacherDashboard/TeacherConnections.jsx'
 
 // ─── ALUMNI ───────────────────────────────────────────────────────────────────
 import AlumniLayout from './Components/AlumniDashboard/AlumniLayout.jsx'
@@ -46,6 +48,7 @@ import AlumniMentorship from './Components/AlumniDashboard/Mentorship.jsx'
 import AlumniProfile from './Components/AlumniDashboard/Profile.jsx'
 import AlumniBatchmates from './Components/AlumniDashboard/Batchmates.jsx'
 import AlumniIncubation from './Components/AlumniDashboard/Incubation.jsx'
+import AlumniConnections from './Components/AlumniDashboard/AlumniConnections.jsx'
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
 import AdminLayout from './Components/AdminDashboard/AdminLayout.jsx'
@@ -69,17 +72,18 @@ function App() {
       path: '/student',
       element: <ProtectedRoute allowedRole="Student"><StudentLayout /></ProtectedRoute>,
       children: [
-        { path: 'dashboard',  element: <StudentDashboardHome /> },
-        { path: 'forum',      element: <StudentForum /> },
-        { path: 'alumni',     element: <StudentAlumni /> },
-        { path: 'jobs',       element: <StudentJobs /> },
-        { path: 'events',     element: <StudentEvents /> },
-        { path: 'messages',   element: <StudentMessages /> },
-        { path: 'requests',   element: <StudentRequests /> },
-        { path: 'profile',    element: <StudentProfile /> },
+        { path: 'dashboard', element: <StudentDashboardHome /> },
+        { path: 'forum', element: <StudentForum /> },
+        { path: 'alumni', element: <StudentAlumni /> },
+        { path: 'jobs', element: <StudentJobs /> },
+        { path: 'events', element: <StudentEvents /> },
+        { path: 'messages', element: <StudentMessages /> },
+        { path: 'requests', element: <StudentRequests /> },
+        { path: 'profile', element: <StudentProfile /> },
         { path: 'mentorship', element: <StudentMentorship /> },
         { path: 'batchmates', element: <StudentBatchmates /> },
         { path: 'incubation', element: <StudentIncubation /> },
+        { path: "my-connections", element: <StudentConnections /> },
       ],
     },
 
@@ -88,16 +92,18 @@ function App() {
       path: '/teacher',
       element: <ProtectedRoute allowedRole="Teacher"><TeacherLayout /></ProtectedRoute>,
       children: [
-        { path: 'dashboard',  element: <TeacherDashboardHome /> },
-        { path: 'forum',      element: <TeacherForum /> },
-        { path: 'students',   element: <TeacherStudents /> },
-        { path: 'jobs',       element: <TeacherJobs /> },
-        { path: 'events',     element: <TeacherEvents /> },
-        { path: 'messages',   element: <TeacherMessages /> },
+        { path: 'dashboard', element: <TeacherDashboardHome /> },
+        { path: 'forum', element: <TeacherForum /> },
+        { path: 'students', element: <TeacherStudents /> },
+        { path: 'jobs', element: <TeacherJobs /> },
+        { path: 'events', element: <TeacherEvents /> },
+        { path: 'messages', element: <TeacherMessages /> },
         { path: 'mentorship', element: <TeacherMentorship /> },
-        { path: 'profile',    element: <TeacherProfile /> },
+        { path: 'profile', element: <TeacherProfile /> },
         { path: 'batchmates', element: <TeacherBatchmates /> },
         { path: 'incubation', element: <TeacherIncubation /> },
+        { path: "my-connections", element: <TeacherConnections /> },
+        
       ],
     },
 
@@ -106,16 +112,17 @@ function App() {
       path: '/alumni',
       element: <ProtectedRoute allowedRole="Alumni"><AlumniLayout /></ProtectedRoute>,
       children: [
-        { path: 'dashboard',  element: <AlumniDashboardHome /> },
-        { path: 'forum',      element: <AlumniForum /> },
-        { path: 'students',   element: <AlumniStudents /> },
-        { path: 'jobs',       element: <AlumniJobs /> },
-        { path: 'events',     element: <AlumniEvents /> },
-        { path: 'messages',   element: <AlumniMessages /> },
+        { path: 'dashboard', element: <AlumniDashboardHome /> },
+        { path: 'forum', element: <AlumniForum /> },
+        { path: 'students', element: <AlumniStudents /> },
+        { path: 'jobs', element: <AlumniJobs /> },
+        { path: 'events', element: <AlumniEvents /> },
+        { path: 'messages', element: <AlumniMessages /> },
         { path: 'mentorship', element: <AlumniMentorship /> },
-        { path: 'profile',    element: <AlumniProfile /> },
+        { path: 'profile', element: <AlumniProfile /> },
         { path: 'batchmates', element: <AlumniBatchmates /> },
         { path: 'incubation', element: <AlumniIncubation /> },
+        { path: "my-connections", element: <AlumniConnections /> },
       ],
     },
 
@@ -125,11 +132,11 @@ function App() {
       element: <ProtectedRoute allowedRole="Admin"><AdminLayout /></ProtectedRoute>,
       children: [
         { path: 'dashboard', element: <AdminDashboardHome /> },
-        { path: 'news',      element: <AdminNews /> },
-        { path: 'events',    element: <AdminEvents /> },
-        { path: 'jobs',      element: <AdminJobs /> },
+        { path: 'news', element: <AdminNews /> },
+        { path: 'events', element: <AdminEvents /> },
+        { path: 'jobs', element: <AdminJobs /> },
       ],
-    },
+    }
   ]);
 
   return (

@@ -9,18 +9,27 @@ import {
   getPendingRequests,
   getConnectionStatus,
 } from "../controllers/ConnectionController.js";
+import {
+  getConnectionChat,
+  sendConnectionMessage,
+  getConnectionUnreadCounts,
+} from "../controllers/ConnectionChatController.js";
 
 const router = express.Router();
-
-// All routes require login
 router.use(isAuthenticated);
 
-router.post("/send",                    sendConnectionRequest);  // send request
-router.get("/",                         getMyConnections);       // my connections
-router.get("/pending",                  getPendingRequests);     // pending requests
-router.get("/status/:userId",           getConnectionStatus);    // check status with one person
-router.put("/:requestId/respond",       respondToRequest);       // accept or reject
-router.delete("/:requestId/withdraw",   withdrawRequest);        // withdraw sent request
-router.delete("/:requestId/remove",     removeConnection);       // remove accepted connection
+// ── Existing connection routes ─────────────────────────────────────────────
+router.post("/send",                    sendConnectionRequest);
+router.get("/",                         getMyConnections);
+router.get("/pending",                  getPendingRequests);
+router.get("/status/:userId",           getConnectionStatus);
+router.put("/:requestId/respond",       respondToRequest);
+router.delete("/:requestId/withdraw",   withdrawRequest);
+router.delete("/:requestId/remove",     removeConnection);
+
+// ── Chat routes ────────────────────────────────────────────────────────────
+router.get("/chat/unread-counts",       getConnectionUnreadCounts);
+router.get("/:connectionId/chat",       getConnectionChat);
+router.post("/:connectionId/chat",      sendConnectionMessage);
 
 export default router;

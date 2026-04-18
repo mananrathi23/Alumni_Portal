@@ -8,6 +8,9 @@ import {
   getMyConnections,
   getPendingRequests,
   getConnectionStatus,
+  getChatMessages,
+  sendChatMessage,
+  getUnreadCounts,
 } from "../controllers/ConnectionController.js";
 
 const router = express.Router();
@@ -22,5 +25,10 @@ router.get("/status/:userId",           getConnectionStatus);    // check status
 router.put("/:requestId/respond",       respondToRequest);       // accept or reject
 router.delete("/:requestId/withdraw",   withdrawRequest);        // withdraw sent request
 router.delete("/:requestId/remove",     removeConnection);       // remove accepted connection
+
+// Chat routes
+router.get("/chat/unread-counts",       getUnreadCounts);
+router.get("/:connectionId/chat",       getChatMessages);
+router.post("/:connectionId/chat",      sendChatMessage);
 
 export default router;

@@ -2,6 +2,7 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import ErrorHandler from "../middlewares/error.js";
 import { Connection } from "../models/ConnectionModel.js";
+import { ChatMessage } from "../models/ChatMessageModel.js";
 import { Student } from "../models/StudentModel.js";
 import { Alumni } from "../models/AlumniModel.js";
 import { Teacher } from "../models/TeacherModel.js";
@@ -292,4 +293,98 @@ export const getConnectionStatus = catchAsyncError(async (req, res) => {
     connectionId: connection._id,
     connection,
   });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// CHAT (FOR CONNECTIONS)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export const getChatMessages = catchAsyncError(async (req, res, next) => {
+  const user = req.user;
+  const connectionId = req.params.connectionId;
+
+  const connection = await Connection.findById(connectionId);
+  if (!connection) return next(new ErrorHandler("Connection not found.", 404));
+
+  const isSender = connection.sender.id.equals(user._id);
+  const isReceiver = connection.receiver.id.equals(user._id);
+  if (!isSender && !isReceiver) {
+    return next(new ErrorHandler("You are not part of this connection.", 403));
+  }
+
+  if (connection.status !== "Accepted") {
+    return next(new ErrorHandler("Chat is only available for accepted connections.", 403));
+  }
+
+  const messages = await ChatMessage.find({ connectionId }).sort({ createdAt: 1 }).lean();
+
+  await ChatMessage.updateMany(
+    { connectionId, "sender.id": { $ne: user._id }, readBy: { $ne: user._id } },
+    { $addToSet: { readBy: user._id } }
+  );
+
+  res.status(200).json({ success: true, messages });
+});
+
+export const sendChatMessage = catchAsyncError(async (req, res, next) => {
+  const user = req.user;
+  const role = user.constructor.modelName;
+  const connectionId = req.params.connectionId;
+  const { text } = req.body;
+
+  if (!text?.trim()) return next(new ErrorHandler("Message text is required.", 400));
+
+  const connection = await Connection.findById(connectionId);
+  if (!connection) return next(new ErrorHandler("Connection not found.", 404));
+
+  const isSender = connection.sender.id.equals(user._id);
+  const isReceiver = connection.receiver.id.equals(user._id);
+  if (!isSender && !isReceiver) {
+    return next(new ErrorHandler("You are not part of this connection.", 403));
+  }
+
+  if (connection.status !== "Accepted") {
+    return next(new ErrorHandler("Chat is only available for accepted connections.", 403));
+  }
+
+  const message = await ChatMessage.create({
+    connectionId,
+    sender: { id: user._id, name: user.name, role },
+    text: text.trim(),
+  });
+
+  const recipientId = isSender ? connection.receiver.id : connection.sender.id;
+  emitToUser(recipientId, "chat:new_message", { connectionId, message });
+
+  res.status(201).json({ success: true, message });
+});
+
+export const getUnreadCounts = catchAsyncError(async (req, res) => {
+  const user = req.user;
+
+  const connections = await Connection.find({
+    status: "Accepted",
+    $or: [
+      { "sender.id": user._id },
+      { "receiver.id": user._id },
+    ]
+  }).select("_id").lean();
+  
+  const connectionIds = connections.map(c => c._id);
+
+  const counts = await ChatMessage.aggregate([
+    {
+      $match: {
+        connectionId: { $in: connectionIds },
+        "sender.id": { $ne: user._id },
+        readBy: { $ne: user._id },
+      },
+    },
+    { $group: { _id: "$connectionId", count: { $sum: 1 } } },
+  ]);
+
+  const unread = {};
+  counts.forEach(c => { unread[c._id.toString()] = c.count; });
+
+  res.status(200).json({ success: true, unread });
 });

@@ -1,11 +1,12 @@
 import express from "express";
-import { isAuthenticated, isAdmin, isStaff } from "../middlewares/auth.js";
+import { isAuthenticated, isAdmin, isStaff, isVerifiedByAdmin } from "../middlewares/auth.js";
 import {
   getEvents, getEvent, createEvent, updateEvent, deleteEvent, registerForEvent,
 } from "../controllers/EventController.js";
 
 const router = express.Router();
 router.use(isAuthenticated);
+router.use(isVerifiedByAdmin);
 
 router.get("/",                   getEvents);
 router.post("/",                  isStaff, createEvent);       // Alumni + Teacher + Admin

@@ -53,23 +53,32 @@ export const register = catchAsyncError(async (req, res, next) => {
 
     const Model = getModelByRole(role);
 
-    const existingUser = await Model.findOne({
-      $or: [
-        { email, accountVerified: true },
-        { phone, accountVerified: true },
-      ],
-    });
-    if (existingUser) {
-      return next(new ErrorHandler("Phone or Email is already used.", 400));
+    const allModels = [Student, Teacher, Alumni, Admin];
+    
+    for (const m of allModels) {
+      const existingUser = await m.findOne({
+        $or: [
+          { email, accountVerified: true },
+          { phone, accountVerified: true },
+        ],
+      });
+      if (existingUser) {
+        return next(new ErrorHandler("Phone or Email is already used by another account.", 400));
+      }
     }
 
-    const registrationAttemptsByUser = await Model.find({
-      $or: [
-        { phone, accountVerified: false },
-        { email, accountVerified: false },
-      ],
-    });
-    if (registrationAttemptsByUser.length > 3) {
+    let totalAttempts = 0;
+    for (const m of allModels) {
+      const attempts = await m.find({
+        $or: [
+          { phone, accountVerified: false },
+          { email, accountVerified: false },
+        ],
+      });
+      totalAttempts += attempts.length;
+    }
+
+    if (totalAttempts > 3) {
       return next(
         new ErrorHandler(
           "You have exceeded the maximum number of attempts (3). Please try again after an hour.",
@@ -193,6 +202,19 @@ export const verifyOTP = catchAsyncError(async (req, res, next) => {
       return next(new ErrorHandler("OTP Expired.", 400));
     }
 
+    const allModels = [Student, Teacher, Alumni, Admin];
+    for (const m of allModels) {
+      const existingVerified = await m.findOne({
+        $or: [
+          { email: user.email, accountVerified: true },
+          { phone: user.phone, accountVerified: true },
+        ],
+      });
+      if (existingVerified) {
+        return next(new ErrorHandler("This email or phone is already verified under another account.", 400));
+      }
+    }
+
     user.accountVerified = true;
     user.verificationCode = null;
     user.verificationCodeExpire = null;
@@ -225,6 +247,10 @@ export const login = catchAsyncError(async (req, res, next) => {
   const isPasswordMatched = await user.comparePassword(password);
   if (!isPasswordMatched) {
     return next(new ErrorHandler("Invalid email or Password.", 400));
+  }
+
+  if (user.isBlocked) {
+    return next(new ErrorHandler("Your account has been suspended by the administrator. Please contact support.", 403));
   }
 
   // keepSignedIn = true → 30 day cookie, false/undefined → 7 day cookie

@@ -44,6 +44,10 @@ const studentSchema = new mongoose.Schema({
   resetPasswordToken: String,
   resetPasswordExpire: Date,
   createdAt: { type: Date, default: Date.now },
+
+  // ── Admin Control Fields ─────────────────────────────────
+  adminVerified: { type: Boolean, default: false },
+  isBlocked: { type: Boolean, default: false },
 });
 
 // Hash password before saving

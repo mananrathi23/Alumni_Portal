@@ -1,5 +1,5 @@
 import express from "express";
-import { isAuthenticated } from "../middlewares/auth.js";
+import { isAuthenticated, isVerifiedByAdmin } from "../middlewares/auth.js";
 import {
   getQuestions, getQuestion, createQuestion, deleteQuestion,
   addAnswer, deleteAnswer, toggleUpvote,
@@ -7,6 +7,7 @@ import {
 
 const router = express.Router();
 router.use(isAuthenticated);
+router.use(isVerifiedByAdmin);
 
 router.get("/questions",                                          getQuestions);
 router.post("/questions",                                         createQuestion);

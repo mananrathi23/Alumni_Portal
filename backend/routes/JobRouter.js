@@ -1,11 +1,12 @@
 import express from "express";
-import { isAuthenticated, isStaff } from "../middlewares/auth.js";
+import { isAuthenticated, isStaff, isVerifiedByAdmin } from "../middlewares/auth.js";
 import {
   getJobs, getJob, createJob, updateJob, deleteJob,
 } from "../controllers/JobController.js";
 
 const router = express.Router();
 router.use(isAuthenticated);
+router.use(isVerifiedByAdmin);
 
 router.get("/",          getJobs);
 router.post("/",         isStaff, createJob);    // Alumni + Teacher + Admin

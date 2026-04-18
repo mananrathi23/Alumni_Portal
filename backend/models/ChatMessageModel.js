@@ -6,8 +6,14 @@ const chatMessageSchema = new mongoose.Schema(
     mentorshipId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "MentorshipRequest",
-      required: true,
-      index: true,
+      required: false,
+    },
+
+    // The connection this chat belongs to (for generic connections)
+    connectionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Connection",
+      required: false,
     },
 
     // Sender info (embedded for fast read — no join needed)
@@ -39,5 +45,6 @@ const chatMessageSchema = new mongoose.Schema(
 
 // Compound index for fast chat history fetch
 chatMessageSchema.index({ mentorshipId: 1, createdAt: 1 });
+chatMessageSchema.index({ connectionId: 1, createdAt: 1 });
 
 export const ChatMessage = mongoose.model("ChatMessage", chatMessageSchema);

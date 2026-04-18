@@ -72,3 +72,12 @@ export const isStaff = (req, res, next) => {
   }
   next();
 };
+
+// ── isVerifiedByAdmin: block unverified users from core features ──────────────
+export const isVerifiedByAdmin = (req, res, next) => {
+  const role = req.user?.constructor?.modelName;
+  if (role !== "Admin" && !req.user.adminVerified) {
+    return next(new ErrorHandler("Your account is pending admin verification. You cannot perform this action.", 403));
+  }
+  next();
+};

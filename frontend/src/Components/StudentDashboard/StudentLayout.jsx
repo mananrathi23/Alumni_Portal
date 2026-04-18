@@ -83,6 +83,12 @@ const StudentLayout = () => {
         { label: "Incubation",  path: "/student/incubation", icon: PiRocketLaunch },
       ],
     },
+    {
+      heading: "Account",
+      links: [
+        { label: "My Profile",  path: "/student/profile",   icon: PiUserCircle },
+      ],
+    },
   ];
 
   if (!student) return (
@@ -102,6 +108,9 @@ const StudentLayout = () => {
         accentColor="sky"
         navGroups={NAV_GROUPS}
         profilePath="/student/profile"
+        forumPath="/student/forum"
+        eventsPath="/student/events"
+        jobsPath="/student/jobs"
         onLogout={handleLogout}
       >
         <Outlet context={{ student }} />

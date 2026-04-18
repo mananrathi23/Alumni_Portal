@@ -10,8 +10,6 @@ import {
   PiCheckCircle, PiWarningCircle, PiChatCircleText, PiLockSimple,
 } from "react-icons/pi";
 
-const API = "http://localhost:4000/api/v1/mentorship";
-
 function formatTime(iso) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -25,7 +23,7 @@ function formatDay(iso) {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = "sky", onClose, sessionStatus: initialStatus }) => {
+const MentorshipChat = ({ sessionId, apiBaseUrl = "http://localhost:4000/api/v1/mentorship", currentUser, otherPerson, accentColor = "sky", onClose, sessionStatus: initialStatus }) => {
   const { socketRef, isSocketReady } = useSocket();
   const [messages,  setMessages]  = useState([]);
   const [text,      setText]      = useState("");
@@ -45,21 +43,23 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
   // ── Fetch history ──────────────────────────────────────────────────────────
   useEffect(() => {
     setLoading(true);
-    axios.get(`${API}/chat/${mentorshipId}`, { withCredentials: true })
+    axios.get(`${apiBaseUrl}/${sessionId}/chat`, { withCredentials: true })
       .then(res => { setMessages(res.data.messages || []); setError(null); })
       .catch(() => setError("Failed to load messages."))
       .finally(() => setLoading(false));
-  }, [mentorshipId]);
+  }, [sessionId, apiBaseUrl]);
 
   // ── Socket listeners ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!isSocketReady || !socketRef.current) return;
     const socket = socketRef.current;
 
-    socket.emit("chat:join", mentorshipId);
+    socket.emit("chat:join", sessionId);
 
     const onNewMessage = (data) => {
-      if (data.mentorshipId?.toString() === mentorshipId?.toString()) {
+      // Allow for both mentorshipId and connectionId from backend
+      const incomingId = data.mentorshipId || data.connectionId;
+      if (incomingId?.toString() === sessionId?.toString()) {
         setMessages(prev => {
           const ids = new Set(prev.map(m => m._id));
           return ids.has(data.message._id) ? prev : [...prev, data.message];
@@ -70,7 +70,7 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
 
     // Fix 4: listen for session_expired → switch to read-only
     const onSessionExpired = (data) => {
-      if (data.requestId?.toString() === mentorshipId?.toString()) {
+      if (data.requestId?.toString() === sessionId?.toString()) {
         setSessionStatus("Completed");
       }
     };
@@ -82,14 +82,14 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
     socket.on("mentorship:completed",    onSessionExpired);
 
     return () => {
-      socket.emit("chat:leave", mentorshipId);
+      socket.emit("chat:leave", sessionId);
       socket.off("chat:new_message",        onNewMessage);
       socket.off("chat:typing",             () => setIsTyping(true));
       socket.off("chat:stop_typing",        () => setIsTyping(false));
       socket.off("mentorship:session_expired", onSessionExpired);
       socket.off("mentorship:completed",    onSessionExpired);
     };
-  }, [isSocketReady, mentorshipId]);
+  }, [isSocketReady, sessionId]);
 
   // ── Auto-scroll ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -111,7 +111,7 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
     setMessages(prev => [...prev, optimistic]);
     setText("");
     try {
-      const res = await axios.post(`${API}/chat/${mentorshipId}`, { text: trimmed }, { withCredentials: true });
+      const res = await axios.post(`${apiBaseUrl}/${sessionId}/chat`, { text: trimmed }, { withCredentials: true });
       setMessages(prev => prev.map(m => m._id === optimistic._id ? res.data.message : m));
     } catch (err) {
       setMessages(prev => prev.filter(m => m._id !== optimistic._id));
@@ -129,10 +129,10 @@ const MentorshipChat = ({ mentorshipId, currentUser, otherPerson, accentColor = 
   const handleTextChange = (e) => {
     setText(e.target.value);
     if (!socketRef.current || isReadOnly) return;
-    socketRef.current.emit("chat:typing", { mentorshipId, userName: currentUser.name });
+    socketRef.current.emit("chat:typing", { mentorshipId: sessionId, userName: currentUser.name });
     clearTimeout(typingTimeout.current);
     typingTimeout.current = setTimeout(() => {
-      socketRef.current?.emit("chat:stop_typing", { mentorshipId });
+      socketRef.current?.emit("chat:stop_typing", { mentorshipId: sessionId });
     }, 1500);
   };
 

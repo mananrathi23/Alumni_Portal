@@ -11,6 +11,8 @@ import {
   PiCircleNotch, PiGoogleLogo, PiCheckCircle,
 } from "react-icons/pi";
 
+import RestrictedAccess from "../RestrictedAccess";
+
 const API  = "http://localhost:4000/api/v1/mentorship";
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
@@ -307,6 +309,10 @@ const Mentorship = () => {
     { key:"settings", label:"My Settings", count: null },
     { key:"history",  label:"History",     count: completed.length },
   ];
+
+  if (user && user.role !== "Admin" && !user.adminVerified) {
+    return <RestrictedAccess />;
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">

@@ -30,7 +30,7 @@ const DashboardTicker = ({ accentColor = "sky", forumPath, eventsPath, jobsPath 
   useEffect(() => {
     const load = async () => {
       const [forumsR, eventsR, jobsR] = await Promise.allSettled([
-        axios.get(`${BASE}/forum`,  { withCredentials: true }),
+        axios.get(`${BASE}/forum/questions`,  { withCredentials: true }),
         axios.get(`${BASE}/events`, { params: { view: "upcoming" }, withCredentials: true }),
         axios.get(`${BASE}/jobs`,   { withCredentials: true }),
       ]);
@@ -39,7 +39,7 @@ const DashboardTicker = ({ accentColor = "sky", forumPath, eventsPath, jobsPath 
 
       // Forums — "title (description)"
       const forums = forumsR.status === "fulfilled"
-        ? (forumsR.value.data.posts || forumsR.value.data.forums || [])
+        ? (forumsR.value.data.questions || forumsR.value.data.posts || forumsR.value.data.forums || [])
         : [];
       forums.slice(0, 4).forEach((f) => {
         const title = f.title || f.content?.slice(0, 60) || "New discussion";

@@ -1,3 +1,4 @@
+import ThemeToggle from "../ThemeToggle.jsx";
 import React, { useState, useContext } from "react";
 import { PiGraduationCap, PiUsersThree, PiBriefcase, PiHandshake, PiCalendarCheck } from "react-icons/pi";
 import { Navigate } from "react-router-dom";
@@ -16,7 +17,7 @@ const FEATURES = [
 ];
 
 const Auth = () => {
-  const { isAuthenticated, user } = useContext(Context);
+  const { isAuthenticated, user, theme } = useContext(Context);
   const [isLogin, setIsLogin] = useState(true);
   const [selectedRole, setSelectedRole] = useState("Student");
 
@@ -34,14 +35,18 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-white dark:bg-slate-950">
 
       {/* ══════════════════════════════════════════
           LEFT PANEL — Branding & Features
       ══════════════════════════════════════════ */}
       <div
         className="hidden lg:flex lg:w-1/2 xl:w-5/12 flex-col justify-between p-10 xl:p-14 relative overflow-hidden"
-        style={{ background: "linear-gradient(155deg, #0f172a 0%, #1e3a5f 50%, #0c4a6e 100%)" }}
+        style={{
+          background: theme === "dark"
+            ? "linear-gradient(155deg, #0f172a 0%, #1e3a5f 50%, #0c4a6e 100%)"
+            : "linear-gradient(155deg, #eff6ff 0%, #dbeafe 45%, #bfdbfe 100%)",
+        }}
       >
         {/* Background grid */}
         <div
@@ -64,8 +69,8 @@ const Auth = () => {
             <PiGraduationCap className="text-white text-xl" />
           </div>
           <div>
-            <p className="text-white font-bold text-sm tracking-wider">ALUMNI PORTAL</p>
-            <p className="text-slate-400 text-xs tracking-widest uppercase">Student Network</p>
+            <p className={`${theme === "dark" ? "text-white" : "text-slate-950"} font-bold text-sm tracking-wider`}>ALUMNI PORTAL</p>
+            <p className={`${theme === "dark" ? "text-slate-400" : "text-slate-600"} text-xs tracking-widest uppercase`}>Student Network</p>
           </div>
         </div>
 
@@ -77,7 +82,7 @@ const Auth = () => {
               Your campus network,<br />
               <span className="text-sky-400">extended for life.</span>
             </h1>
-            <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
+            <p className={`${theme === "dark" ? "text-slate-400" : "text-slate-600"} text-sm leading-relaxed max-w-sm`}>
               Join thousands of students and alumni building meaningful careers
               and lasting relationships through the Alumni Student Portal.
             </p>
@@ -102,9 +107,9 @@ const Auth = () => {
               { v: "500+", l: "Mentors" },
               { v: "1.2K+", l: "Jobs" },
             ].map((s, i) => (
-              <div key={i} className="text-center bg-white/5 border border-white/10 rounded-xl py-3">
+              <div key={i} className={theme === "dark" ? "text-center bg-white/5 border border-white/10 rounded-xl py-3" : "text-center bg-slate-50 border border-slate-200 rounded-xl py-3"}>
                 <p className="text-sky-400 font-extrabold text-lg leading-none">{s.v}</p>
-                <p className="text-slate-500 text-xs mt-1 tracking-widest uppercase">{s.l}</p>
+                <p className={theme === "dark" ? "text-slate-500 text-xs mt-1 tracking-widest uppercase" : "text-slate-600 text-xs mt-1 tracking-widest uppercase"}>{s.l}</p>
               </div>
             ))}
           </div>
@@ -119,15 +124,20 @@ const Auth = () => {
       {/* ══════════════════════════════════════════
           RIGHT PANEL — Auth Form
       ══════════════════════════════════════════ */}
-      <div className="flex-1 flex flex-col bg-slate-950 lg:overflow-y-auto">
+      <div className={`flex-1 flex flex-col lg:overflow-y-auto ${theme === "dark" ? "bg-slate-950" : "bg-white"}`}>
 
         {/* Mobile top bar */}
-        <div className="lg:hidden flex items-center gap-3 px-5 py-4 border-b border-white/10"
-          style={{ background: "linear-gradient(135deg, #0f172a, #1e3a5f)" }}>
+        <div className={`lg:hidden flex items-center gap-3 px-5 py-4 border-b ${theme === "dark" ? "border-white/10" : "border-slate-200"}`}
+          style={{
+            background: theme === "dark"
+              ? "linear-gradient(135deg, #0f172a, #1e3a5f)"
+              : "linear-gradient(135deg, #dbeafe, #bae6fd)",
+          }}>
           <div className="bg-sky-500 p-2 rounded-lg">
             <PiGraduationCap className="text-white text-lg" />
           </div>
-          <p className="text-white font-bold text-sm tracking-wider">ALUMNI PORTAL</p>
+          <p className={`${theme === "dark" ? "text-white" : "text-slate-950"} font-bold text-sm tracking-wider flex-1`}>ALUMNI PORTAL</p>
+          <ThemeToggle/>
         </div>
 
         <div className="flex-1 flex items-start lg:items-center justify-center px-5 sm:px-10 py-8 lg:py-12">
@@ -135,10 +145,10 @@ const Auth = () => {
 
             {/* Form heading */}
             <div className="mb-7">
-              <h2 className="text-2xl font-bold text-white">
+              <h2 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-slate-800"}`}>
                 {isLogin ? "Welcome back" : "Create your account"}
               </h2>
-              <p className="text-slate-400 text-sm mt-1">
+              <p className={`text-sm mt-1 ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
                 {isLogin
                   ? "Sign in to your Alumni Portal account"
                   : "Join the Alumni Student Portal today"}
@@ -146,14 +156,14 @@ const Auth = () => {
             </div>
 
             {/* Social login */}
-            <SocialLogin />
+            <SocialLogin selectedRole={selectedRole} />
 
             {/* Sign In / Sign Up toggle */}
-            <div className="flex rounded-lg bg-slate-800 p-1 border border-white/10 mb-6">
+            <div className={`flex rounded-lg p-1 border mb-6 ${theme === "dark" ? "bg-slate-800 border-white/10" : "bg-slate-100 border-slate-200"}`}>
               <button
                 onClick={() => handleToggle(true)}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold tracking-wide transition-all duration-200 ${
-                  isLogin ? "bg-sky-500 text-white shadow" : "text-slate-400 hover:text-white"
+                  isLogin ? "bg-sky-500 text-white shadow" : theme === "dark" ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-800"
                 }`}
               >
                 Sign In
@@ -161,7 +171,7 @@ const Auth = () => {
               <button
                 onClick={() => handleToggle(false)}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold tracking-wide transition-all duration-200 ${
-                  !isLogin ? "bg-sky-500 text-white shadow" : "text-slate-400 hover:text-white"
+                  !isLogin ? "bg-sky-500 text-white shadow" : theme === "dark" ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-800"
                 }`}
               >
                 Sign Up

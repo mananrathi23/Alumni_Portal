@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { Navigate } from "react-router-dom";
 import axios from "axios";
+import { Context } from "../main";
 
 /**
  * ProtectedRoute
@@ -17,6 +18,7 @@ import axios from "axios";
  */
 const ProtectedRoute = ({ children, allowedRole }) => {
   const [status, setStatus] = useState("loading"); // "loading" | "ok" | "unauth" | "forbidden"
+  const { setIsAuthenticated, setUser } = useContext(Context);
 
   useEffect(() => {
     axios
@@ -29,8 +31,12 @@ const ProtectedRoute = ({ children, allowedRole }) => {
           setStatus("ok");
         }
       })
-      .catch(() => setStatus("unauth"));
-  }, [allowedRole]);
+      .catch(() => {
+        setIsAuthenticated(false);
+        setUser(null);
+        setStatus("unauth");
+      });
+  }, [allowedRole, setIsAuthenticated, setUser]);
 
   if (status === "loading") {
     return (

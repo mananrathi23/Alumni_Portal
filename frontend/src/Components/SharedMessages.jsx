@@ -14,7 +14,8 @@ import {
   PiHandshake, PiCircleNotch, PiClock,
 } from "react-icons/pi";
 
-const API = "http://localhost:4000/api/v1/mentorship";
+const MENTORSHIP_API = "http://localhost:4000/api/v1/mentorship";
+const CONNECTIONS_API = "http://localhost:4000/api/v1/connections";
 
 const GOAL_LABELS = {
   career:"Career Guidance", resume:"Resume Review",
@@ -34,40 +35,57 @@ export default function SharedMessages({ role, accentColor }) {
   const [searchParams]         = useSearchParams();
   const deepLinkId             = searchParams.get("session"); // auto-open this session
 
-  const [sessions, setSessions]           = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [selectedId, setSelectedId]       = useState(deepLinkId || null);
-  const [search, setSearch]               = useState("");
-  const [unreadCounts, setUnreadCounts]   = useState({});
+  const [activeTab, setActiveTab]           = useState("mentorship"); // "mentorship" or "connections"
+  const [mentorshipSessions, setMentorshipSessions] = useState([]);
+  const [connectionSessions, setConnectionSessions] = useState([]);
+  
+  const [loading, setLoading]               = useState(true);
+  const [selectedId, setSelectedId]         = useState(deepLinkId || null);
+  const [search, setSearch]                 = useState("");
+  
+  const [mentorshipUnread, setMentorshipUnread]   = useState({});
+  const [connectionUnread, setConnectionUnread]   = useState({});
   const [mobileShowChat, setMobileShowChat] = useState(!!deepLinkId);
 
   const theme = THEME[role] || THEME.Student;
   const color = accentColor || (role === "Alumni" ? "emerald" : role === "Teacher" ? "violet" : "sky");
 
-  // Fetch accepted + completed sessions
-  const fetchSessions = async () => {
+  // Fetch accepted + completed mentorship sessions
+  const fetchMentorship = async () => {
     try {
-      const res = await axios.get(`${API}/requests`, { withCredentials: true });
+      const res = await axios.get(`${MENTORSHIP_API}/requests`, { withCredentials: true });
       const all = res.data.requests || [];
       const active = all.filter(r => ["Accepted", "Completed"].includes(r.status));
-      setSessions(active);
-      // Auto-select first if deep-link didn't match
-      if (!deepLinkId && active.length > 0 && !selectedId) {
-        setSelectedId(active[0]._id);
-      }
-    } catch { setSessions([]); }
-    finally { setLoading(false); }
+      setMentorshipSessions(active);
+    } catch { setMentorshipSessions([]); }
   };
+
+  const fetchConnections = async () => {
+    try {
+      const res = await axios.get(`${CONNECTIONS_API}`, { withCredentials: true });
+      setConnectionSessions(res.data.connections || []);
+    } catch { setConnectionSessions([]); }
+  };
+
+  const fetchAllSessions = async () => {
+    setLoading(true);
+    await Promise.all([fetchMentorship(), fetchConnections()]);
+    setLoading(false);
+  }
 
   const fetchUnread = async () => {
     try {
-      const res = await axios.get(`${API}/chat/unread-counts`, { withCredentials: true });
-      setUnreadCounts(res.data.unread || {});
+      const [mRes, cRes] = await Promise.all([
+        axios.get(`${MENTORSHIP_API}/chat/unread-counts`, { withCredentials: true }),
+        axios.get(`${CONNECTIONS_API}/chat/unread-counts`, { withCredentials: true })
+      ]);
+      setMentorshipUnread(mRes.data.unread || {});
+      setConnectionUnread(cRes.data.unread || {});
     } catch {}
   };
 
   useEffect(() => {
-    fetchSessions();
+    fetchAllSessions();
     fetchUnread();
   }, []);
 
@@ -88,26 +106,39 @@ export default function SharedMessages({ role, accentColor }) {
   // Clear unread for selected session
   useEffect(() => {
     if (selectedId) {
-      setUnreadCounts(prev => ({ ...prev, [selectedId]: 0 }));
+      if (activeTab === "mentorship") {
+        setMentorshipUnread(prev => ({ ...prev, [selectedId]: 0 }));
+      } else {
+        setConnectionUnread(prev => ({ ...prev, [selectedId]: 0 }));
+      }
     }
-  }, [selectedId]);
+  }, [selectedId, activeTab]);
 
-  const filtered = sessions.filter(s => {
-    const q = search.toLowerCase();
-    const other = role === "Student" ? s.mentor?.name : s.student?.name;
-    return !search || (other || "").toLowerCase().includes(q);
-  });
-
-  const selectedSession = sessions.find(s => s._id === selectedId);
-
-  // Helper: other person's info
-  const getOther = (s) => role === "Student"
+  const getOtherMentorship = (s) => role === "Student"
     ? { name: s.mentor?.name,  role: s.mentor?.role  }
     : { name: s.student?.name, role: "Student" };
+    
+  const currentSessions = activeTab === "mentorship" ? mentorshipSessions : connectionSessions;
+  const currentUnread = activeTab === "mentorship" ? mentorshipUnread : connectionUnread;
 
-  const getInitial = (s) => (getOther(s).name || "?").charAt(0).toUpperCase();
+  const filtered = currentSessions.filter(s => {
+    const q = search.toLowerCase();
+    let otherName = "";
+    if (activeTab === "mentorship") {
+      otherName = getOtherMentorship(s).name;
+    } else {
+      otherName = s.connectedWith?.name;
+    }
+    return !search || (otherName || "").toLowerCase().includes(q);
+  });
 
-  const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
+  const selectedSession = currentSessions.find(s => (s._id || s.connectionId) === selectedId);
+
+  const getInitial = (name) => (name || "?").charAt(0).toUpperCase();
+
+  const totalUnreadMentorship = Object.values(mentorshipUnread).reduce((a, b) => a + b, 0);
+  const totalUnreadConnection = Object.values(connectionUnread).reduce((a, b) => a + b, 0);
+  const totalUnread = totalUnreadMentorship + totalUnreadConnection;
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -128,12 +159,40 @@ export default function SharedMessages({ role, accentColor }) {
                   </span>
                 )}
               </div>
-              <div className="relative">
+              <div className="relative mb-3">
                 <PiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={15}/>
                 <input type="text" placeholder="Search conversations…" value={search}
                   onChange={e => setSearch(e.target.value)}
                   className={`w-full pl-8 pr-3 py-2 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 ${theme.ring}`}
                 />
+              </div>
+
+              {/* Tabs */}
+              <div className="flex bg-slate-800/50 p-1 rounded-lg border border-white/[0.04]">
+                <button
+                  onClick={() => { setActiveTab("mentorship"); setSelectedId(null); }}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2 ${
+                    activeTab === "mentorship" ? `${theme.bg} text-white shadow` : "text-slate-400 hover:text-white"
+                  }`}>
+                  Mentorship
+                  {totalUnreadMentorship > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] text-white">
+                      {totalUnreadMentorship}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => { setActiveTab("connections"); setSelectedId(null); }}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2 ${
+                    activeTab === "connections" ? `${theme.bg} text-white shadow` : "text-slate-400 hover:text-white"
+                  }`}>
+                  Connections
+                  {totalUnreadConnection > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] text-white">
+                      {totalUnreadConnection}
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -157,38 +216,48 @@ export default function SharedMessages({ role, accentColor }) {
                 </div>
               ) : (
                 filtered.map(s => {
-                  const other   = getOther(s);
-                  const unread  = unreadCounts[s._id] || 0;
-                  const isActive = selectedId === s._id;
+                  const id = activeTab === "mentorship" ? s._id : s.connectionId;
+                  const otherName = activeTab === "mentorship" ? getOtherMentorship(s).name : s.connectedWith?.name;
+                  const otherRole = activeTab === "mentorship" ? getOtherMentorship(s).role : s.connectedWith?.role;
+                  const unread  = currentUnread[id] || 0;
+                  const isActive = selectedId === id;
                   return (
-                    <button key={s._id}
-                      onClick={() => { setSelectedId(s._id); setMobileShowChat(true); }}
+                    <button key={id}
+                      onClick={() => { setSelectedId(id); setMobileShowChat(true); }}
                       className={`w-full flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] text-left transition-all ${
                         isActive ? `bg-slate-800 ${theme.border} border-l-2` : "hover:bg-slate-800/50"
                       }`}>
                       <div className={`w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-bold text-sm ${
-                        other.role === "Alumni" ? "bg-gradient-to-br from-emerald-400 to-emerald-600"
-                          : other.role === "Teacher" ? "bg-gradient-to-br from-violet-400 to-violet-600"
+                        otherRole === "Alumni" ? "bg-gradient-to-br from-emerald-400 to-emerald-600"
+                          : otherRole === "Teacher" ? "bg-gradient-to-br from-violet-400 to-violet-600"
                           : "bg-gradient-to-br from-sky-400 to-sky-600"
                       }`}>
-                        {getInitial(s)}
+                        {getInitial(otherName)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="text-white text-sm font-semibold truncate">{other.name}</p>
+                          <p className="text-white text-sm font-semibold truncate">{otherName}</p>
                           {unread > 0 && (
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${theme.bg} text-white ml-2 flex-shrink-0`}>
                               {unread}
                             </span>
                           )}
                         </div>
-                        <p className="text-slate-500 text-xs truncate">
-                          {GOAL_LABELS[s.goal] || s.goal} · {s.slot?.day} {s.slot?.time}
-                        </p>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className={`w-1.5 h-1.5 rounded-full ${s.status === "Accepted" ? "bg-emerald-400" : "bg-slate-500"}`}/>
-                          <span className="text-slate-600 text-[10px]">{s.status}</span>
-                        </div>
+                        {activeTab === "mentorship" ? (
+                          <p className="text-slate-500 text-xs truncate">
+                            {GOAL_LABELS[s.goal] || s.goal} · {s.slot?.day} {s.slot?.time}
+                          </p>
+                        ) : (
+                          <p className="text-slate-500 text-xs truncate">
+                            Connected {new Date(s.connectedAt).toLocaleDateString()}
+                          </p>
+                        )}
+                        {activeTab === "mentorship" && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className={`w-1.5 h-1.5 rounded-full ${s.status === "Accepted" ? "bg-emerald-400" : "bg-slate-500"}`}/>
+                            <span className="text-slate-600 text-[10px]">{s.status}</span>
+                          </div>
+                        )}
                       </div>
                     </button>
                   );
@@ -201,11 +270,12 @@ export default function SharedMessages({ role, accentColor }) {
           <div className={`${mobileShowChat ? "flex" : "hidden sm:flex"} flex-1 flex-col min-w-0`}>
             {selectedSession ? (
               <MentorshipChat
-                mentorshipId={selectedId}
+                sessionId={activeTab === "mentorship" ? selectedSession._id : selectedSession.connectionId}
+                apiBaseUrl={activeTab === "mentorship" ? MENTORSHIP_API : CONNECTIONS_API}
                 currentUser={{ _id: user?._id, name: user?.name, role }}
-                otherPerson={getOther(selectedSession)}
+                otherPerson={activeTab === "mentorship" ? getOtherMentorship(selectedSession) : selectedSession.connectedWith}
                 accentColor={color}
-                sessionStatus={selectedSession.status}
+                sessionStatus={activeTab === "mentorship" ? selectedSession.status : "Accepted"}
                 onClose={() => { setMobileShowChat(false); setSelectedId(null); }}
               />
             ) : (

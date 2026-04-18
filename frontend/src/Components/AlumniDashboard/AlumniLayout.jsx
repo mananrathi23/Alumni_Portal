@@ -75,6 +75,12 @@ const AlumniLayout = () => {
         { label: "Incubation",  path: "/alumni/incubation",  icon: PiRocketLaunch },
       ],
     },
+    {
+      heading: "Account",
+      links: [
+        { label: "My Profile",  path: "/alumni/profile",    icon: PiUserCircle },
+      ],
+    },
   ];
 
   if (!alumni) return (
@@ -94,6 +100,9 @@ const AlumniLayout = () => {
         accentColor="emerald"
         navGroups={NAV_GROUPS}
         profilePath="/alumni/profile"
+        forumPath="/alumni/forum"
+        eventsPath="/alumni/events"
+        jobsPath="/alumni/jobs"
         onLogout={handleLogout}
       >
         <Outlet context={{ alumni }} />

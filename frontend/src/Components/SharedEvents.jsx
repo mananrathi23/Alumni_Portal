@@ -11,6 +11,8 @@ import {
   PiWarningCircle,
 } from "react-icons/pi";
 
+import RestrictedAccess from "./RestrictedAccess";
+
 const API = "http://localhost:4000/api/v1/events";
 const EVENT_TYPES = ["seminar","workshop","webinar","hackathon","reunion","placement","other"];
 const POSTER_ROLES = ["Admin", "Alumni", "Teacher"];
@@ -304,6 +306,10 @@ export default function SharedEvents({ role, accentColor = "sky" }) {
   };
 
   useEffect(() => { fetchEvents(); }, [tab]);
+
+  if (user && user.role !== "Admin" && !user.adminVerified) {
+    return <RestrictedAccess />;
+  }
 
   const deleteEvent = async (id) => {
     if (!window.confirm("Delete this event?")) return;

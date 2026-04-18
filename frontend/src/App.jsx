@@ -1,11 +1,14 @@
 import './App.css'
 import MainPage from './Components/MainPage.jsx'
+import { useContext } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Auth from './Components/Authentication/Auth.jsx'
 import OtpVerification from './Components/Authentication/OtpVerification.jsx'
 import ResetPassword from './Components/Authentication/ResetPassword.jsx'
 import ProtectedRoute from './Components/ProtectedRoute.jsx'
 import { ToastContainer } from 'react-toastify'
+import { Context } from './main'
+import ChatbotWidget from './Components/ChatbotWidget.jsx'
 
 // ─── STUDENT ──────────────────────────────────────────────────────────────────
 import StudentLayout from './Components/StudentDashboard/StudentLayout.jsx'
@@ -53,16 +56,21 @@ import AdminDashboardHome from './Components/AdminDashboard/DashboardHome.jsx'
 import AdminNews from './Components/AdminDashboard/News.jsx'
 import AdminEvents from './Components/AdminDashboard/Events.jsx'
 import AdminJobs from './Components/AdminDashboard/Jobs.jsx'
+import AdminUsers from './Components/AdminDashboard/Users.jsx'
+import AdminSupportTickets from './Components/AdminDashboard/SupportTickets.jsx'
 
 import GoogleLinked from './Components/GoogleLinked.jsx'
+import OAuthSuccess from './Components/OAuthSuccess.jsx'
 
 function App() {
+  const { theme } = useContext(Context);
   const router = createBrowserRouter([
     { path: '/', element: <MainPage /> },
     { path: '/login', element: <Auth /> },
     { path: '/otp-verification/:email/:phone/:role', element: <OtpVerification /> },
     { path: '/password/reset/:token', element: <ResetPassword /> },
-    { path: '/google-linked', element: <GoogleLinked /> },
+    { path: '/google-linked',  element: <GoogleLinked /> },
+    { path: '/oauth-success',  element: <OAuthSuccess /> },
 
     // ─── STUDENT ──────────────────────────────────────────────────────────────
     {
@@ -128,6 +136,8 @@ function App() {
         { path: 'news',      element: <AdminNews /> },
         { path: 'events',    element: <AdminEvents /> },
         { path: 'jobs',      element: <AdminJobs /> },
+        { path: 'users',     element: <AdminUsers /> },
+        { path: 'support',   element: <AdminSupportTickets /> },
       ],
     },
   ]);
@@ -135,7 +145,8 @@ function App() {
   return (
     <>
       <RouterProvider router={router} />
-      <ToastContainer position="top-right" theme="dark" />
+      <ToastContainer position="top-right" theme={theme === "dark" ? "dark" : "light"} />
+      <ChatbotWidget />
     </>
   )
 }

@@ -42,7 +42,7 @@ const ProfileIncompleteModal = ({ student, onClose }) => {
             Complete your profile
           </h3>
           <p className="text-slate-400 text-sm mt-1 mb-5">
-            A complete profile helps alumni and teachers connect with you more easily.
+            Please complete your profile so that the admin can verify you, otherwise you cannot use the complete features of the portal.
           </p>
 
           {/* Checklist */}

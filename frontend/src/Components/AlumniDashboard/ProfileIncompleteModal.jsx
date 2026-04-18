@@ -25,7 +25,7 @@ const ProfileIncompleteModal = ({ alumni, onClose }) => {
             <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all"><PiX size={16} /></button>
           </div>
           <h3 className="text-white font-bold text-lg">Complete your profile</h3>
-          <p className="text-slate-400 text-sm mt-1 mb-5">Students and teachers can find you more easily with a complete profile.</p>
+          <p className="text-slate-400 text-sm mt-1 mb-5">Please complete your profile so that the admin can verify you, otherwise you cannot use the complete features of the portal.</p>
           <div className="space-y-2 mb-6">
             {CHECKLIST.map(({ label, key, check }) => {
               const done = check ? check(alumni?.[key]) : !!alumni?.[key];

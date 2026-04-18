@@ -75,6 +75,12 @@ const TeacherLayout = () => {
         { label: "Incubation",   path: "/teacher/incubation",  icon: PiRocketLaunch },
       ],
     },
+    {
+      heading: "Account",
+      links: [
+        { label: "My Profile",   path: "/teacher/profile",    icon: PiUserCircle },
+      ],
+    },
   ];
 
   if (!teacher) return (
@@ -94,6 +100,9 @@ const TeacherLayout = () => {
         accentColor="violet"
         navGroups={NAV_GROUPS}
         profilePath="/teacher/profile"
+        forumPath="/teacher/forum"
+        eventsPath="/teacher/events"
+        jobsPath="/teacher/jobs"
         onLogout={handleLogout}
       >
         <Outlet context={{ teacher }} />

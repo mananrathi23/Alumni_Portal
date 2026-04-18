@@ -1,368 +1,324 @@
 import React, { useState, useContext } from "react";
-import { useOutletContext, useNavigate } from "react-router-dom";
+import { useOutletContext } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../../main";
 import ProfilePhotoUpload from "../ProfilePhotoUpload.jsx";
 import {
   PiGraduationCap, PiPencilSimple, PiCheck, PiX,
-  PiLinkedinLogo, PiGithubLogo, PiBriefcase,
-  PiStar, PiUser,
+  PiLinkedinLogo, PiGithubLogo, PiBriefcase, PiStar, PiUser,
+  PiEnvelope, PiIdentificationCard,
 } from "react-icons/pi";
 
-const DEPARTMENTS = [
-  "Computer Science", "Information Technology", "Electronics",
-  "Mechanical", "Civil", "Other",
-];
-const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+const DEPARTMENTS = ["Computer Science","Information Technology","Electronics","Mechanical","Civil","Other"];
+const YEARS = ["1st Year","2nd Year","3rd Year","4th Year"];
 
-/* ── helper: is profile complete? ── */
-export const isProfileComplete = (student) => {
-  return !!(
-    student?.department && student.department !== "Not Set" &&
-    student?.year &&
-    student?.enrollmentNumber &&
-    student?.bio
-  );
-};
+export const isProfileComplete = (student) =>
+  !!(student?.department && student.department !== "Not Set" && student?.year && student?.enrollmentNumber && student?.bio);
+
+const inp = "w-full px-3 py-2.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all";
+const lbl = "block text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-1.5";
+
+const Field = ({ label, value, children }) => (
+  <div>
+    <p className={lbl}>{label}</p>
+    {children || <p className="text-slate-700 text-sm">{value || <span className="text-slate-400">Not set</span>}</p>}
+  </div>
+);
 
 const Profile = () => {
-  const { student } = useOutletContext();
-  const { setUser } = useContext(Context);
-  const navigate = useNavigate();
-
-  const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { student }  = useOutletContext();
+  const { setUser, theme }  = useContext(Context);
+  const [editing, setEditing]       = useState(false);
+  const [loading, setLoading]       = useState(false);
   const [skillInput, setSkillInput] = useState("");
 
   const [form, setForm] = useState({
-    department:       student?.department || "",
-    year:             student?.year || "",
+    department: student?.department || "",
+    year: student?.year || "",
     enrollmentNumber: student?.enrollmentNumber || "",
-    section:          student?.section || "",
-    cgpa:             student?.cgpa || "",
-    enrollmentYear:   student?.enrollmentYear || "",
-    bio:              student?.bio || "",
-    linkedIn:         student?.linkedIn || "",
-    github:           student?.github || "",
-    skills:           student?.skills || [],
+    section: student?.section || "",
+    cgpa: student?.cgpa || "",
+    enrollmentYear: student?.enrollmentYear || "",
+    bio: student?.bio || "",
+    linkedIn: student?.linkedIn || "",
+    github: student?.github || "",
+    skills: student?.skills || [],
   });
 
-  const set = (key, val) => setForm((p) => ({ ...p, [key]: val }));
-
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const addSkill = () => {
     const s = skillInput.trim();
-    if (s && !form.skills.includes(s)) {
-      set("skills", [...form.skills, s]);
-    }
+    if (s && !form.skills.includes(s)) set("skills", [...form.skills, s]);
     setSkillInput("");
   };
-
-  const removeSkill = (skill) =>
-    set("skills", form.skills.filter((s) => s !== skill));
+  const removeSkill = s => set("skills", form.skills.filter(x => x !== s));
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      const res = await axios.put(
-        "http://localhost:4000/api/v1/user/update-profile",
-        {
-          ...form,
-          cgpa:           form.cgpa           ? Number(form.cgpa)           : undefined,
-          enrollmentYear: form.enrollmentYear  ? Number(form.enrollmentYear) : undefined,
-        },
+      const res = await axios.put("http://localhost:4000/api/v1/user/update-profile",
+        { ...form, cgpa: form.cgpa ? Number(form.cgpa) : undefined, enrollmentYear: form.enrollmentYear ? Number(form.enrollmentYear) : undefined },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       );
-      toast.success("Profile updated successfully!");
+      toast.success("Profile updated!");
       setUser(res.data.user);
       setEditing(false);
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { toast.error(err.response?.data?.message || "Something went wrong"); }
+    finally { setLoading(false); }
   };
 
   const complete = isProfileComplete(student);
 
-  const inputClass = "w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all";
-  const labelClass = "block text-xs font-semibold text-slate-400 tracking-widest uppercase mb-1.5";
-
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
+    <div className="max-w-5xl mx-auto space-y-5">
 
-      {/* Header */}
+      {/* ── Page header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">My Profile</h2>
-          <p className="text-slate-400 text-sm mt-0.5">
-            {complete
-              ? "Your profile is complete ✓"
-              : "Complete your profile so others can find you"}
+          <h2 className="text-xl font-bold text-slate-800">My Profile</h2>
+          <p className="text-slate-500 text-sm mt-0.5">
+            {complete ? "Your profile is complete ✓" : "Complete your profile so others can find you"}
           </p>
         </div>
         {!editing ? (
-          <button
-            onClick={() => setEditing(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-sm font-semibold hover:bg-sky-500/20 transition-all"
-          >
-            <PiPencilSimple size={15} /> Edit Profile
+          <button onClick={() => setEditing(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-sm font-semibold hover:bg-sky-500/20 transition-all">
+            <PiPencilSimple size={15}/> Edit Profile
           </button>
         ) : (
           <div className="flex gap-2">
-            <button
-              onClick={() => setEditing(false)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-300 text-sm font-medium hover:bg-slate-700 transition-all"
-            >
-              <PiX size={14} /> Cancel
+            <button onClick={() => setEditing(false)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg ${theme === "dark" ? "bg-slate-800 border border-white/[0.07] text-slate-300 hover:bg-slate-700" : "bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200"} text-sm font-medium transition-all`}>
+              <PiX size={14}/> Cancel
             </button>
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-sm font-bold transition-all shadow shadow-sky-500/30 disabled:opacity-50"
-            >
-              <PiCheck size={14} /> {loading ? "Saving…" : "Save"}
+            <button onClick={handleSave} disabled={loading}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-sm font-bold transition-all shadow shadow-sky-500/30 disabled:opacity-50">
+              <PiCheck size={14}/> {loading ? "Saving…" : "Save Changes"}
             </button>
           </div>
         )}
-      </div>
-
-      {/* Profile Photo */}
-      <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 flex justify-center">
-        <ProfilePhotoUpload
-          user={student}
-          accentColor="sky"
-          onUploaded={(photo) => setUser((prev) => ({ ...prev, profilePhoto: photo }))}
-        />
       </div>
 
       {/* Incomplete banner */}
       {!complete && !editing && (
-        <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
-          <PiStar size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-amber-300 text-sm font-semibold">Profile incomplete</p>
-            <p className="text-amber-400/70 text-xs mt-0.5">
-              Add your enrollment number, department, and bio to complete your profile.
-            </p>
-          </div>
-          <button
-            onClick={() => setEditing(true)}
-            className="ml-auto text-xs text-amber-400 font-semibold hover:text-amber-300 whitespace-nowrap"
-          >
-            Complete →
-          </button>
+        <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+          <PiStar size={16} className="text-amber-400 flex-shrink-0"/>
+          <p className="text-amber-300 text-sm flex-1">Complete your profile — add department, enrollment number, and bio.</p>
+          <button onClick={() => setEditing(true)} className="text-xs text-amber-400 font-bold hover:text-amber-300 whitespace-nowrap">Complete →</button>
         </div>
       )}
 
-      {/* Avatar + name card */}
-      <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 flex items-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-sky-500/20 flex-shrink-0">
-          {student?.name?.charAt(0).toUpperCase()}
-        </div>
-        <div>
-          <p className="text-white font-bold text-lg leading-tight">{student?.name}</p>
-          <p className="text-sky-400 text-xs font-medium tracking-widest uppercase mt-0.5">Student</p>
-          <p className="text-slate-500 text-xs mt-1">{student?.email}</p>
-        </div>
-        {complete && (
-          <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full font-semibold">
-            <PiCheck size={12} /> Complete
-          </span>
-        )}
-      </div>
+      {/* ── Main 2-col layout ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
 
-      {/* Academic Info */}
-      <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 space-y-4">
-        <div className="flex items-center gap-2 mb-1">
-          <PiGraduationCap size={16} className="text-sky-400" />
-          <h3 className="text-white font-semibold text-sm">Academic Information</h3>
-        </div>
+        {/* ── LEFT: Identity card ── */}
+        <div className="space-y-4">
+          {/* Photo + name hero card */}
+          <div className="relative rounded-2xl overflow-hidden"
+            style={{ background: theme === "dark"
+              ? "linear-gradient(145deg, #0f172a 0%, #1e3a5f 50%, #0c4a6e 100%)"
+              : "linear-gradient(145deg, #eff6ff 0%, #dbeafe 50%, #bfdbfe 100%)" }}>
+            {/* Grid decoration */}
+            <div className="absolute inset-0 opacity-[0.04]"
+              style={{ backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px)", backgroundSize: "24px 24px" }}/>
+            {/* Glow */}
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-30 pointer-events-none"
+              style={{ background: "radial-gradient(circle, #0ea5e9, transparent 70%)" }}/>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Enrollment */}
-          <div>
-            <label className={labelClass}>Enrollment Number</label>
-            {editing ? (
-              <input type="text" placeholder="e.g. 21CS001" value={form.enrollmentNumber}
-                onChange={(e) => set("enrollmentNumber", e.target.value)} className={inputClass} />
-            ) : (
-              <p className="text-slate-300 text-sm">{student?.enrollmentNumber || <span className="text-slate-600">Not set</span>}</p>
+            <div className="relative z-10 p-6 flex flex-col items-center text-center gap-4">
+              {/* Photo upload */}
+              <ProfilePhotoUpload
+                user={student}
+                accentColor="sky"
+                onUploaded={photo => setUser(prev => ({ ...prev, profilePhoto: photo }))}
+              />
+              {/* Name + role */}
+              <div>
+                <p className={theme === "dark" ? "text-white font-bold text-lg leading-tight" : "text-slate-950 font-bold text-lg leading-tight"}>{student?.name}</p>
+                <span className="inline-flex items-center gap-1.5 mt-1 text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">
+                  <PiGraduationCap size={11}/> Student
+                </span>
+                {complete && (
+                  <div className="flex items-center justify-center gap-1 mt-2 text-[10px] text-emerald-400">
+                    <PiCheck size={11}/> Profile complete
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick info card */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <PiEnvelope size={14} className="text-slate-500 flex-shrink-0"/>
+              <p className="text-slate-500 text-xs truncate">{student?.email}</p>
+            </div>
+            {student?.department && student.department !== "Not Set" && (
+              <div className="flex items-center gap-2">
+                <PiGraduationCap size={14} className="text-slate-500 flex-shrink-0"/>
+                <p className="text-slate-500 text-xs">{student.department}</p>
+              </div>
+            )}
+            {student?.year && (
+              <div className="flex items-center gap-2">
+                <PiIdentificationCard size={14} className="text-slate-500 flex-shrink-0"/>
+                <p className="text-slate-500 text-xs">{student.year}</p>
+              </div>
+            )}
+            {student?.enrollmentYear && (
+              <div className="flex items-center gap-2">
+                <PiStar size={14} className="text-slate-500 flex-shrink-0"/>
+                <p className="text-slate-500 text-xs">Class of {student.enrollmentYear}</p>
+              </div>
+            )}
+            {student?.cgpa > 0 && (
+              <div className="flex items-center gap-2">
+                <PiBriefcase size={14} className="text-slate-500 flex-shrink-0"/>
+                <p className="text-slate-500 text-xs">CGPA: <span className="text-white font-semibold">{student.cgpa}</span></p>
+              </div>
+            )}
+            {/* Social links */}
+            {(student?.linkedIn || student?.github) && (
+              <div className="flex gap-2 pt-1">
+                {student.linkedIn && (
+                  <a href={student.linkedIn} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300 transition-colors">
+                    <PiLinkedinLogo size={13}/> LinkedIn
+                  </a>
+                )}
+                {student.github && (
+                  <a href={student.github} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition-colors">
+                    <PiGithubLogo size={13}/> GitHub
+                  </a>
+                )}
+              </div>
             )}
           </div>
 
-          {/* Enrollment Year */}
-          <div>
-            <label className={labelClass}>Enrollment Year</label>
+          {/* Skills card */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <PiBriefcase size={14} className="text-sky-400"/>
+              <h3 className="text-slate-800 font-semibold text-sm">Skills</h3>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(editing ? form.skills : student?.skills ?? []).map(skill => (
+                <span key={skill} className="flex items-center gap-1 text-xs bg-sky-50 text-sky-600 border border-sky-200 px-2.5 py-1 rounded-full">
+                  {skill}
+                  {editing && <button onClick={() => removeSkill(skill)} className="text-sky-500/60 hover:text-red-400 transition-colors ml-0.5"><PiX size={10}/></button>}
+                </span>
+              ))}
+              {!editing && !student?.skills?.length && <p className="text-slate-400 text-xs">No skills yet</p>}
+            </div>
+            {editing && (
+              <div className="flex gap-2 mt-3">
+                <input type="text" placeholder="Add skill…" value={skillInput}
+                  onChange={e => setSkillInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addSkill())}
+                  className={`${inp} flex-1 text-xs py-2`}/>
+                <button onClick={addSkill} className="px-3 py-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold hover:bg-sky-500/20 transition-all">Add</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── RIGHT: Form fields ── */}
+        <div className="space-y-4">
+
+          {/* Academic info */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-sky-500/15 border border-sky-500/25 flex items-center justify-center flex-shrink-0">
+                <PiGraduationCap size={14} className="text-sky-400"/>
+              </div>
+              <h3 className="text-slate-800 font-semibold text-sm">Academic Information</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Enrollment Number" value={student?.enrollmentNumber}>
+                {editing && <input type="text" placeholder="e.g. 21CS001" value={form.enrollmentNumber} onChange={e => set("enrollmentNumber", e.target.value)} className={inp}/>}
+              </Field>
+              <Field label="Enrollment Year (Class of)" value={student?.enrollmentYear ? `Class of ${student.enrollmentYear}` : undefined}>
+                {editing && <input type="number" placeholder="e.g. 2022" min="2000" max="2040" value={form.enrollmentYear} onChange={e => set("enrollmentYear", e.target.value ? Number(e.target.value) : "")} className={inp}/>}
+              </Field>
+              <Field label="Department" value={student?.department !== "Not Set" ? student?.department : undefined}>
+                {editing && (
+                  <select value={form.department} onChange={e => set("department", e.target.value)} className={inp}>
+                    <option value="">Select department</option>
+                    {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
+                  </select>
+                )}
+              </Field>
+              <Field label="Year" value={student?.year}>
+                {editing && (
+                  <select value={form.year} onChange={e => set("year", e.target.value)} className={inp}>
+                    <option value="">Select year</option>
+                    {YEARS.map(y => <option key={y}>{y}</option>)}
+                  </select>
+                )}
+              </Field>
+              <Field label="Section" value={student?.section}>
+                {editing && <input type="text" placeholder="e.g. A" value={form.section} onChange={e => set("section", e.target.value)} className={inp}/>}
+              </Field>
+              <Field label="CGPA" value={student?.cgpa ? String(student.cgpa) : undefined}>
+                {editing && <input type="number" step="0.01" min="0" max="10" placeholder="e.g. 8.5" value={form.cgpa} onChange={e => set("cgpa", e.target.value)} className={inp}/>}
+              </Field>
+            </div>
+          </div>
+
+          {/* Bio */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-violet-500/15 border border-violet-500/25 flex items-center justify-center flex-shrink-0">
+                <PiUser size={14} className="text-violet-400"/>
+              </div>
+              <h3 className="text-slate-800 font-semibold text-sm">About Me</h3>
+            </div>
             {editing ? (
-              <input
-                type="number"
-                placeholder="e.g. 2026"
-                min="2000"
-                max="2040"
-                value={form.enrollmentYear}
-                onChange={(e) => set("enrollmentYear", e.target.value ? Number(e.target.value) : "")}
-                className={inputClass}
-              />
+              <>
+                <textarea rows={4} placeholder="Tell others about yourself — your interests, goals, and what you're working on…"
+                  value={form.bio} onChange={e => set("bio", e.target.value)}
+                  className={`${inp} resize-none`} maxLength={500}/>
+                <p className="text-slate-400 text-xs text-right mt-1">{form.bio.length}/500</p>
+              </>
             ) : (
-              <p className="text-slate-300 text-sm">
-                {student?.enrollmentYear ? `Class of ${student.enrollmentYear}` : <span className="text-slate-600">Not set</span>}
+              <p className="text-slate-700 text-sm leading-relaxed">
+                {student?.bio || <span className="text-slate-400">No bio added yet. Click Edit Profile to add one.</span>}
               </p>
             )}
           </div>
 
-          {/* Department */}
-          <div>
-            <label className={labelClass}>Department</label>
-            {editing ? (
-              <select value={form.department} onChange={(e) => set("department", e.target.value)} className={inputClass}>
-                <option value="">Select department</option>
-                {DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}
-              </select>
-            ) : (
-              <p className="text-slate-300 text-sm">{student?.department || <span className="text-slate-600">Not set</span>}</p>
-            )}
+          {/* Social links */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center flex-shrink-0">
+                <PiLinkedinLogo size={14} className="text-emerald-400"/>
+              </div>
+              <h3 className="text-slate-800 font-semibold text-sm">Social Links</h3>
+            </div>
+            <div className="space-y-3">
+              <Field label="LinkedIn" value={student?.linkedIn}>
+                {student?.linkedIn && !editing && (
+                  <a href={student.linkedIn} target="_blank" rel="noreferrer" className="text-sky-400 text-sm hover:underline flex items-center gap-1.5">
+                    <PiLinkedinLogo size={14}/> {student.linkedIn}
+                  </a>
+                )}
+                {editing && <input type="url" placeholder="https://linkedin.com/in/yourname" value={form.linkedIn} onChange={e => set("linkedIn", e.target.value)} className={inp}/>}
+              </Field>
+              <Field label="GitHub" value={student?.github}>
+                {student?.github && !editing && (
+                  <a href={student.github} target="_blank" rel="noreferrer" className="text-slate-700 text-sm hover:underline flex items-center gap-1.5">
+                    <PiGithubLogo size={14}/> {student.github}
+                  </a>
+                )}
+                {editing && <input type="url" placeholder="https://github.com/yourname" value={form.github} onChange={e => set("github", e.target.value)} className={inp}/>}
+              </Field>
+            </div>
           </div>
 
-          {/* Year */}
-          <div>
-            <label className={labelClass}>Year</label>
-            {editing ? (
-              <select value={form.year} onChange={(e) => set("year", e.target.value)} className={inputClass}>
-                <option value="">Select year</option>
-                {YEARS.map((y) => <option key={y}>{y}</option>)}
-              </select>
-            ) : (
-              <p className="text-slate-300 text-sm">{student?.year || <span className="text-slate-600">Not set</span>}</p>
-            )}
-          </div>
-
-          {/* Section */}
-          <div>
-            <label className={labelClass}>Section</label>
-            {editing ? (
-              <input type="text" placeholder="e.g. A" value={form.section}
-                onChange={(e) => set("section", e.target.value)} className={inputClass} />
-            ) : (
-              <p className="text-slate-300 text-sm">{student?.section || <span className="text-slate-600">Not set</span>}</p>
-            )}
-          </div>
-
-          {/* CGPA */}
-          <div>
-            <label className={labelClass}>CGPA</label>
-            {editing ? (
-              <input type="number" step="0.01" min="0" max="10" placeholder="e.g. 8.5"
-                value={form.cgpa} onChange={(e) => set("cgpa", e.target.value)} className={inputClass} />
-            ) : (
-              <p className="text-slate-300 text-sm">{student?.cgpa || <span className="text-slate-600">Not set</span>}</p>
-            )}
-          </div>
         </div>
       </div>
-
-      {/* Bio */}
-      <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 space-y-3">
-        <div className="flex items-center gap-2 mb-1">
-          <PiUser size={16} className="text-sky-400" />
-          <h3 className="text-white font-semibold text-sm">About</h3>
-        </div>
-        {editing ? (
-          <>
-            <textarea rows={3} placeholder="Write a short bio about yourself…"
-              value={form.bio} onChange={(e) => set("bio", e.target.value)}
-              className={`${inputClass} resize-none`} maxLength={500} />
-            <p className="text-slate-600 text-xs text-right">{form.bio.length}/500</p>
-          </>
-        ) : (
-          <p className="text-slate-300 text-sm leading-relaxed">
-            {student?.bio || <span className="text-slate-600">No bio added yet.</span>}
-          </p>
-        )}
-      </div>
-
-      {/* Skills */}
-      <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 space-y-3">
-        <div className="flex items-center gap-2 mb-1">
-          <PiBriefcase size={16} className="text-sky-400" />
-          <h3 className="text-white font-semibold text-sm">Skills</h3>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {(editing ? form.skills : student?.skills ?? []).map((skill) => (
-            <span key={skill}
-              className="flex items-center gap-1.5 text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full border border-white/[0.07]">
-              {skill}
-              {editing && (
-                <button onClick={() => removeSkill(skill)} className="text-slate-500 hover:text-red-400 transition-colors ml-0.5">
-                  <PiX size={11} />
-                </button>
-              )}
-            </span>
-          ))}
-          {!editing && student?.skills?.length === 0 && (
-            <p className="text-slate-600 text-sm">No skills added yet.</p>
-          )}
-        </div>
-
-        {editing && (
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Add a skill (e.g. React)"
-              value={skillInput}
-              onChange={(e) => setSkillInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
-              className={`${inputClass} flex-1`}
-            />
-            <button onClick={addSkill}
-              className="px-4 py-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-sm font-semibold hover:bg-sky-500/20 transition-all">
-              Add
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Social Links */}
-      <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-5 space-y-4">
-        <div className="flex items-center gap-2 mb-1">
-          <PiLinkedinLogo size={16} className="text-sky-400" />
-          <h3 className="text-white font-semibold text-sm">Social Links</h3>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className={labelClass}>LinkedIn URL</label>
-            {editing ? (
-              <input type="url" placeholder="https://linkedin.com/in/yourname"
-                value={form.linkedIn} onChange={(e) => set("linkedIn", e.target.value)} className={inputClass} />
-            ) : student?.linkedIn ? (
-              <a href={student.linkedIn} target="_blank" rel="noreferrer"
-                className="text-sky-400 text-sm hover:underline flex items-center gap-1.5">
-                <PiLinkedinLogo size={14} /> {student.linkedIn}
-              </a>
-            ) : (
-              <p className="text-slate-600 text-sm">Not set</p>
-            )}
-          </div>
-
-          <div>
-            <label className={labelClass}>GitHub URL</label>
-            {editing ? (
-              <input type="url" placeholder="https://github.com/yourname"
-                value={form.github} onChange={(e) => set("github", e.target.value)} className={inputClass} />
-            ) : student?.github ? (
-              <a href={student.github} target="_blank" rel="noreferrer"
-                className="text-slate-300 text-sm hover:underline flex items-center gap-1.5">
-                <PiGithubLogo size={14} /> {student.github}
-              </a>
-            ) : (
-              <p className="text-slate-600 text-sm">Not set</p>
-            )}
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 };

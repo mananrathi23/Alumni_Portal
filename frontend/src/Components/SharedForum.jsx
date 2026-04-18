@@ -11,6 +11,8 @@ import {
   PiChatCircleText, PiTrash, PiCheck,
 } from "react-icons/pi";
 
+import RestrictedAccess from "./RestrictedAccess";
+
 const API = "http://localhost:4000/api/v1/forum";
 
 const TAGS = ["all","career","technical","campus","internship","higher-studies","general","placement","skills"];
@@ -370,6 +372,10 @@ export default function SharedForum({ role, accentColor = "sky" }) {
   };
 
   useEffect(() => { setPage(1); fetchQuestions(1); }, [search, activeTag, sort]);
+
+  if (user && user.role !== "Admin" && !user.adminVerified) {
+    return <RestrictedAccess />;
+  }
 
   // If a question is open, show detail
   if (openQId) {

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -10,6 +10,8 @@ import {
   PiBookOpen, PiCalendarBlank, PiArrowRight, PiInfo,
   PiWarningCircle, PiCircleNotch,
 } from "react-icons/pi";
+
+import RestrictedAccess from "../RestrictedAccess";
 
 const API = "http://localhost:4000/api/v1/mentorship";
 
@@ -370,6 +372,10 @@ const Mentorship = () => {
       socket.off("mentorship:completed", onCompleted);
     };
   }, [isSocketReady]);
+
+  if (user && user.role !== "Admin" && !user.adminVerified) {
+    return <RestrictedAccess />;
+  }
 
   const filtered = mentors.filter(m => {
     const q = search.toLowerCase();

@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import axios from "axios";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FaSignOutAlt, FaTimes, FaBars } from "react-icons/fa";
 import { PiStudent } from "react-icons/pi";
+import { Context } from "../../main";
 import {
   PiHouseLine, PiChatsCircle, PiEnvelope, PiUsersThree,
   PiHandshake, PiBriefcase, PiCalendarCheck,
@@ -24,6 +25,7 @@ const NAV_LINKS = [
 const Header = ({ student }) => {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
+  const { theme } = useContext(Context);
 
   const [mobileOpen, setMobileOpen]           = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -57,7 +59,7 @@ const Header = ({ student }) => {
   return (
     <>
       {/* ── FIXED TOP BAR ── */}
-      <header className="fixed top-0 left-0 right-0 z-40 h-14 flex items-center justify-between px-4 sm:px-5 bg-slate-900/95 backdrop-blur border-b border-white/[0.07]">
+      <header className={`fixed top-0 left-0 right-0 z-40 h-14 flex items-center justify-between px-4 sm:px-5 backdrop-blur border-b ${theme === "dark" ? "bg-slate-900/95 border-white/[0.07]" : "bg-white/95 border-slate-200/70"}`}>
 
         {/* Left: hamburger (mobile) + logo */}
         <div className="flex items-center gap-2">
@@ -76,7 +78,7 @@ const Header = ({ student }) => {
             <div className="bg-sky-500 p-1.5 rounded-lg shadow shadow-sky-500/30">
               <PiStudent className="text-white" size={16} />
             </div>
-            <span className="text-white font-bold text-sm tracking-wider hidden sm:block">
+            <span className={`${theme === "dark" ? "text-white" : "text-black"} font-bold text-sm tracking-wider hidden sm:block`}>
               ALUMNI PORTAL
             </span>
           </button>
@@ -90,7 +92,7 @@ const Header = ({ student }) => {
                 `relative px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all duration-150 ${
                   isActive
                     ? "bg-sky-500/15 text-sky-400 ring-1 ring-sky-500/30"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`
               }
             >
@@ -107,8 +109,8 @@ const Header = ({ student }) => {
         {/* Right: name + avatar dropdown + logout */}
         <div className="flex items-center gap-2.5">
           <div className="text-right hidden sm:block leading-tight">
-            <p className="text-white text-sm font-semibold">{student?.name}</p>
-            <p className="text-sky-400 text-xs tracking-widest uppercase font-medium">Student</p>
+            <p className={`${theme === "dark" ? "text-white" : "text-black"} text-sm font-semibold`}>{student?.name}</p>
+            <p className={`${theme === "dark" ? "text-sky-400" : "text-sky-600"} text-xs tracking-widest uppercase font-medium`}>Student</p>
           </div>
 
           {/* Avatar with dropdown */}
@@ -135,10 +137,10 @@ const Header = ({ student }) => {
 
             {/* Dropdown menu */}
             {showDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-44 bg-slate-900 border border-white/[0.07] rounded-xl shadow-2xl overflow-hidden z-50">
+              <div className={`absolute right-0 top-full mt-2 w-44 rounded-xl shadow-2xl overflow-hidden z-50 ${theme === "dark" ? "bg-slate-900 border border-white/[0.07]" : "bg-white border border-slate-200/70"}`}>
                 <button
                   onClick={() => { setShowDropdown(false); navigate("/student/profile"); }}
-                  className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all text-left"
+                  className={`w-full flex items-center gap-2.5 px-4 py-3 text-sm ${theme === "dark" ? "text-slate-300 hover:bg-slate-800 hover:text-white" : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"} transition-all text-left`
                 >
                   <PiUserCircle size={16} className="text-sky-400" />
                   My Profile
@@ -146,7 +148,7 @@ const Header = ({ student }) => {
                 <div className="h-px bg-white/[0.07]" />
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all text-left"
+                  className={`w-full flex items-center gap-2.5 px-4 py-3 text-sm ${theme === "dark" ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400" : "text-slate-700 hover:bg-red-500/10 hover:text-red-400"} transition-all text-left`
                 >
                   <FaSignOutAlt size={13} className="flex-shrink-0" />
                   Logout
@@ -158,7 +160,7 @@ const Header = ({ student }) => {
           {/* Standalone logout button (always visible) */}
           <button
             onClick={handleLogout}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+            className={`p-1.5 rounded-lg transition-all ${theme === "dark" ? "text-slate-500 hover:text-red-400 hover:bg-red-500/10" : "text-slate-600 hover:text-red-500 hover:bg-red-100"}`}
             title="Logout"
           >
             <FaSignOutAlt size={14} />
@@ -176,7 +178,7 @@ const Header = ({ student }) => {
 
       {/* ── MOBILE DRAWER PANEL ── */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 z-50 flex flex-col bg-slate-900 border-r border-white/[0.07] transform transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed top-0 left-0 h-full w-64 z-50 flex flex-col ${theme === "dark" ? "bg-slate-900 border-r border-white/[0.07]" : "bg-white border-r border-slate-200/70"} transform transition-transform duration-300 ease-in-out lg:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -186,7 +188,7 @@ const Header = ({ student }) => {
             <div className="bg-sky-500 p-1.5 rounded-lg">
               <PiStudent className="text-white" size={16} />
             </div>
-            <span className="text-white font-bold text-sm tracking-wider">ALUMNI PORTAL</span>
+            <span className={`${theme === "dark" ? "text-white" : "text-black"} font-bold text-sm tracking-wider`}>ALUMNI PORTAL</span>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
@@ -213,7 +215,7 @@ const Header = ({ student }) => {
               )}
             </div>
             <div className="min-w-0 text-left">
-              <p className="text-white text-sm font-semibold truncate">{student?.name}</p>
+              <p className={`${theme === "dark" ? "text-white" : "text-black"} text-sm font-semibold truncate`}>{student?.name}</p>
               <p className="text-sky-400 text-xs font-medium tracking-widest uppercase">View Profile →</p>
             </div>
           </button>
@@ -231,7 +233,7 @@ const Header = ({ student }) => {
                 `relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? "bg-sky-500/15 text-sky-400 ring-1 ring-sky-500/30"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`
               }
             >

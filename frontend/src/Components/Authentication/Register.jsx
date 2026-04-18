@@ -38,8 +38,8 @@ const Register = ({ selectedRole }) => {
       });
   };
 
-  const inp = "w-full px-4 py-3 rounded-lg bg-slate-800 border border-white/10 text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200";
-  const lbl = "block mb-1 text-sm font-medium text-slate-300";
+  const inp = "w-full px-4 py-3 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200";
+  const lbl = "block mb-1 text-sm font-medium text-slate-600 dark:text-slate-300";
   const err = "text-red-400 text-xs mt-1";
 
   const currentYear = new Date().getFullYear();
@@ -85,12 +85,12 @@ const Register = ({ selectedRole }) => {
       {/* Phone */}
       <div>
         <label className={lbl}>Phone No.</label>
-        <div className="flex items-center w-full rounded-lg bg-slate-800 border border-white/10 focus-within:ring-2 focus-within:ring-sky-500 transition-all duration-200">
+        <div className="flex items-center w-full rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 focus-within:ring-2 focus-within:ring-sky-500 transition-all duration-200">
           <span className="pl-4 pr-2 text-slate-400 font-medium text-sm">+91</span>
           <input
             type="number"
             placeholder="Enter your phone number"
-            className="w-full py-3 pr-4 bg-transparent outline-none text-white placeholder-slate-500"
+            className="w-full py-3 pr-4 bg-transparent outline-none text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
             {...register("phone", { required: "Phone No. is required" })}
           />
         </div>

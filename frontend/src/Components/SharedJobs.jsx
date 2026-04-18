@@ -11,6 +11,8 @@ import {
   PiCalendarBlank, PiUser,
 } from "react-icons/pi";
 
+import RestrictedAccess from "./RestrictedAccess";
+
 const API = "http://localhost:4000/api/v1/jobs";
 const POSTER_ROLES = ["Admin", "Alumni", "Teacher"];
 const JOB_TYPES = ["full-time","part-time","internship","contract","remote"];
@@ -211,6 +213,10 @@ export default function SharedJobs({ role, accentColor = "sky" }) {
   };
 
   useEffect(() => { fetchJobs(); }, [search, typeFilter, showMine]);
+
+  if (user && user.role !== "Admin" && !user.adminVerified) {
+    return <RestrictedAccess />;
+  }
 
   const deleteJob = async (id) => {
     try {

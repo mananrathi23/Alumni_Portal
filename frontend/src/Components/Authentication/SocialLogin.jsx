@@ -18,7 +18,7 @@ const SocialLogin = ({ selectedRole }) => {
       window.location.href = res.data.url;
     } catch {
       setLoadingGoogle(false);
-      alert("Could not start Google sign-in. Make sure GOOGLE_CLIENT_ID is set in backend .env");
+      alert("Could not start Google sign-in. Make sure SOCIAL_GOOGLE_CLIENT_ID is set in backend .env");
     }
   };
 

@@ -50,7 +50,7 @@ export const getGoogleOAuthUrl = (req, res) => {
   const state = Buffer.from(JSON.stringify({ role })).toString("base64");
 
   const params = new URLSearchParams({
-    client_id:     process.env.GOOGLE_CLIENT_ID,
+    client_id:     process.env.SOCIAL_GOOGLE_CLIENT_ID,
     redirect_uri:  `${process.env.BACKEND_URL || "http://localhost:4000"}/auth/google/callback`,
     response_type: "code",
     scope:         "openid email profile",
@@ -76,8 +76,8 @@ export const handleGoogleOAuth = catchAsyncError(async (req, res, next) => {
   // Exchange code for tokens
   const tokenRes = await axios.post("https://oauth2.googleapis.com/token", {
     code,
-    client_id:     process.env.GOOGLE_CLIENT_ID,
-    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+    client_id:     process.env.SOCIAL_GOOGLE_CLIENT_ID,
+    client_secret: process.env.SOCIAL_GOOGLE_CLIENT_SECRET,
     redirect_uri:  `${process.env.BACKEND_URL || "http://localhost:4000"}/auth/google/callback`,
     grant_type:    "authorization_code",
   });

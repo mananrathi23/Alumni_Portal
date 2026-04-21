@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  color-scheme: light;
+  --page-bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-strong: #e2e8f0;
+  --text: #0f172a;
+  --muted: #475569;
+  --muted-strong: #64748b;
+  --border: #e2e8f0;
+  --border-soft: rgba(148,163,184,0.24);
+  --primary: #0ea5e9;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--page-bg);
+  color: var(--text);
+}
+
+body.dark {
+  color-scheme: dark;
+  --page-bg: #020817;
+  --surface: #0f172a;
+  --surface-strong: #111e33;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --muted-strong: #cbd5e1;
+  --border: rgba(148,163,184,0.16);
+  --border-soft: rgba(255,255,255,0.12);
+  --primary: #38bdf8;
+}
+
+body.light {
+  color-scheme: light;
+}
+
+body.light [class*="bg-slate-900"],
+body.light [class*="bg-slate-800"],
+body.light [class*="bg-slate-950"],
+body.light [class*="bg-slate-700"],
+body.light [class*="bg-slate-600"] {
+  background-color: #f8fafc !important;
+  color: inherit;
+}
+
+body.light .bg-slate-900\/90,
+body.light .bg-slate-900\/80,
+body.light .bg-slate-800\/90,
+body.light .bg-slate-800\/80,
+body.light .bg-slate-800\/60,
+body.light .bg-slate-800\/50,
+body.light .bg-slate-900\/70,
+body.light .bg-slate-950\/80 {
+  background-color: rgba(248,250,252,0.9) !important;
+}
+
+body.light .text-white,
+body.light .text-slate-100,
+body.light .text-slate-200,
+body.light .text-slate-300 {
+  color: #0f172a !important;
+}
+
+body.light .border-slate-900,
+body.light .border-slate-800,
+body.light .border-slate-950,
+body.light [class*="border-white"],
+body.light .border-slate-700 {
+  border-color: rgba(15,23,42,0.08) !important;
+}
+
+body.dark .bg-white,
+body.dark .bg-slate-50,
+body.dark .bg-slate-100,
+body.dark .bg-slate-200 {
+  background-color: #0f172a !important;
+}
+
+body.dark .bg-slate-900,
+body.dark .bg-slate-800,
+body.dark .bg-slate-950,
+body.dark .bg-slate-900\/90,
+body.dark .bg-slate-900\/80 {
+  background-color: rgba(2,8,23,0.86) !important;
+}
+
+body.dark .text-slate-800,
+body.dark .text-slate-700,
+body.dark .text-slate-600,
+body.dark .text-slate-500 {
+  color: #e2e8f0 !important;
+}
+
+body.dark .text-slate-400 { color: #94a3b8 !important; }
+body.dark .border-slate-100,
+body.dark .border-slate-200,
+body.dark .border-slate-300,
+body.dark [class*="border-white"] {
+  border-color: rgba(255,255,255,0.12) !important;
+}
+
+body.dark .shadow-sm,
+body.dark .shadow-md,
+body.dark .shadow-2xl {
+  box-shadow: 0 18px 60px rgba(0,0,0,0.22) !important;
+}
+
+body.dark .bg-emerald-50 { background-color: rgba(16,185,129,0.12) !important; }
+body.dark .bg-amber-500\/10 { background-color: rgba(245,158,11,0.1) !important; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ── UI Interaction Fixes ── */
+/* Prevent text highlighting when clicking UI elements */
+button, a, label, nav, header, aside, [role="button"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Remove ugly focus outlines on click (mouse), preserve for keyboard navigation */
+*:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+/* Ensure empty focus rings aren't shown */
+button:focus {
+  outline: none;
+}

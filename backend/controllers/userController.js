@@ -139,8 +139,7 @@ async function sendVerificationCode(
         message: "Invalid verification method.",
       });
     }
-  } catch (error) {
-    console.log(error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Verification code failed to send.",

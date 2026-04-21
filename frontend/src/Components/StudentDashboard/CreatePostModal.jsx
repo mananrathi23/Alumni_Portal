@@ -13,7 +13,7 @@ const CreatePostModal = ({ onClose }) => {
        POST /api/forum/posts
        body: { category, title, content }
     */
-    console.log({ category, title, content });
+    // post submission handled via API
     onClose();
   };
 

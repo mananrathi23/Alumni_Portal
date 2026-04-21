@@ -29,7 +29,6 @@ const studentSchema = new mongoose.Schema({
     enum: ["1st Year", "2nd Year", "3rd Year", "4th Year"],
     default: "1st Year",
   },
-  section: String,
   cgpa: { type: Number, min: 0, max: 10 },
   skills: [String],
   bio: { type: String, maxLength: [500, "Bio cannot exceed 500 characters."] },

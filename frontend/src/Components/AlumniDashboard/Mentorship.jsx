@@ -62,7 +62,7 @@ const MentorScoreBadge = ({ score = 0, stats = {} }) => {
     </div>
   );
 };
-const TIMES = ["9:00 AM","10:00 AM","11:00 AM","12:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM","6:30 PM","7:00 PM,8:30 PM","8:00 PM","8:30 PM","9:00 PM"];
+const TIMES = ["9:00 AM","10:00 AM","11:00 AM","12:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM","7:00 PM","8:00 PM","9:00 PM"];
 const GOAL_LABELS = {
   career:"Career Guidance", resume:"Resume Review",
   interview:"Interview Prep", technical:"Technical Help", general:"General Advice",
@@ -141,7 +141,7 @@ const TimeSlotManager = ({ slots, onChange }) => {
 };
 
 const Mentorship = () => {
-  const { alumni }                   = useOutletContext();
+  const { alumni, refreshAlumni }            = useOutletContext();
   const navigate                     = useNavigate();
   const { user }                     = useContext(Context);
   const { socketRef, isSocketReady } = useSocket();
@@ -285,6 +285,8 @@ const Mentorship = () => {
         axios.put(`${API}/weekly-limit`, { weeklyLimit }, { withCredentials: true }),
       ]);
       toast.success("Settings saved.");
+      // ✅ Refresh parent layout so header badge reflects new availability
+      if (refreshAlumni) refreshAlumni();
     } catch (err) { toast.error(err.response?.data?.message || "Failed to save."); }
     finally { setSaving(false); }
   };

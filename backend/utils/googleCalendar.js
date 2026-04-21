@@ -3,9 +3,9 @@ import { google } from "googleapis";
 // ── Singleton OAuth2 client ───────────────────────────────────────────────────
 const getOAuth2Client = () => {
   return new google.auth.OAuth2(
-    process.env.CALENDAR_CLIENT_ID,
-    process.env.CALENDAR_CLIENT_SECRET,
-    process.env.CALENDAR_REDIRECT_URI
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
   );
 };
 
@@ -50,12 +50,12 @@ export function getNextSlotISO(day, time) {
 // Replace your buildGoogleAuthUrl in backend/utils/googleCalendar.js with this:
 export function buildGoogleAuthUrl(mentorId, mentorRole) {
   // Add this console.log to debug. If it says "undefined", your .env isn't loading!
-  console.log("Using Client ID:", process.env.CALENDAR_CLIENT_ID);
+  console.log("Using Client ID:", process.env.GOOGLE_CLIENT_ID);
 
   const oauth2Client = new google.auth.OAuth2(
-    process.env.CALENDAR_CLIENT_ID,
-    process.env.CALENDAR_CLIENT_SECRET,
-    process.env.CALENDAR_REDIRECT_URI
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
   );
 
   const state = Buffer.from(
@@ -67,8 +67,8 @@ export function buildGoogleAuthUrl(mentorId, mentorRole) {
     scope: ["https://www.googleapis.com/auth/calendar.events"],
     prompt: "consent",
     state: state,
-    client_id: process.env.CALENDAR_CLIENT_ID, // Explicitly pass it here
-    redirect_uri: process.env.CALENDAR_REDIRECT_URI 
+    client_id: process.env.GOOGLE_CLIENT_ID, // Explicitly pass it here
+    redirect_uri: process.env.GOOGLE_REDIRECT_URI 
   });
 }
 

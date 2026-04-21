@@ -32,6 +32,12 @@ const eventSchema = new mongoose.Schema(
       default: "other",
     },
 
+    audience: {
+      type: String,
+      enum: ["All", "Student", "Alumni", "Teacher"],
+      default: "All",
+    },
+
     organizer: {
       id:   { type: mongoose.Schema.Types.ObjectId, required: true },
       name: { type: String, required: true },

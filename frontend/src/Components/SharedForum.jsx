@@ -153,15 +153,27 @@ function QuestionDetail({ questionId, onBack, currentUser, accentColor }) {
   const [loading, setLoading]   = useState(true);
   const [votingId, setVotingId] = useState(null);
 
-  const load = async () => {
+  const load = async (showSpinner = true) => {
     try {
+      if (showSpinner) setLoading(true);
       const res = await axios.get(`${API}/questions/${questionId}`, { withCredentials: true });
       setData(res.data.question);
-    } catch { toast.error("Failed to load question."); }
-    finally { setLoading(false); }
+    } catch {
+      if (showSpinner) toast.error("Failed to load question.");
+    }
+    finally {
+      if (showSpinner) setLoading(false);
+    }
   };
 
-  useEffect(() => { load(); }, [questionId]);
+  useEffect(() => { load(true); }, [questionId]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      load(false);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [questionId]);
 
   const upvote = async (answerId) => {
     setVotingId(answerId);
@@ -358,8 +370,8 @@ export default function SharedForum({ role, accentColor = "sky" }) {
     violet: "bg-violet-500 hover:bg-violet-400 shadow-violet-500/30",
   }[accentColor] || "bg-sky-500 hover:bg-sky-400";
 
-  const fetchQuestions = async (p = page) => {
-    setLoading(true);
+  const fetchQuestions = async (p = page, showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const res = await axios.get(`${API}/questions`, {
         params: { search: search || undefined, tag: activeTag, sort, page: p, limit: LIMIT },
@@ -367,11 +379,24 @@ export default function SharedForum({ role, accentColor = "sky" }) {
       });
       setQs(res.data.questions || []);
       setTotal(res.data.total || 0);
-    } catch { toast.error("Failed to load questions."); }
-    finally { setLoading(false); }
+    } catch {
+      if (showSpinner) toast.error("Failed to load questions.");
+    }
+    finally {
+      if (showSpinner) setLoading(false);
+    }
   };
 
-  useEffect(() => { setPage(1); fetchQuestions(1); }, [search, activeTag, sort]);
+  useEffect(() => { setPage(1); fetchQuestions(1, true); }, [search, activeTag, sort]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!openQId) {
+        fetchQuestions(page, false);
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [search, activeTag, sort, page, openQId]);
 
   if (user && user.role !== "Admin" && !user.adminVerified) {
     return <RestrictedAccess />;

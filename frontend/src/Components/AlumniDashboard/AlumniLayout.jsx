@@ -30,19 +30,41 @@ const AlumniLayout = () => {
       .catch(() => { setIsAuthenticated(false); navigate("/login"); });
   }, []);
 
+  // Re-fetch alumni data (called after settings save, etc.)
+  const refreshAlumni = async () => {
+    try {
+      const res = await axios.get("http://localhost:4000/api/v1/user/me", { withCredentials: true });
+      setUser(res.data.user);
+      setAlumni(res.data.user);
+    } catch {}
+  };
+
   const { socketRef, isSocketReady } = useSocket();
   useEffect(() => {
     if (!isSocketReady || !socketRef.current) return;
     const socket = socketRef.current;
-    const handler = (data) => {
+
+    // Reminder notification
+    const reminderHandler = (data) => {
       const link = data.meetingLink;
       const msg = data.mentorName
         ? `⏰ Session with ${data.mentorName} starts in 15 min!${link ? " Join: " + link : ""}`
         : `⏰ Session with ${data.studentName} starts in 15 min!`;
       toast.info(msg, { autoClose: 10000 });
     };
-    socket.on("mentorship:reminder", handler);
-    return () => socket.off("mentorship:reminder", handler);
+
+    // Admin verified this user in real-time
+    const verifiedHandler = ({ adminVerified }) => {
+      setAlumni(prev => prev ? { ...prev, adminVerified } : prev);
+      setUser(prev => prev ? { ...prev, adminVerified } : prev);
+    };
+
+    socket.on("mentorship:reminder", reminderHandler);
+    socket.on("user:verified", verifiedHandler);
+    return () => {
+      socket.off("mentorship:reminder", reminderHandler);
+      socket.off("user:verified", verifiedHandler);
+    };
   }, [isSocketReady]);
 
   const handleLogout = async () => {
@@ -105,7 +127,7 @@ const AlumniLayout = () => {
         jobsPath="/alumni/jobs"
         onLogout={handleLogout}
       >
-        <Outlet context={{ alumni }} />
+        <Outlet context={{ alumni, setAlumni, refreshAlumni }} />
       </DashboardShell>
 
       {showIncompleteModal && (

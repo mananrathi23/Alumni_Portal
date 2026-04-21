@@ -27,7 +27,7 @@ const Field = ({ label, value, children }) => (
 );
 
 const Profile = () => {
-  const { alumni } = useOutletContext();
+  const { alumni, setAlumni } = useOutletContext();
   const { setUser, theme } = useContext(Context);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -64,6 +64,7 @@ const Profile = () => {
         { withCredentials: true, headers: { "Content-Type": "application/json" } });
       toast.success("Profile updated!");
       setUser(res.data.user);
+      setAlumni(res.data.user);
       setEditing(false);
     } catch (err) { toast.error(err.response?.data?.message || "Something went wrong"); }
     finally { setLoading(false); }

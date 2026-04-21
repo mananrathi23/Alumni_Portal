@@ -28,7 +28,11 @@ const AdminLayout = () => {
   useEffect(() => {
     axios
       .get("http://localhost:4000/api/v1/user/me", { withCredentials: true })
-      .then((res) => setAdmin(res.data.user))
+      .then((res) => {
+        setIsAuthenticated(true);
+        setUser(res.data.user);
+        setAdmin(res.data.user);
+      })
       .catch(() => {
         setIsAuthenticated(false);
         setUser(null);
@@ -54,7 +58,7 @@ const AdminLayout = () => {
     );
   }
 
-  const Sidebar = ({ mobile = false }) => (
+  const renderSidebar = (mobile = false) => (
     <aside className={`${mobile ? "flex" : "hidden md:flex"} flex-col h-full w-64 ${theme === "dark" ? "bg-slate-900 border-r border-white/[0.06]" : "bg-white border-r border-slate-200/70"} p-4`}>
       {/* Logo */}
       <div className="flex items-center gap-3 px-2 py-3 mb-6">
@@ -106,14 +110,14 @@ const AdminLayout = () => {
   return (
     <div className={`min-h-screen flex ${theme === "dark" ? "bg-slate-950" : "bg-white"}`}>
       {/* Desktop sidebar */}
-      <Sidebar />
+      {renderSidebar(false)}
 
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobile(false)} />
           <div className="relative z-10 h-full">
-            <Sidebar mobile />
+            {renderSidebar(true)}
           </div>
         </div>
       )}

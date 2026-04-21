@@ -1,6 +1,7 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import ErrorHandler from "../middlewares/error.js";
 import { Incubation } from "../models/IncubationModel.js";
+import { emitToAll } from "../Socket.js";
 
 // ── GET all active ideas (feed) ───────────────────────────────────────────────
 export const getIdeas = catchAsyncError(async (req, res) => {
@@ -118,6 +119,15 @@ export const addComment = catchAsyncError(async (req, res, next) => {
   });
   await idea.save();
 
+  const newComment = idea.comments[idea.comments.length - 1];
+
+  // ✅ Broadcast new comment to all connected clients in real-time
+  emitToAll("incubation:new_comment", {
+    ideaId:  idea._id.toString(),
+    comment: newComment,
+    commentCount: idea.comments.length,
+  });
+
   res.status(201).json({ success: true, message: "Comment added.", comments: idea.comments });
 });
 
@@ -135,6 +145,14 @@ export const deleteComment = catchAsyncError(async (req, res, next) => {
 
   comment.deleteOne();
   await idea.save();
+
+  // ✅ Broadcast comment deletion to all connected clients
+  emitToAll("incubation:comment_deleted", {
+    ideaId:    idea._id.toString(),
+    commentId: req.params.commentId,
+    commentCount: idea.comments.length,
+  });
+
   res.status(200).json({ success: true, message: "Comment deleted." });
 });
 

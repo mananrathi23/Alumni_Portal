@@ -47,6 +47,7 @@ function EventModal({ existing, onClose, onSaved, accentColor }) {
     location:             existing?.location             || "",
     link:                 existing?.link                 || "",
     type:                 existing?.type                 || "other",
+    audience:             existing?.audience             || "All",
     registrationDeadline: existing?.registrationDeadline
       ? existing.registrationDeadline.slice(0,10) : "",
   });
@@ -145,11 +146,19 @@ function EventModal({ existing, onClose, onSaved, accentColor }) {
             <p className="text-slate-600 text-[10px] mt-1">Last date for participants to register — must be before event date</p>
           </div>
 
-          <div>
-            <label className={lbl}>Event Type</label>
-            <select value={form.type} onChange={e => set("type",e.target.value)} className={inp}>
-              {EVENT_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Event Type</label>
+              <select value={form.type} onChange={e => set("type",e.target.value)} className={inp}>
+                {EVENT_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={lbl}>Target Audience</label>
+              <select value={form.audience} onChange={e => set("audience",e.target.value)} className={inp}>
+                {["All", "Student", "Alumni", "Teacher"].map(a => <option key={a} value={a}>{a === "All" ? "Post to All" : `Only ${a}s`}</option>)}
+              </select>
+            </div>
           </div>
           <div>
             <label className={lbl}>Physical Location</label>
@@ -203,6 +212,11 @@ function EventCard({ event, currentUser, canPost, onEdit, onDelete, onToggleRegi
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${typeColors[event.type]||typeColors.other}`}>
               {event.type}
             </span>
+            {event.audience && event.audience !== "All" && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/25">
+                {event.audience}s Only
+              </span>
+            )}
             {countdown && (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
                 {countdown}
@@ -266,6 +280,20 @@ function EventCard({ event, currentUser, canPost, onEdit, onDelete, onToggleRegi
           </button>
         </div>
       )}
+
+      {/* Registered Students List for Admins & Organizers */}
+      {(currentUser?.role === "Admin" || isOrganizer) && event.registeredStudents?.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-white/[0.04]">
+          <p className="text-xs font-semibold text-slate-400 mb-2">Registered Students ({event.registeredStudents.length})</p>
+          <div className="flex flex-wrap gap-2">
+            {event.registeredStudents.map((s, i) => (
+              <span key={i} className="text-[10px] px-2 py-1 rounded-md bg-slate-800 border border-white/[0.05] text-slate-300">
+                {s.name || "Unknown"} {s.department && s.department !== "Not Set" ? `(${s.department})` : ""}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -288,8 +316,8 @@ export default function SharedEvents({ role, accentColor = "sky" }) {
     rose:"bg-rose-500 hover:bg-rose-400 shadow-rose-500/30",
   }[accentColor] || "bg-sky-500 hover:bg-sky-400";
 
-  const fetchEvents = async () => {
-    setLoading(true);
+  const fetchEvents = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const view = tab === "mine" ? "mine" : tab;
       const res  = await axios.get(API, { params: { view }, withCredentials: true });
@@ -297,7 +325,7 @@ export default function SharedEvents({ role, accentColor = "sky" }) {
       if (role === "Student") {
         const map = {};
         (res.data.events || []).forEach(e => {
-          map[e._id] = (e.registeredStudents || []).map(String).includes(user?._id?.toString());
+          map[e._id] = (e.registeredStudents || []).map(s => typeof s === 'object' ? String(s._id) : String(s)).includes(user?._id?.toString());
         });
         setReg(map);
       }
@@ -305,7 +333,16 @@ export default function SharedEvents({ role, accentColor = "sky" }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchEvents(); }, [tab]);
+  useEffect(() => { fetchEvents(true); }, [tab]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!editing && !showModal) {
+        fetchEvents(false);
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [tab, editing, showModal]);
 
   if (user && user.role !== "Admin" && !user.adminVerified) {
     return <RestrictedAccess />;
@@ -325,6 +362,7 @@ export default function SharedEvents({ role, accentColor = "sky" }) {
       const res = await axios.post(`${API}/${id}/register`, {}, { withCredentials: true });
       setReg(p => ({ ...p, [id]: res.data.registered }));
       toast.success(res.data.message);
+      fetchEvents(false); // Refetch events to update registered students count and list
     } catch(e) { toast.error(e.response?.data?.message || "Failed."); }
   };
 

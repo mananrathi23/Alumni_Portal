@@ -3,6 +3,7 @@ import ErrorHandler from "../middlewares/error.js";
 import { Student } from "../models/StudentModel.js";
 import { Teacher } from "../models/TeacherModel.js";
 import { Alumni } from "../models/AlumniModel.js";
+import { emitToUser } from "../Socket.js";
 
 // Helper to get model
 function getModelByRole(role) {
@@ -47,6 +48,9 @@ export const toggleVerifyUser = catchAsyncError(async (req, res, next) => {
   user.adminVerified = !user.adminVerified;
   await user.save({ validateModifiedOnly: true });
 
+  // ✅ Notify the user in real-time so their dashboard updates immediately
+  emitToUser(user._id, "user:verified", { adminVerified: user.adminVerified });
+
   res.status(200).json({
     success: true,
     message: `User ${user.adminVerified ? "verified" : "unverified"} successfully.`,
@@ -65,6 +69,9 @@ export const toggleBlockUser = catchAsyncError(async (req, res, next) => {
 
   user.isBlocked = !user.isBlocked;
   await user.save({ validateModifiedOnly: true });
+
+  // ✅ Notify the user in real-time
+  emitToUser(user._id, "user:blocked", { isBlocked: user.isBlocked });
 
   res.status(200).json({
     success: true,

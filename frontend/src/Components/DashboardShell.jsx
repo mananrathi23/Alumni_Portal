@@ -299,16 +299,16 @@ const DashboardShell = ({
             </div>
           </div>
 
-          {/* Ticker */}
-          <InlineTicker collapsed={tickerOff} />
-
-          {/* Collapse arrow */}
-          <button
-            onClick={() => setTickerOff((p) => !p)}
-            className="flex-shrink-0 px-2 text-slate-500 hover:text-slate-300 transition-colors text-xs"
-          >
-            {tickerOff ? "▶" : "◀"}
-          </button>
+          {/* Ticker + collapse arrow — always flex-1 to keep profile pinned to the right */}
+          <div className="flex-1 flex items-center min-w-0 h-full">
+            <InlineTicker collapsed={tickerOff} />
+            <button
+              onClick={() => setTickerOff((p) => !p)}
+              className="flex-shrink-0 px-2 text-slate-500 hover:text-slate-300 transition-colors text-xs"
+            >
+              {tickerOff ? "▶" : "◀"}
+            </button>
+          </div>
 
           <div className="hidden sm:flex items-center px-2">
             <ThemeToggle size="sm" />

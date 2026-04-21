@@ -16,14 +16,16 @@ config({ path: "./.env" });
 import mongoose from "mongoose";
 import { Admin } from "./models/AdminModel.js";
 
-const ADMIN_EMAIL    = "admin@alumniportal.com";
+const ADMIN_EMAIL = "admin@alumniportal.com";
 const ADMIN_PASSWORD = "Admin@1234";
-const ADMIN_NAME     = "Portal Admin";
-const ADMIN_PHONE    = "+919000000000"; // placeholder
+const ADMIN_NAME = "Portal Admin";
+const ADMIN_PHONE = "+919000000000"; // placeholder
 
 async function seed() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, {
+      dbName: "Alumni-Portal",
+    })
     console.log("✅ Connected to MongoDB");
 
     const existing = await Admin.findOne({ email: ADMIN_EMAIL });
@@ -33,17 +35,17 @@ async function seed() {
     }
 
     const admin = new Admin({
-      name:            ADMIN_NAME,
-      email:           ADMIN_EMAIL,
-      phone:           ADMIN_PHONE,
-      password:        ADMIN_PASSWORD,
+      name: ADMIN_NAME,
+      email: ADMIN_EMAIL,
+      phone: ADMIN_PHONE,
+      password: ADMIN_PASSWORD,
       accountVerified: true,              // skip OTP for seeded admin
-      adminLevel:      "super_admin",
+      adminLevel: "super_admin",
       permissions: {
-        manageUsers:         true,
-        manageEvents:        true,
-        manageJobs:          true,
-        manageForum:         true,
+        manageUsers: true,
+        manageEvents: true,
+        manageJobs: true,
+        manageForum: true,
         manageAnnouncements: true,
       },
     });

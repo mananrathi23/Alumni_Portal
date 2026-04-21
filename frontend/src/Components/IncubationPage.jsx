@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../main";
+import { useSocket } from "../SocketContext";
 import {
   PiRocketLaunch, PiPlus, PiX, PiArrowUp, PiChatCircle,
   PiHandshake, PiMagnifyingGlass, PiTrash, PiTag,
   PiLightbulb, PiFlask, PiChartLineUp, PiSparkle,
   PiUser, PiCheck,
 } from "react-icons/pi";
+import { useNavigate } from "react-router-dom";
 
 const API = "http://localhost:4000/api/v1/incubation";
 
@@ -37,13 +39,13 @@ const ROLE_COLORS = {
 };
 
 // ── Idea Card ─────────────────────────────────────────────────────────────────
-const IdeaCard = ({ idea, currentUserId, accentColor, onRefresh }) => {
+const IdeaCard = ({ idea, currentUserId, currentUserRole, connections, accentColor, onRefresh }) => {
   const [expanded,     setExpanded]     = useState(false);
   const [commentText,  setCommentText]  = useState("");
-  const [showInterest, setShowInterest] = useState(false);
-  const [intType,      setIntType]      = useState("other");
-  const [intMsg,       setIntMsg]       = useState("");
   const [loading,      setLoading]      = useState(false);
+  // Real-time comments state (null = not loaded yet, [] = loaded)
+  const [comments,     setComments]     = useState(null);
+  const navigate = useNavigate();
 
   const ac = {
     sky:    "text-sky-400 border-sky-500/30",
@@ -53,6 +55,47 @@ const IdeaCard = ({ idea, currentUserId, accentColor, onRefresh }) => {
 
   const isOwn      = idea.authorId === currentUserId;
   const hasUpvoted = idea.upvotes?.includes(currentUserId);
+
+  // ── Load comments when card expands ───────────────────────────────────
+  useEffect(() => {
+    if (!expanded) return;
+    if (comments !== null) return; // already loaded
+    axios.get(`${API}/${idea._id}`, { withCredentials: true })
+      .then((res) => setComments(res.data.idea?.comments || []))
+      .catch(() => setComments([]));
+  }, [expanded, idea._id]);
+
+  // ── Real-time comment socket listener ────────────────────────────────
+  const { socketRef, isSocketReady } = useSocket();
+  const [commentCount, setCommentCount] = useState(idea.commentCount ?? 0);
+
+  useEffect(() => {
+    if (!isSocketReady || !socketRef?.current) return;
+    const socket = socketRef.current;
+
+    const onNewComment = (data) => {
+      if (data.ideaId !== idea._id.toString()) return;
+      setCommentCount(data.commentCount);
+      // Append to live list if section is open
+      setComments(prev => prev !== null ? [...prev, data.comment] : null);
+    };
+
+    const onDeleteComment = (data) => {
+      if (data.ideaId !== idea._id.toString()) return;
+      setCommentCount(data.commentCount);
+      setComments(prev => prev !== null
+        ? prev.filter(c => c._id?.toString() !== data.commentId)
+        : null
+      );
+    };
+
+    socket.on("incubation:new_comment",     onNewComment);
+    socket.on("incubation:comment_deleted", onDeleteComment);
+    return () => {
+      socket.off("incubation:new_comment",     onNewComment);
+      socket.off("incubation:comment_deleted", onDeleteComment);
+    };
+  }, [isSocketReady, socketRef, idea._id]);
 
   const handleUpvote = async () => {
     try {
@@ -67,22 +110,23 @@ const IdeaCard = ({ idea, currentUserId, accentColor, onRefresh }) => {
     try {
       await axios.post(`${API}/${idea._id}/comment`, { text: commentText }, { withCredentials: true });
       setCommentText("");
-      onRefresh();
+      // Don't call onRefresh — socket event will update comment count + list
       toast.success("Comment added!");
     } catch { toast.error("Failed to add comment."); }
     finally { setLoading(false); }
   };
 
-  const handleInterest = async () => {
-    setLoading(true);
-    try {
-      await axios.post(`${API}/${idea._id}/interest`, { type: intType, message: intMsg }, { withCredentials: true });
-      setShowInterest(false);
-      setIntMsg("");
-      onRefresh();
-      toast.success("Interest expressed! The author will be notified.");
-    } catch { toast.error("Failed."); }
-    finally { setLoading(false); }
+  const handleInterest = () => {
+    const existingConn = connections.find(c => c.connectedWith?.id?.toString() === idea.authorId?.toString());
+    if (existingConn) {
+      if (currentUserRole) navigate(`/${currentUserRole.toLowerCase()}/messages?conn=${existingConn.connectionId}`);
+    } else {
+      toast.info(`Please send a connection request to ${idea.authorName} first.`);
+      if (currentUserRole) {
+        const path = currentUserRole === "Student" ? "/student/alumni" : currentUserRole === "Alumni" ? "/alumni/students" : "/teacher/students";
+        navigate(path);
+      }
+    }
   };
 
   const handleDelete = async () => {
@@ -191,67 +235,46 @@ const IdeaCard = ({ idea, currentUserId, accentColor, onRefresh }) => {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 border border-white/[0.06] hover:text-white hover:bg-slate-700 transition-all"
         >
           <PiChatCircle size={13} />
-          {idea.commentCount ?? 0} Comment{(idea.commentCount ?? 0) !== 1 ? "s" : ""}
+          {commentCount} Comment{commentCount !== 1 ? "s" : ""}
         </button>
 
         {/* Express interest (not own idea) */}
         {!isOwn && (
           <button
-            onClick={() => setShowInterest((v) => !v)}
+            onClick={handleInterest}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
           >
             <PiHandshake size={13} />
-            I&apos;m Interested ({idea.interestedUsers?.length ?? 0})
+            Connect & Discuss
           </button>
         )}
       </div>
 
-      {/* Interest form */}
-      {showInterest && (
-        <div className="px-5 pb-4 space-y-3 border-t border-white/[0.05] pt-3">
-          <p className="text-xs text-slate-400 font-semibold">How do you want to contribute?</p>
-          <div className="flex flex-wrap gap-2">
-            {["investor", "collaborator", "mentor", "other"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setIntType(t)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize border transition-all ${
-                  intType === t
-                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                    : "bg-slate-800 text-slate-400 border-white/[0.06] hover:text-white"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          <textarea
-            rows={2}
-            value={intMsg}
-            onChange={(e) => setIntMsg(e.target.value)}
-            placeholder="Add a message to the author (optional)…"
-            className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleInterest}
-              disabled={loading}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold disabled:opacity-50 transition-all"
-            >
-              <PiCheck size={13} /> Send
-            </button>
-            <button onClick={() => setShowInterest(false)} className="px-3 py-2 rounded-lg bg-slate-800 text-slate-400 text-xs hover:bg-slate-700 transition-all">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Comments section */}
       {expanded && (
         <div className="border-t border-white/[0.05] px-5 py-4 space-y-3">
-          {/* Existing comments loaded on expand */}
-          <CommentsLoader ideaId={idea._id} currentUserId={currentUserId} />
+          {/* Existing comments */}
+          {comments === null ? (
+            <p className="text-xs text-slate-500">Loading comments…</p>
+          ) : comments.length === 0 ? (
+            <p className="text-xs text-slate-500">No comments yet. Be the first!</p>
+          ) : (
+            <div className="space-y-2">
+              {comments.map((c) => (
+                <div key={c._id} className="flex gap-2">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${ROLE_COLORS[c.authorRole] || "bg-slate-700 text-slate-300"}`}>
+                    {c.authorName?.charAt(0)}
+                  </div>
+                  <div className="flex-1 bg-slate-800/60 rounded-lg px-3 py-2">
+                    <p className="text-xs font-semibold text-slate-300">{c.authorName}
+                      <span className="font-normal text-slate-500 ml-1">· {c.authorRole}</span>
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{c.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {/* Add comment */}
           <div className="flex gap-2 mt-2">
             <input
@@ -271,38 +294,6 @@ const IdeaCard = ({ idea, currentUserId, accentColor, onRefresh }) => {
           </div>
         </div>
       )}
-    </div>
-  );
-};
-
-// ── Comments loader (fetches full idea on expand) ─────────────────────────────
-const CommentsLoader = ({ ideaId, currentUserId }) => {
-  const [comments, setComments] = useState(null);
-
-  useEffect(() => {
-    axios.get(`${API}/${ideaId}`, { withCredentials: true })
-      .then((res) => setComments(res.data.idea?.comments || []))
-      .catch(() => setComments([]));
-  }, [ideaId]);
-
-  if (comments === null) return <p className="text-xs text-slate-500">Loading comments…</p>;
-  if (comments.length === 0) return <p className="text-xs text-slate-500">No comments yet. Be the first!</p>;
-
-  return (
-    <div className="space-y-2">
-      {comments.map((c) => (
-        <div key={c._id} className="flex gap-2">
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${ROLE_COLORS[c.authorRole] || "bg-slate-700 text-slate-300"}`}>
-            {c.authorName?.charAt(0)}
-          </div>
-          <div className="flex-1 bg-slate-800/60 rounded-lg px-3 py-2">
-            <p className="text-xs font-semibold text-slate-300">{c.authorName}
-              <span className="font-normal text-slate-500 ml-1">· {c.authorRole}</span>
-            </p>
-            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{c.text}</p>
-          </div>
-        </div>
-      ))}
     </div>
   );
 };
@@ -506,9 +497,16 @@ const IncubationPage = ({ accentColor = "sky" }) => {
   const [search,     setSearch]     = useState("");
   const [stage,      setStage]      = useState("all");
   const [myOnly,     setMyOnly]     = useState(false);
+  const [connections,setConnections]= useState([]);
 
-  const fetchIdeas = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => {
+    axios.get("http://localhost:4000/api/v1/connections", { withCredentials: true })
+      .then(res => setConnections(res.data.connections || []))
+      .catch(() => {});
+  }, []);
+
+  const fetchIdeas = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const params = {};
       if (search.trim()) params.search = search.trim();
@@ -525,14 +523,21 @@ const IncubationPage = ({ accentColor = "sky" }) => {
     } catch {
       setIdeas([]);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [search, stage, myOnly]);
 
   useEffect(() => {
-    const t = setTimeout(fetchIdeas, 300);
+    const t = setTimeout(() => fetchIdeas(true), 300);
     return () => clearTimeout(t);
   }, [fetchIdeas]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!showModal) fetchIdeas(false);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [fetchIdeas, showModal]);
 
   const ac = {
     sky:    { ring: "focus:ring-sky-500",    btn: "bg-sky-500 hover:bg-sky-400",    active: "bg-sky-500/15 text-sky-400 border-sky-500/30",    text: "text-sky-400" },
@@ -623,8 +628,10 @@ const IncubationPage = ({ accentColor = "sky" }) => {
               key={idea._id}
               idea={idea}
               currentUserId={user?._id}
+              currentUserRole={user?.role}
+              connections={connections}
               accentColor={accentColor}
-              onRefresh={fetchIdeas}
+              onRefresh={() => fetchIdeas(false)}
             />
           ))}
         </div>

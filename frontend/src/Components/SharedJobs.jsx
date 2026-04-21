@@ -8,8 +8,9 @@ import { Context } from "../main";
 import {
   PiBriefcase, PiPlus, PiX, PiMagnifyingGlass, PiCircleNotch,
   PiLink, PiBuildings, PiListChecks, PiPencilSimple, PiTrash,
-  PiCalendarBlank, PiUser,
+  PiCalendarBlank, PiUser, PiHandshake,
 } from "react-icons/pi";
+import { useNavigate } from "react-router-dom";
 
 import RestrictedAccess from "./RestrictedAccess";
 
@@ -114,10 +115,11 @@ function JobModal({ existing, onClose, onSaved, accentColor }) {
 }
 
 // ── Job Card ──────────────────────────────────────────────────────────────────
-function JobCard({ job, currentUser, onEdit, onDelete }) {
+function JobCard({ job, currentUser, connections, onEdit, onDelete }) {
   const isPoster    = job.postedBy?.id === currentUser?._id?.toString() || job.postedBy?.id?.toString() === currentUser?._id?.toString();
   const deadline    = formatDeadline(job.deadline);
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-4 sm:p-5 space-y-3">
@@ -175,12 +177,27 @@ function JobCard({ job, currentUser, onEdit, onDelete }) {
           <div className="flex items-center gap-1"><PiUser size={12}/>{job.postedBy?.name} · {job.postedBy?.role}</div>
           <div className="flex items-center gap-1"><PiCalendarBlank size={12}/>{new Date(job.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</div>
         </div>
-        {job.link && (
+        {job.link && !isPoster ? (
           <a href={job.link} target="_blank" rel="noreferrer"
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-bold hover:bg-sky-500/20 transition-all">
-            <PiLink size={13}/> Apply Now
+            <PiLink size={13}/> {currentUser?.role === "Teacher" ? "See Now" : "Apply Now"}
           </a>
-        )}
+        ) : !isPoster && currentUser?.role !== "Teacher" ? (
+          <button onClick={() => {
+            const existingConn = connections.find(c => c.connectedWith?.id?.toString() === job.postedBy?.id?.toString());
+            if (existingConn) {
+              if (currentUser?.role) navigate(`/${currentUser.role.toLowerCase()}/messages?conn=${existingConn.connectionId}`);
+            } else {
+              toast.info(`Please send a connection request to ${job.postedBy?.name} first.`);
+              if (currentUser?.role) {
+                const path = currentUser.role === "Student" ? "/student/alumni" : currentUser.role === "Alumni" ? "/alumni/students" : "/teacher/students";
+                navigate(path);
+              }
+            }
+          }} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition-all">
+            <PiHandshake size={13}/> Connect for Referral
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -197,11 +214,18 @@ export default function SharedJobs({ role, accentColor = "sky" }) {
   const [showMine, setMine]  = useState(false);
   const [showModal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [connections, setConnections] = useState([]);
+
+  useEffect(() => {
+    axios.get("http://localhost:4000/api/v1/connections", { withCredentials: true })
+      .then(res => setConnections(res.data.connections || []))
+      .catch(() => {});
+  }, []);
 
   const btnClass = { sky:"bg-sky-500 hover:bg-sky-400 shadow-sky-500/30", emerald:"bg-emerald-500 hover:bg-emerald-400 shadow-emerald-500/30", violet:"bg-violet-500 hover:bg-violet-400 shadow-violet-500/30" }[accentColor] || "bg-sky-500 hover:bg-sky-400";
 
-  const fetchJobs = async () => {
-    setLoading(true);
+  const fetchJobs = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const res = await axios.get(API, {
         params: { search: search || undefined, type: typeFilter !== "all" ? typeFilter : undefined, mine: showMine ? "true" : undefined },
@@ -209,10 +233,17 @@ export default function SharedJobs({ role, accentColor = "sky" }) {
       });
       setJobs(res.data.jobs || []);
     } catch { toast.error("Failed to load jobs."); }
-    finally { setLoading(false); }
+    finally { if (showSpinner) setLoading(false); }
   };
 
-  useEffect(() => { fetchJobs(); }, [search, typeFilter, showMine]);
+  useEffect(() => { fetchJobs(true); }, [search, typeFilter, showMine]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!editing && !showModal) fetchJobs(false);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [search, typeFilter, showMine, editing, showModal]);
 
   if (user && user.role !== "Admin" && !user.adminVerified) {
     return <RestrictedAccess />;
@@ -287,7 +318,7 @@ export default function SharedJobs({ role, accentColor = "sky" }) {
       ) : (
         <div className="space-y-3">
           {jobs.map(j => (
-            <JobCard key={j._id} job={j} currentUser={user}
+            <JobCard key={j._id} job={j} currentUser={user} connections={connections}
               onEdit={() => setEditing(j)}
               onDelete={() => deleteJob(j._id)}
             />

@@ -18,6 +18,7 @@ import {
   getChatMessages,
   sendChatMessage,
   getUnreadCounts,
+  markChatAsRead,
   rateSession,
   getMyMentorStats,
 } from "../controllers/MentorshipController.js";
@@ -54,8 +55,9 @@ router.post("/requests/:requestId/rate",        rateSession);
 
 // ── Chat ───────────────────────────────────────────────────────────────────
 router.get("/chat/unread-counts",       getUnreadCounts);
-router.get("/chat/:mentorshipId",       getChatMessages);
-router.post("/chat/:mentorshipId",      sendChatMessage);
+router.put("/:mentorshipId/chat/read",  markChatAsRead);
+router.get("/:mentorshipId/chat",       getChatMessages);
+router.post("/:mentorshipId/chat",      sendChatMessage);
 
 // ── Stats ──────────────────────────────────────────────────────────────────
 router.get("/my-stats", getMyMentorStats);

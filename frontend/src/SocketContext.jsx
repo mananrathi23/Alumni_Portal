@@ -20,11 +20,8 @@ export const SocketProvider = ({ children }) => {
 
     // Wait for REAL user data — isAuthenticated must be true (not undefined, not false)
     if (isAuthenticated !== true || !user?._id) {
-      console.log("⏳ Socket waiting — isAuthenticated:", isAuthenticated, "userId:", user?._id);
       return;
     }
-
-    console.log("🔌 Connecting socket for user:", user._id);
 
     const socket = io("http://localhost:4000", {
       withCredentials: true,
@@ -32,14 +29,8 @@ export const SocketProvider = ({ children }) => {
     });
 
     socket.on("connect", () => {
-      console.log("✅ Socket connected:", socket.id);
       socket.emit("register", user._id);
-      console.log("✅ Registered userId:", user._id);
       setIsSocketReady(true);
-    });
-
-    socket.on("connect_error", (err) => {
-      console.error("❌ Socket error:", err.message);
     });
 
     socket.on("disconnect", () => {

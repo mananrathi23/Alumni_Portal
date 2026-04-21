@@ -27,7 +27,7 @@ const Field = ({ label, value, children }) => (
 );
 
 const Profile = () => {
-  const { student }  = useOutletContext();
+  const { student, setStudent }  = useOutletContext();
   const { setUser, theme }  = useContext(Context);
   const [editing, setEditing]       = useState(false);
   const [loading, setLoading]       = useState(false);
@@ -37,7 +37,6 @@ const Profile = () => {
     department: student?.department || "",
     year: student?.year || "",
     enrollmentNumber: student?.enrollmentNumber || "",
-    section: student?.section || "",
     cgpa: student?.cgpa || "",
     enrollmentYear: student?.enrollmentYear || "",
     bio: student?.bio || "",
@@ -63,6 +62,7 @@ const Profile = () => {
       );
       toast.success("Profile updated!");
       setUser(res.data.user);
+      setStudent(res.data.user);
       setEditing(false);
     } catch (err) { toast.error(err.response?.data?.message || "Something went wrong"); }
     finally { setLoading(false); }
@@ -237,7 +237,7 @@ const Profile = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Enrollment Number" value={student?.enrollmentNumber}>
-                {editing && <input type="text" placeholder="e.g. 21CS001" value={form.enrollmentNumber} onChange={e => set("enrollmentNumber", e.target.value)} className={inp}/>}
+                {editing && <input type="text" placeholder="e.g. 2023Btech060" value={form.enrollmentNumber} onChange={e => set("enrollmentNumber", e.target.value)} className={inp}/>}
               </Field>
               <Field label="Enrollment Year (Class of)" value={student?.enrollmentYear ? `Class of ${student.enrollmentYear}` : undefined}>
                 {editing && <input type="number" placeholder="e.g. 2022" min="2000" max="2040" value={form.enrollmentYear} onChange={e => set("enrollmentYear", e.target.value ? Number(e.target.value) : "")} className={inp}/>}
@@ -257,9 +257,6 @@ const Profile = () => {
                     {YEARS.map(y => <option key={y}>{y}</option>)}
                   </select>
                 )}
-              </Field>
-              <Field label="Section" value={student?.section}>
-                {editing && <input type="text" placeholder="e.g. A" value={form.section} onChange={e => set("section", e.target.value)} className={inp}/>}
               </Field>
               <Field label="CGPA" value={student?.cgpa ? String(student.cgpa) : undefined}>
                 {editing && <input type="number" step="0.01" min="0" max="10" placeholder="e.g. 8.5" value={form.cgpa} onChange={e => set("cgpa", e.target.value)} className={inp}/>}

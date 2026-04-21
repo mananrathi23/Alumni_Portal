@@ -1,6 +1,7 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import ErrorHandler        from "../middlewares/error.js";
 import { Event }           from "../models/EventModel.js";
+import { Student }         from "../models/StudentModel.js";
 import { Alumni }          from "../models/AlumniModel.js";
 import { Teacher }         from "../models/TeacherModel.js";
 
@@ -20,12 +21,48 @@ export const getEvents = catchAsyncError(async (req, res) => {
   if (view === "mine")     filter["organizer.id"] = req.user._id;
   if (type && type !== "all") filter.type = type;
 
+  const role = req.user.constructor.modelName;
+  if (role !== "Admin") {
+    // Audience filter: audience is "All", or audience matches user role, or the user is the organizer
+    filter.$or = [
+      { audience: { $in: ["All", role] } },
+      { "organizer.id": req.user._id }
+    ];
+  }
+
   const sortObj = view === "past" ? { date: -1 } : { date: 1 }; // upcoming asc, past desc
 
   const [events, total] = await Promise.all([
     Event.find(filter).sort(sortObj).skip(skip).limit(Number(limit)).lean(),
     Event.countDocuments(filter),
   ]);
+
+  // Manually populate registeredStudents from all roles
+  const allIds = [];
+  events.forEach(e => {
+    (e.registeredStudents || []).forEach(id => {
+      if (id) allIds.push(id.toString());
+    });
+  });
+  const uniqueIds = [...new Set(allIds)];
+  if (uniqueIds.length > 0) {
+    const [students, alumni, teachers] = await Promise.all([
+      Student.find({ _id: { $in: uniqueIds } }, "name email department enrollmentYear").lean(),
+      Alumni.find({ _id: { $in: uniqueIds } }, "name email department enrollmentYear").lean(),
+      Teacher.find({ _id: { $in: uniqueIds } }, "name email department").lean(),
+    ]);
+    const userMap = {};
+    students.forEach(u => userMap[u._id.toString()] = u);
+    alumni.forEach(u => userMap[u._id.toString()] = u);
+    teachers.forEach(u => userMap[u._id.toString()] = u);
+
+    events.forEach(e => {
+      e.registeredStudents = (e.registeredStudents || []).map(id => {
+        const strId = id.toString();
+        return userMap[strId] ? { ...userMap[strId], _id: strId } : { _id: strId, name: "Unknown" };
+      });
+    });
+  }
 
   res.status(200).json({ success: true, events, total });
 });
@@ -35,8 +72,26 @@ export const getEvent = catchAsyncError(async (req, res, next) => {
   const event = await Event.findById(req.params.eventId).lean();
   if (!event || !event.isActive) return next(new ErrorHandler("Event not found.", 404));
 
+  // Manually populate registeredStudents
+  const rIds = (event.registeredStudents || []).map(String);
+  if (rIds.length > 0) {
+    const [students, alumni, teachers] = await Promise.all([
+      Student.find({ _id: { $in: rIds } }, "name email department enrollmentYear").lean(),
+      Alumni.find({ _id: { $in: rIds } }, "name email department enrollmentYear").lean(),
+      Teacher.find({ _id: { $in: rIds } }, "name email department").lean(),
+    ]);
+    const userMap = {};
+    students.forEach(u => userMap[u._id.toString()] = u);
+    alumni.forEach(u => userMap[u._id.toString()] = u);
+    teachers.forEach(u => userMap[u._id.toString()] = u);
+
+    event.registeredStudents = rIds.map(id => {
+      return userMap[id] ? { ...userMap[id], _id: id } : { _id: id, name: "Unknown" };
+    });
+  }
+
   const isRegistered = event.registeredStudents
-    ?.map(String)
+    ?.map(s => String(s._id))
     .includes(req.user._id.toString());
 
   res.status(200).json({ success: true, event, isRegistered: isRegistered || false });
@@ -50,7 +105,7 @@ export const createEvent = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Only Admin, Alumni, and Teachers can create events.", 403));
   }
 
-  const { title, description, date, time, location, link, type, registrationDeadline } = req.body;
+  const { title, description, date, time, location, link, type, audience, registrationDeadline } = req.body;
 
   if (!title?.trim())       return next(new ErrorHandler("Title is required.", 400));
   if (!description?.trim()) return next(new ErrorHandler("Description is required.", 400));
@@ -93,6 +148,7 @@ export const createEvent = catchAsyncError(async (req, res, next) => {
     location:    location?.trim() || "",
     link:        link?.trim()     || "",
     type:        type || "other",
+    audience:    audience || "All",
     registrationDeadline: regDeadline,
     organizer: {
       id:   req.user._id,
@@ -123,7 +179,7 @@ export const updateEvent = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Not authorized to edit this event.", 403));
   }
 
-  const allowed = ["title","description","date","time","location","link","type"];
+  const allowed = ["title","description","date","time","location","link","type","audience"];
   allowed.forEach(f => {
     if (req.body[f] !== undefined) event[f] = req.body[f];
   });

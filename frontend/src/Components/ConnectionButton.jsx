@@ -1,18 +1,24 @@
 // frontend/src/Components/ConnectButton.jsx
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import axios from "axios";
 import { Context } from "../main";
 import { useSocket } from "../SocketContext";
 
 const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => {
   const { user } = useContext(Context);
-  const { socketRef, isSocketReady } = useSocket(); // ← destructure both
+  const { socketRef, isSocketReady } = useSocket();
 
   const [status, setStatus]               = useState("None");
   const [connectionId, setConnectionId]   = useState(null);
   const [iSentIt, setISentIt]             = useState(false);
   const [loading, setLoading]             = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // ── Use a ref to always access the latest connectionId in socket callbacks ──
+  const connectionIdRef = useRef(null);
+  useEffect(() => {
+    connectionIdRef.current = connectionId;
+  }, [connectionId]);
 
   // ── Fetch initial status on mount ───────────────────────────────────────
   useEffect(() => {
@@ -25,28 +31,18 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
         setStatus(res.data.status);
         setConnectionId(res.data.connectionId);
         setISentIt(res.data.isSender);
-        console.log(`🔍 Status for ${targetId}:`, res.data.status, "isSender:", res.data.isSender);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [targetId]);
 
   // ── Real-time socket listeners ───────────────────────────────────────────
-  // depends on isSocketReady so it re-runs once socket connects
   useEffect(() => {
     const socket = socketRef?.current;
-
-    if (!isSocketReady || !socket) {
-      console.log("⚠️ Socket not ready yet for targetId:", targetId);
-      return;
-    }
-
-    console.log("👂 Attaching socket listeners for targetId:", targetId);
+    if (!isSocketReady || !socket) return;
 
     const onNewRequest = (data) => {
-      console.log("📨 connection:new_request", data, "| targetId:", targetId);
       if (data.sender.id.toString() === targetId.toString()) {
-        console.log("✅ Match! Showing Accept/Reject for targetId:", targetId);
         setStatus("Pending");
         setConnectionId(data.connectionId);
         setISentIt(false);
@@ -55,16 +51,15 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     };
 
     const onAccepted = (data) => {
-      console.log("📨 connection:accepted", data, "| connectionId:", connectionId);
-      if (data.connectionId?.toString() === connectionId?.toString()) {
+      // Use ref to get current connectionId — avoids stale closure
+      if (data.connectionId?.toString() === connectionIdRef.current?.toString()) {
         setStatus("Accepted");
         if (onStatusChange) onStatusChange("Accepted");
       }
     };
 
     const onRejected = (data) => {
-      console.log("📨 connection:rejected", data);
-      if (data.connectionId?.toString() === connectionId?.toString()) {
+      if (data.connectionId?.toString() === connectionIdRef.current?.toString()) {
         setStatus("Rejected");
         setConnectionId(null);
         if (onStatusChange) onStatusChange("Rejected");
@@ -72,7 +67,6 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     };
 
     const onWithdrawn = (data) => {
-      console.log("📨 connection:withdrawn", data, "| targetId:", targetId);
       if (data.sender?.id?.toString() === targetId.toString()) {
         setStatus("None");
         setConnectionId(null);
@@ -82,8 +76,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     };
 
     const onRemoved = (data) => {
-      console.log("📨 connection:removed", data);
-      if (data.connectionId?.toString() === connectionId?.toString()) {
+      if (data.connectionId?.toString() === connectionIdRef.current?.toString()) {
         setStatus("None");
         setConnectionId(null);
         setISentIt(false);
@@ -104,8 +97,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
       socket.off("connection:withdrawn",   onWithdrawn);
       socket.off("connection:removed",     onRemoved);
     };
-  }, [isSocketReady, socketRef, targetId, connectionId, onStatusChange]);
-  // ↑ isSocketReady in deps means listeners attach as soon as socket is ready
+  }, [isSocketReady, socketRef, targetId, onStatusChange]);
 
   // ── Local state helper ───────────────────────────────────────────────────
   const updateStatus = (newStatus, newConnectionId = null, sentByMe = false) => {
@@ -125,8 +117,8 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
         { withCredentials: true }
       );
       updateStatus("Pending", res.data.request._id, true);
-    } catch (err) {
-      console.error(err.response?.data?.message);
+    } catch {
+      // silent — toast handled by parent if needed
     } finally {
       setActionLoading(false);
     }
@@ -140,8 +132,8 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
         { withCredentials: true }
       );
       updateStatus("None", null, false);
-    } catch (err) {
-      console.error(err.response?.data?.message);
+    } catch {
+      // silent
     } finally {
       setActionLoading(false);
     }
@@ -156,8 +148,8 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
         { withCredentials: true }
       );
       updateStatus(action === "Accepted" ? "Accepted" : "Rejected", connectionId, false);
-    } catch (err) {
-      console.error(err.response?.data?.message);
+    } catch {
+      // silent
     } finally {
       setActionLoading(false);
     }
@@ -171,8 +163,8 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
         { withCredentials: true }
       );
       updateStatus("None", null, false);
-    } catch (err) {
-      console.error(err.response?.data?.message);
+    } catch {
+      // silent
     } finally {
       setActionLoading(false);
     }

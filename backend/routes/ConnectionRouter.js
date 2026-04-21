@@ -11,6 +11,7 @@ import {
   getChatMessages,
   sendChatMessage,
   getUnreadCounts,
+  markChatAsRead,
 } from "../controllers/ConnectionController.js";
 
 const router = express.Router();
@@ -28,6 +29,7 @@ router.delete("/:requestId/remove",     removeConnection);       // remove accep
 
 // Chat routes
 router.get("/chat/unread-counts",       getUnreadCounts);
+router.put("/:connectionId/chat/read",  markChatAsRead);
 router.get("/:connectionId/chat",       getChatMessages);
 router.post("/:connectionId/chat",      sendChatMessage);
 

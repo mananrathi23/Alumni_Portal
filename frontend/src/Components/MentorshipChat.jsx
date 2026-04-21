@@ -65,6 +65,8 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = "http://localhost:4000/api/v1/
           return ids.has(data.message._id) ? prev : [...prev, data.message];
         });
         setIsTyping(false);
+        // Mark as read explicitly to avoid unread badge bug
+        axios.put(`${apiBaseUrl}/${sessionId}/chat/read`, {}, { withCredentials: true }).catch(() => {});
       }
     };
 

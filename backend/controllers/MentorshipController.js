@@ -97,10 +97,7 @@ export const handleGoogleCallback = catchAsyncError(async (req, res, next) => {
   let mentorId, mentorRole;
   try {
     ({ mentorId, mentorRole } = decodeOAuthState(state));
-    console.log("DECODED ROLE:", mentorRole); // <── ADD THIS
-    console.log("DECODED ID:", mentorId);     // <── ADD THIS
   } catch (err) {
-    console.log("DECODE ERROR:", err?.message || err); // <── ADD THIS
     return next(new ErrorHandler("Invalid OAuth state parameter.", 400));
   }
 
@@ -113,9 +110,7 @@ export const handleGoogleCallback = catchAsyncError(async (req, res, next) => {
 
   // Persist tokens to the mentor's document
   const Model = getMentorModel(mentorRole);
-  // After saving tokens:
   await Model.findByIdAndUpdate(mentorId, { googleTokens: tokens });
-  console.log(`✅ Google tokens saved for ${mentorRole} ${mentorId}`);
 
   // Redirect to a frontend page that closes itself
   res.redirect(`${process.env.FRONTEND_URL}/google-linked`);
@@ -472,11 +467,6 @@ export const respondToMentorshipRequest = catchAsyncError(async (req, res, next)
         )
         .lean();
 
-      console.log("🔑 Tokens retrieved:", {
-        hasAccess: !!mentorWithTokens?.googleTokens?.access_token,
-        hasRefresh: !!mentorWithTokens?.googleTokens?.refresh_token,
-      });
-
       if (mentorWithTokens?.googleTokens?.refresh_token) {
         // Convert "Mon" + "10:00 AM" → next real ISO datetime
         const startISO = getNextSlotISO(mentorship.slot.day, mentorship.slot.time);
@@ -497,15 +487,10 @@ export const respondToMentorshipRequest = catchAsyncError(async (req, res, next)
           goal: mentorship.goal,
           startISO,
         });
-
-        console.log(`✅ Google Meet link generated for request ${mentorship._id}: ${generatedMeetLink}`);
-      } else {
-        console.log(`ℹ️  Mentor ${user._id} has not linked Google — skipping Meet generation.`);
       }
     } catch (err) {
       // Never block acceptance if Google fails — mentor can share link via chat
       console.error(`❌ Google Meet generation failed for request ${mentorship._id}:`, err.message);
-      console.error(`❌ Google Meet generation failed:`, err.message, err.stack);
     }
 
     // 4. Save acceptance + Meet link + session datetime
@@ -858,6 +843,18 @@ export const getUnreadCounts = catchAsyncError(async (req, res) => {
   counts.forEach(c => { unread[c._id.toString()] = c.count; });
 
   res.status(200).json({ success: true, unread });
+});
+
+export const markChatAsRead = catchAsyncError(async (req, res) => {
+  const user = req.user;
+  const mentorshipId = req.params.mentorshipId;
+
+  await ChatMessage.updateMany(
+    { mentorshipId, "sender.id": { $ne: user._id }, readBy: { $ne: user._id } },
+    { $addToSet: { readBy: user._id } }
+  );
+
+  res.status(200).json({ success: true });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════

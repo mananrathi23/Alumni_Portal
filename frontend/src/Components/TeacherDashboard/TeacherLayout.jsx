@@ -34,15 +34,26 @@ const TeacherLayout = () => {
   useEffect(() => {
     if (!isSocketReady || !socketRef.current) return;
     const socket = socketRef.current;
-    const handler = (data) => {
+
+    const reminderHandler = (data) => {
       const link = data.meetingLink;
       const msg = data.mentorName
         ? `⏰ Session with ${data.mentorName} starts in 15 min!${link ? " Join: " + link : ""}`
         : `⏰ Session with ${data.studentName} starts in 15 min!`;
       toast.info(msg, { autoClose: 10000 });
     };
-    socket.on("mentorship:reminder", handler);
-    return () => socket.off("mentorship:reminder", handler);
+
+    const verifiedHandler = ({ adminVerified }) => {
+      setTeacher(prev => prev ? { ...prev, adminVerified } : prev);
+      setUser(prev => prev ? { ...prev, adminVerified } : prev);
+    };
+
+    socket.on("mentorship:reminder", reminderHandler);
+    socket.on("user:verified", verifiedHandler);
+    return () => {
+      socket.off("mentorship:reminder", reminderHandler);
+      socket.off("user:verified", verifiedHandler);
+    };
   }, [isSocketReady]);
 
   const handleLogout = async () => {
@@ -105,7 +116,7 @@ const TeacherLayout = () => {
         jobsPath="/teacher/jobs"
         onLogout={handleLogout}
       >
-        <Outlet context={{ teacher }} />
+        <Outlet context={{ teacher, setTeacher }} />
       </DashboardShell>
 
       {showIncompleteModal && (

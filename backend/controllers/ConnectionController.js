@@ -388,3 +388,15 @@ export const getUnreadCounts = catchAsyncError(async (req, res) => {
 
   res.status(200).json({ success: true, unread });
 });
+
+export const markChatAsRead = catchAsyncError(async (req, res, next) => {
+  const user = req.user;
+  const connectionId = req.params.connectionId;
+
+  await ChatMessage.updateMany(
+    { connectionId, "sender.id": { $ne: user._id }, readBy: { $ne: user._id } },
+    { $addToSet: { readBy: user._id } }
+  );
+
+  res.status(200).json({ success: true });
+});

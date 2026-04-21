@@ -59,3 +59,10 @@ export const emitToRoom = (mentorshipId, event, data) => {
   if (!ioInstance) return;
   ioInstance.to(`chat:${mentorshipId}`).emit(event, data);
 };
+
+// ── Broadcast to ALL connected clients ───────────────────────────────────────
+// Used for public feeds like incubation comments
+export const emitToAll = (event, data) => {
+  if (!ioInstance) return;
+  ioInstance.emit(event, data);
+};

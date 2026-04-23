@@ -195,13 +195,19 @@ const Mentorship = () => {
     } catch { /* silent */ }
   };
 
+  const fetchStats = async () => {
+    try {
+      const r = await axios.get(`${API}/my-stats`, { withCredentials: true });
+      setWeeklyStats(r.data.weeklyCount ?? 0);
+      setMentorStats(r.data.stats);
+    } catch {}
+  };
+
   useEffect(() => {
     fetchRequests();
     fetchSettings();
     fetchGoogleStatus();
-    axios.get(`${API}/my-stats`, { withCredentials: true })
-      .then(r => { setWeeklyStats(r.data.weeklyCount ?? 0); setMentorStats(r.data.stats); })
-      .catch(() => {});
+    fetchStats();
   }, []);
 
   // ── Google Calendar link handler ─────────────────────────────────────────
@@ -241,13 +247,27 @@ const Mentorship = () => {
     const onNewRequest = (data) => { toast.info(`📩 New mentorship request from ${data.student?.name || "a student"}!`); fetchRequests(); };
     const onCancelled  = (data) => { toast.info(`${data.studentName} cancelled their mentorship request.`); fetchRequests(); };
     const onResponded  = () => fetchRequests();
+    const onCompleted  = (data) => {
+      if (data?.studentName) toast.info(`Session with ${data.studentName} marked completed.`);
+      fetchRequests();
+      fetchStats();
+    };
+    const onRating = (data) => {
+      toast.success(`⭐ New feedback received${data?.studentName ? ` from ${data.studentName}` : ""}.`);
+      fetchRequests();
+      fetchStats();
+    };
     socket.on("mentorship:new_request",       onNewRequest);
     socket.on("mentorship:request_cancelled", onCancelled);
     socket.on("mentorship:request_responded", onResponded);
+    socket.on("mentorship:completed",         onCompleted);
+    socket.on("mentorship:rating_submitted",  onRating);
     return () => {
       socket.off("mentorship:new_request",       onNewRequest);
       socket.off("mentorship:request_cancelled", onCancelled);
       socket.off("mentorship:request_responded", onResponded);
+      socket.off("mentorship:completed",         onCompleted);
+      socket.off("mentorship:rating_submitted",  onRating);
     };
   }, [isSocketReady]);
 

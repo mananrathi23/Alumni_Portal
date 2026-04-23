@@ -46,6 +46,7 @@ const questionSchema = new mongoose.Schema(
     ],
     answers: [answerSchema],
     views:   { type: Number, default: 0 },
+    viewedBy: [{ type: mongoose.Schema.Types.ObjectId }], // Track unique viewers
     // Closed questions cannot receive new answers
     isClosed: { type: Boolean, default: false },
   },

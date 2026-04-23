@@ -110,7 +110,10 @@ const Profile = () => {
               style={{ background: "radial-gradient(circle, #8b5cf6, transparent 70%)" }}/>
             <div className="relative z-10 p-6 flex flex-col items-center text-center gap-4">
               <ProfilePhotoUpload user={teacher} accentColor="violet"
-                onUploaded={photo => setUser(prev => ({ ...prev, profilePhoto: photo }))}/>
+                onUploaded={(photo) => {
+                  setUser((prev) => (prev ? { ...prev, profilePhoto: photo } : prev));
+                  setTeacher((prev) => (prev ? { ...prev, profilePhoto: photo } : prev));
+                }}/>
               <div>
                 <p className={`font-bold text-lg leading-tight ${theme === "dark" ? "text-white" : "text-slate-950"}`}>{teacher?.name}</p>
                 <span className="inline-flex items-center gap-1.5 mt-1 text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-400 border border-violet-500/30">

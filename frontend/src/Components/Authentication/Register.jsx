@@ -102,7 +102,6 @@ const Register = ({ selectedRole }) => {
         <div>
           <label className={lbl}>
             {yearLabel}
-            <span className="text-red-400 ml-1">*</span>
           </label>
           <input
             type="number"

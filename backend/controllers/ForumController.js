@@ -70,8 +70,15 @@ export const getQuestion = catchAsyncError(async (req, res, next) => {
     (a, b) => (b.upvotes?.length || 0) - (a.upvotes?.length || 0)
   );
 
-  // Increment view count (fire-and-forget)
-  Question.findByIdAndUpdate(req.params.questionId, { $inc: { views: 1 } }).exec();
+  // Increment view count only if user hasn't viewed yet (fire-and-forget)
+  const userId = req.user._id;
+  const hasViewed = question.viewedBy && question.viewedBy.some(id => id.equals(userId));
+  if (!hasViewed) {
+    Question.findByIdAndUpdate(
+      req.params.questionId,
+      { $inc: { views: 1 }, $addToSet: { viewedBy: userId } }
+    ).exec();
+  }
 
   res.status(200).json({
     success: true,

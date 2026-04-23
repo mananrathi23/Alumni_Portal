@@ -168,13 +168,6 @@ function QuestionDetail({ questionId, onBack, currentUser, accentColor }) {
 
   useEffect(() => { load(true); }, [questionId]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      load(false);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [questionId]);
-
   const upvote = async (answerId) => {
     setVotingId(answerId);
     try {

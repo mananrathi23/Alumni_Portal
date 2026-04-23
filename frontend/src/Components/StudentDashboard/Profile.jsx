@@ -131,7 +131,10 @@ const Profile = () => {
               <ProfilePhotoUpload
                 user={student}
                 accentColor="sky"
-                onUploaded={photo => setUser(prev => ({ ...prev, profilePhoto: photo }))}
+                onUploaded={(photo) => {
+                  setUser((prev) => (prev ? { ...prev, profilePhoto: photo } : prev));
+                  setStudent((prev) => (prev ? { ...prev, profilePhoto: photo } : prev));
+                }}
               />
               {/* Name + role */}
               <div>

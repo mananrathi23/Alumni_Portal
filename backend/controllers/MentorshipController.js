@@ -718,6 +718,12 @@ export const completeMentorshipSession = catchAsyncError(async (req, res, next) 
     mentorName: user.name,
   });
 
+  // Also notify mentor (other open tabs) to refresh in real time
+  emitToUser(user._id, "mentorship:completed", {
+    requestId: mentorship._id,
+    studentName: mentorship.student?.name,
+  });
+
   res.status(200).json({ success: true, mentorship });
 });
 
@@ -904,6 +910,13 @@ export const rateSession = catchAsyncError(async (req, res, next) => {
     mentor.mentorStats.score = computeMentorScore(mentor.mentorStats);
     await mentor.save({ validateModifiedOnly: true });
   }
+
+  // Notify mentor in real time (so stats/history refresh immediately)
+  emitToUser(mentorship.mentor.id, "mentorship:rating_submitted", {
+    requestId: mentorship._id,
+    studentName: mentorship.student?.name,
+    rating: mentorship.rating,
+  });
 
   res.status(200).json({ success: true, message: "Rating submitted.", rating: mentorship.rating });
 });

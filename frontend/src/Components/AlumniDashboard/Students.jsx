@@ -21,7 +21,7 @@ const Students = () => {
     if (filterRole !== "All") params.filterRole = filterRole;
     if (department !== "All") params.department = department;
     setLoading(true);
-    axios.get("http://localhost:4000/api/v1/people", { params, withCredentials: true })
+    axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/people`, { params, withCredentials: true })
       .then((res) => setPeople(res.data.people))
       .catch(() => {})
       .finally(() => setLoading(false));

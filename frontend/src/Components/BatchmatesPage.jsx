@@ -150,7 +150,7 @@ const BatchmatesPage = ({
       const params = { viewerRole };
       if (search.trim()) params.search = search.trim();
 
-      const res = await axios.get("http://localhost:4000/api/v1/batchmates", {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/batchmates`, {
         params,
         withCredentials: true,
       });

@@ -40,7 +40,7 @@ const Header = ({ student }) => {
   // Fetch pending connection count
   useEffect(() => {
     axios
-      .get("http://localhost:4000/api/v1/connection/pending", { withCredentials: true })
+      .get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/connection/pending`, { withCredentials: true })
       .then((res) => setPendingCount(res.data.requests?.length ?? 0))
       .catch(() => setPendingCount(0));
   }, []);

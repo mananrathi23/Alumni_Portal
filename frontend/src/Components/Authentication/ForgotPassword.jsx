@@ -13,7 +13,7 @@ const ForgotPassword = ({ onBack, selectedRole }) => {
   const onSubmit = async (data) => {
     await axios
       .post(
-        "http://localhost:4000/api/v1/user/password/forgot",
+        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/password/forgot`,
         { email: data.email, role: selectedRole },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       )

@@ -24,7 +24,7 @@ const Alumni = () => {
 
     setLoading(true);
     axios
-      .get("http://localhost:4000/api/v1/people", { params, withCredentials: true })
+      .get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/people`, { params, withCredentials: true })
       .then((res) => {
         let result = res.data.people;
         if (mentorOnly) result = result.filter((p) => p.availableForMentorship === true);

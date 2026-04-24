@@ -12,7 +12,7 @@ const Users = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/api/v1/admin/users", {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/admin/users`, {
         withCredentials: true,
       });
       setUsers(res.data.users || []);
@@ -30,7 +30,7 @@ const Users = () => {
   const toggleVerify = async (userId, role) => {
     try {
       const res = await axios.put(
-        `http://localhost:4000/api/v1/admin/users/${role}/${userId}/verify`,
+        `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}`}/api/v1/admin/users/${role}/${userId}/verify`,
         {},
         { withCredentials: true }
       );
@@ -46,7 +46,7 @@ const Users = () => {
   const toggleBlock = async (userId, role) => {
     try {
       const res = await axios.put(
-        `http://localhost:4000/api/v1/admin/users/${role}/${userId}/block`,
+        `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}`}/api/v1/admin/users/${role}/${userId}/block`,
         {},
         { withCredentials: true }
       );

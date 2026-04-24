@@ -15,7 +15,7 @@ import { useNavigate }         from "react-router-dom";
 import axios                   from "axios";
 import { PiSpeakerHigh }       from "react-icons/pi";
 
-const BASE = "http://localhost:4000/api/v1";
+const BASE = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1`;
 
 const DashboardTicker = ({ accentColor = "sky", forumPath, eventsPath, jobsPath }) => {
   const [items,   setItems]   = useState([]);

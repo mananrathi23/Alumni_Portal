@@ -13,7 +13,7 @@ import {
 
 import RestrictedAccess from "../RestrictedAccess";
 
-const API = "http://localhost:4000/api/v1/mentorship";
+const API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/mentorship`;
 
 const GOAL_OPTIONS = [
   { value:"career",    label:"Career Guidance",  desc:"Explore paths, industries, and long-term direction" },
@@ -644,7 +644,7 @@ const Mentorship = () => {
                 onClick={async () => {
                   try {
                     await axios.post(
-                      `http://localhost:4000/api/v1/mentorship/requests/${rateTarget._id}/rate`,
+                      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}`}/api/v1/mentorship/requests/${rateTarget._id}/rate`,
                       { value: rateTarget.pendingRating, feedback: rateTarget.feedback || "" },
                       { withCredentials: true }
                     );

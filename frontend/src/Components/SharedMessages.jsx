@@ -14,8 +14,8 @@ import {
   PiHandshake, PiCircleNotch, PiClock,
 } from "react-icons/pi";
 
-const MENTORSHIP_API = "http://localhost:4000/api/v1/mentorship";
-const CONNECTIONS_API = "http://localhost:4000/api/v1/connections";
+const MENTORSHIP_API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/mentorship`;
+const CONNECTIONS_API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/connections`;
 
 const GOAL_LABELS = {
   career:"Career Guidance", resume:"Resume Review",

@@ -49,7 +49,7 @@ const ProfilePhotoUpload = ({ user, accentColor = "sky", onUploaded }) => {
       setUploading(true);
       try {
         const res = await axios.post(
-          "http://localhost:4000/api/v1/user/upload-photo",
+          `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/upload-photo`,
           { photo: base64 },
           { withCredentials: true, headers: { "Content-Type": "application/json" } }
         );

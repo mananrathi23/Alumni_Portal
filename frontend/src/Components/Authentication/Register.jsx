@@ -25,7 +25,7 @@ const Register = ({ selectedRole }) => {
     if (data.enrollmentYear) data.enrollmentYear = Number(data.enrollmentYear);
 
     await axios
-      .post("http://localhost:4000/api/v1/user/register", data, {
+      .post(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/register`, data, {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       })

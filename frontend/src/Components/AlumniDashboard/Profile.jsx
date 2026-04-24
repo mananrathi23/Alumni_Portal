@@ -60,7 +60,7 @@ const Profile = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const res = await axios.put("http://localhost:4000/api/v1/user/update-profile", form,
+      const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/update-profile`, form,
         { withCredentials: true, headers: { "Content-Type": "application/json" } });
       toast.success("Profile updated!");
       setUser(res.data.user);

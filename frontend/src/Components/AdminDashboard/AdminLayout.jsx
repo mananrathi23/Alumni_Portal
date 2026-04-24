@@ -27,7 +27,7 @@ const AdminLayout = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:4000/api/v1/user/me", { withCredentials: true })
+      .get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/me`, { withCredentials: true })
       .then((res) => {
         setIsAuthenticated(true);
         setUser(res.data.user);
@@ -42,7 +42,7 @@ const AdminLayout = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.get("http://localhost:4000/api/v1/user/logout", { withCredentials: true });
+      await axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/logout`, { withCredentials: true });
     } catch {}
     setIsAuthenticated(false);
     setUser(null);

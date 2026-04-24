@@ -56,7 +56,7 @@ const Profile = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const res = await axios.put("http://localhost:4000/api/v1/user/update-profile",
+      const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/update-profile`,
         { ...form, cgpa: form.cgpa ? Number(form.cgpa) : undefined, enrollmentYear: form.enrollmentYear ? Number(form.enrollmentYear) : undefined },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       );

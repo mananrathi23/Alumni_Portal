@@ -26,7 +26,7 @@ const People = () => {
     if (department !== "All") params.department = department;
 
     axios
-      .get("http://localhost:4000/api/v1/people", {
+      .get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/people`, {
         params,
         withCredentials: true,
       })

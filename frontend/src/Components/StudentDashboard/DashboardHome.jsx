@@ -8,7 +8,7 @@ import {
   PiEnvelope, PiRocketLaunch, PiSparkle,
 } from "react-icons/pi";
 
-const BASE = "http://localhost:4000/api/v1";
+const BASE = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1`;
 
 const colorMap = {
   sky:    { bg:"bg-sky-50 dark:bg-sky-900/20",     border:"border-sky-200 dark:border-sky-500/20",     icon:"text-sky-500",     val:"text-sky-600",     feedBg:"bg-sky-50 dark:bg-sky-900/20",     feedBorder:"border-sky-200 dark:border-sky-500/20"     },

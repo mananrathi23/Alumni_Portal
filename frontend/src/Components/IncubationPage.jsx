@@ -11,7 +11,7 @@ import {
 } from "react-icons/pi";
 import { useNavigate } from "react-router-dom";
 
-const API = "http://localhost:4000/api/v1/incubation";
+const API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/incubation`;
 
 const STAGES = [
   { key: "all",       label: "All Stages",  icon: PiSparkle },
@@ -500,7 +500,7 @@ const IncubationPage = ({ accentColor = "sky" }) => {
   const [connections,setConnections]= useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:4000/api/v1/connections", { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/connections`, { withCredentials: true })
       .then(res => setConnections(res.data.connections || []))
       .catch(() => {});
   }, []);

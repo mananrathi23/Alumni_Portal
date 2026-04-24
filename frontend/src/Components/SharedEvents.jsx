@@ -13,7 +13,7 @@ import {
 
 import RestrictedAccess from "./RestrictedAccess";
 
-const API = "http://localhost:4000/api/v1/events";
+const API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/events`;
 const EVENT_TYPES = ["seminar","workshop","webinar","hackathon","reunion","placement","other"];
 const POSTER_ROLES = ["Admin", "Alumni", "Teacher"];
 

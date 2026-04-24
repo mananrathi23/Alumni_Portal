@@ -12,7 +12,7 @@ import ChatbotWidget from "./ChatbotWidget";
 import ThemeToggle from "./ThemeToggle.jsx";
 import { Context } from "../main";
 
-const BASE = "http://localhost:4000/api/v1";
+const BASE = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1`;
 
 const ACCENT = {
   sky:    { logo:"bg-sky-500",     avatar:"from-sky-400 to-sky-600",    active:"bg-sky-500/15 text-sky-400 ring-sky-500/20",    text:"text-sky-400",    dot:"bg-sky-500"    },

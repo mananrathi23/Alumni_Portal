@@ -12,7 +12,7 @@ import {
   PiCalendarBlank, PiBookOpen, PiWarningCircle, PiHourglassMedium,
 } from "react-icons/pi";
 
-const API = "http://localhost:4000/api/v1/mentorship";
+const API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/mentorship`;
 
 const GOAL_LABELS = {
   career: "Career Guidance", resume: "Resume Review",

@@ -6,7 +6,7 @@ import {
   PiCheck, PiX, PiCalendar,
 } from "react-icons/pi";
 
-const BASE = "http://localhost:4000/api/v1/news";
+const BASE = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/news`;
 
 const EMPTY = { title: "", description: "", date: "" };
 

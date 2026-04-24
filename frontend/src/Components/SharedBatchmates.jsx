@@ -10,7 +10,7 @@ import {
   PiLinkedinLogo, PiGithubLogo, PiHandshake,
 } from "react-icons/pi";
 
-const API = "http://localhost:4000/api/v1/batchmates";
+const API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/batchmates`;
 
 const ROLE_AVATAR = {
   Student: "bg-gradient-to-br from-sky-400 to-sky-600",

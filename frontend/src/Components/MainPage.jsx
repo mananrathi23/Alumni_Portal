@@ -14,7 +14,7 @@ const NewsTicker = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:4000/api/v1/news")
+      .get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/news`)
       .then((res) => setNews(res.data.news || []))
       .catch(() => setNews([]));
   }, []);
@@ -90,7 +90,7 @@ const MainPage = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:4000/api/v1/news")
+      .get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/news`)
       .then((res) => setNews(res.data.news || []))
       .catch(() => {});
   }, []);

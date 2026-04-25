@@ -2,13 +2,13 @@ import nodeMailer from "nodemailer";
 
 export const sendEmail = async ({ email, subject, message }) => {
   const transporter = nodeMailer.createTransport({
-    host: process.env.SMTP_HOST,
-    service: process.env.SMTP_SERVICE,
-    port: process.env.SMTP_PORT,
-    secure: process.env.SMTP_PORT == 465, // true for 465, false for other ports
+    host: process.env.SMTP_HOST?.trim(),
+    service: process.env.SMTP_SERVICE?.trim(),
+    port: process.env.SMTP_PORT?.trim(),
+    secure: process.env.SMTP_PORT?.trim() == "465", // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_MAIL,
-      pass: process.env.SMTP_PASSWORD,
+      user: process.env.SMTP_MAIL?.trim(),
+      pass: process.env.SMTP_PASSWORD?.trim(),
     },
     connectionTimeout: 10000, // 10 seconds max wait
     greetingTimeout: 5000,

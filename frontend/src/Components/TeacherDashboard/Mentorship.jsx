@@ -213,28 +213,32 @@ const Mentorship = () => {
   // ── Google Calendar link handler ─────────────────────────────────────────
   const handleLinkGoogle = async () => {
     setLinkingGoogle(true);
+    // Clear any old signal
+    localStorage.removeItem("google-linked");
+
     try {
       const res   = await axios.get(`${API}/auth/google`, { withCredentials: true });
-      const popup = window.open(res.data.url, "Link Google Calendar", "width=520,height=640");
+      window.open(res.data.url, "Link Google Calendar", "width=520,height=640");
 
-      const handler = (e) => {
-        if (e.data === "google-linked") {
+      // Poll localStorage for the signal set by /google-linked page
+      const checkInterval = setInterval(() => {
+        if (localStorage.getItem("google-linked")) {
+          clearInterval(checkInterval);
+          localStorage.removeItem("google-linked");
           setGoogleLinked(true);
-          toast.success("✅ Google Calendar linked! Meet links will now be auto-generated.");
-          popup?.close();
-          window.removeEventListener("message", handler);
-        }
-      };
-      window.addEventListener("message", handler);
-
-      const pollTimer = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(pollTimer);
-          window.removeEventListener("message", handler);
-          fetchGoogleStatus();
           setLinkingGoogle(false);
+          toast.success("✅ Google Calendar linked! Meet links will now be auto-generated.");
         }
-      }, 500);
+      }, 800);
+
+      // Give up after 5 minutes
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        setLinkingGoogle(false);
+        // Re-check from server in case it succeeded silently
+        fetchGoogleStatus();
+      }, 5 * 60 * 1000);
+
     } catch {
       toast.error("Failed to connect to Google. Please try again.");
       setLinkingGoogle(false);

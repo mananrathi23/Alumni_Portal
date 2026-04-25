@@ -368,7 +368,7 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
   const role = user.constructor.modelName; // "Student" | "Teacher" | "Alumni" | "Admin"
 
   const allowedFields = {
-    Student: ["department", "year", "section", "cgpa", "skills", "bio", "linkedIn", "github", "enrollmentNumber", "enrollmentYear"],
+    Student: ["department", "year", "section", "cgpa", "skills", "bio", "linkedIn", "github", "portfolio", "enrollmentNumber", "enrollmentYear"],
     Teacher: ["department", "designation", "subjectsTaught", "qualifications", "experience", "bio", "linkedIn", "employeeId", "joiningYear"],
     Alumni:  ["department", "degree", "enrollmentYear", "graduationYear", "currentCompany", "currentDesignation", "currentLocation", "industry", "skills", "bio", "linkedIn", "github", "availableForMentorship"],
     Admin:   ["department"],

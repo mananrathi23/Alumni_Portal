@@ -35,6 +35,7 @@ const studentSchema = new mongoose.Schema({
   profilePhoto: { public_id: String, url: String },
   linkedIn: String,
   github: String,
+  portfolio: String,
 
   // ── Auth Fields ──────────────────────────────────────────
   accountVerified: { type: Boolean, default: false },

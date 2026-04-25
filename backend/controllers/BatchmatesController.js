@@ -2,8 +2,8 @@ import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { Student } from "../models/StudentModel.js";
 import { Alumni } from "../models/AlumniModel.js";
 
-const STUDENT_FIELDS = "name email department enrollmentYear year skills bio linkedIn profilePhoto";
-const ALUMNI_FIELDS  = "name email department enrollmentYear currentCompany currentDesignation industry skills bio linkedIn profilePhoto";
+const STUDENT_FIELDS = "name email department enrollmentYear year skills bio linkedIn github portfolio profilePhoto";
+const ALUMNI_FIELDS  = "name email department enrollmentYear currentCompany currentDesignation industry skills bio linkedIn github profilePhoto";
 
 // GET /api/v1/batchmates
 // Groups students + alumni by enrollmentYear ("Class of YEAR")

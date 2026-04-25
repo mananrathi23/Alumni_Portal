@@ -13,7 +13,7 @@ import {
   PiPaperPlaneTilt, PiCircleNotch, PiX, PiTrash,
   PiCheckCircle, PiClock, PiEnvelopeSimple,
 } from "react-icons/pi";
-import { FaLinkedin, FaGithub } from "react-icons/fa";
+import { FaLinkedin, FaGithub, FaGlobe } from "react-icons/fa";
 
 const API_BASE = "http://localhost:4000/api/v1";
 
@@ -214,6 +214,11 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
             {other?.github && (
               <a href={other.github} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-white transition-colors">
                 <FaGithub size={14} />
+              </a>
+            )}
+            {other?.portfolio && (
+              <a href={other.portfolio} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-400 transition-colors" title="Portfolio">
+                <FaGlobe size={14} />
               </a>
             )}
           </div>

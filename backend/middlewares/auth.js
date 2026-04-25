@@ -63,6 +63,20 @@ export const isAdmin = catchAsyncError(async (req, res, next) => {
   req.user = admin;
   next();
 });
+
+// ── requireAdminPermission: fine-grained admin access ─────────────────────────
+// Usage: router.post(..., isAuthenticated, isAdmin, requireAdminPermission("manageNews"), handler)
+export const requireAdminPermission = (permKey) =>
+  catchAsyncError(async (req, res, next) => {
+    const admin = req.user;
+    if (!admin || admin.constructor?.modelName !== "Admin") {
+      return next(new ErrorHandler("Access denied. Admins only.", 403));
+    }
+    if (!admin.permissions || admin.permissions[permKey] !== true) {
+      return next(new ErrorHandler("Access denied. Insufficient permissions.", 403));
+    }
+    next();
+  });
 // ── isStaff: allow Admin, Alumni, Teacher — block Students ───────────────────
 // Used for event/job create + edit routes
 export const isStaff = (req, res, next) => {

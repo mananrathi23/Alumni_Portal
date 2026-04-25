@@ -23,7 +23,7 @@ const adminSchema = new mongoose.Schema({
   // ── Admin-Specific Fields ────────────────────────────────
   adminLevel: {
     type: String,
-    enum: ["super_admin", "moderator"],
+    enum: ["super_admin", "moderator", "placement_admin"],
     default: "moderator",
   },
   permissions: {
@@ -31,7 +31,9 @@ const adminSchema = new mongoose.Schema({
     manageEvents:        { type: Boolean, default: true },
     manageJobs:          { type: Boolean, default: true },
     manageForum:         { type: Boolean, default: true },
+    manageNews:          { type: Boolean, default: true },
     manageAnnouncements: { type: Boolean, default: false },
+    viewStudents:        { type: Boolean, default: true },
   },
   department: String, // optional — if admin manages a specific dept
   profilePhoto: { public_id: String, url: String },

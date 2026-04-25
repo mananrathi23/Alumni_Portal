@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaLinkedin, FaGithub } from "react-icons/fa";
+import { FaLinkedin, FaGithub, FaGlobe } from "react-icons/fa";
 import {
   PiUsersThree, PiBriefcase, PiMagnifyingGlass, PiX,
   PiGraduationCap, PiMapPin, PiBuildings, PiStudent,
@@ -191,6 +191,11 @@ const PersonCard = ({ person, onViewProfile }) => {
               <FaGithub size={14} />
             </a>
           )}
+          {person.portfolio && (
+            <a href={person.portfolio} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-400 transition-colors" title="Portfolio">
+              <FaGlobe size={14} />
+            </a>
+          )}
         </div>
         <ConnectButton targetId={person._id} targetRole={person.role} targetName={person.name} />
       </div>
@@ -320,6 +325,12 @@ const ProfileModal = ({ person, onClose }) => {
                   <a href={person.github} target="_blank" rel="noreferrer"
                     className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors">
                     <FaGithub size={14} /> GitHub
+                  </a>
+                )}
+                {person.portfolio && (
+                  <a href={person.portfolio} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
+                    <FaGlobe size={14} /> Portfolio
                   </a>
                 )}
               </div>

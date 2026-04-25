@@ -12,10 +12,6 @@ export const sendEmail = async ({ email, subject, message }) => {
     connectionTimeout: 10000,
     greetingTimeout: 5000,
   };
-  
-  if (process.env.SMTP_SERVICE && process.env.SMTP_SERVICE.trim() !== "") {
-    config.service = process.env.SMTP_SERVICE.trim();
-  }
 
   const transporter = nodeMailer.createTransport(config);
 

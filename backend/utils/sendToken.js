@@ -14,7 +14,8 @@ export const sendToken = (user, statusCode, message, res, keepSignedIn = false) 
     .cookie("token", token, {
       expires:  new Date(Date.now() + daysToExpire * 24 * 60 * 60 * 1000),
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "none",
+      secure: true,
     })
     .json({
       success: true,

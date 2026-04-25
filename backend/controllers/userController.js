@@ -262,6 +262,8 @@ export const logout = catchAsyncError(async (req, res, next) => {
     .status(200)
     .clearCookie("token", {
       httpOnly: true,
+      sameSite: "none",
+      secure: true,
       path: "/",
     })
     .json({

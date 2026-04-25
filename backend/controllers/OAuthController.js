@@ -143,7 +143,8 @@ export const handleGoogleOAuth = catchAsyncError(async (req, res, next) => {
   res.cookie("token", token, {
     expires:  new Date(Date.now() + daysExpire * 24 * 60 * 60 * 1000),
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "none",
+    secure: true,
   });
 
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -256,7 +257,8 @@ export const handleLinkedInOAuth = catchAsyncError(async (req, res, next) => {
   res.cookie("token", token, {
     expires:  new Date(Date.now() + daysExpire * 24 * 60 * 60 * 1000),
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "none",
+    secure: true,
   });
 
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";

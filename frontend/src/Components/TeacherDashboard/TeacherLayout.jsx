@@ -58,6 +58,9 @@ const TeacherLayout = () => {
 
   const handleLogout = async () => {
     try { await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true }); } catch {}
+    localStorage.removeItem("alumniToken");
+    setIsAuthenticated(false);
+    setUser(null);
     navigate("/login");
   };
 

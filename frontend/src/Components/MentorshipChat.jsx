@@ -23,7 +23,7 @@ function formatDay(iso) {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-const MentorshipChat = ({ sessionId, apiBaseUrl = "http://localhost:4000/api/v1/mentorship", currentUser, otherPerson, accentColor = "sky", onClose, sessionStatus: initialStatus }) => {
+const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship`, currentUser, otherPerson, accentColor = "sky", onClose, sessionStatus: initialStatus }) => {
   const { socketRef, isSocketReady } = useSocket();
   const [messages,  setMessages]  = useState([]);
   const [text,      setText]      = useState("");

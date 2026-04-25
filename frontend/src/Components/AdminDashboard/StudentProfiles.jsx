@@ -24,7 +24,7 @@ export default function StudentProfiles() {
     if (search) params.search = search;
     setLoading(true);
     axios
-      .get("http://localhost:4000/api/v1/people", { params, withCredentials: true })
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/people`, { params, withCredentials: true })
       .then((res) => setStudents(res.data.people || []))
       .catch(() => toast.error("Failed to load student profiles."))
       .finally(() => setLoading(false));

@@ -13,7 +13,7 @@ import {
 
 import RestrictedAccess from "./RestrictedAccess";
 
-const API = "http://localhost:4000/api/v1/forum";
+const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/forum`;
 
 const TAGS = ["all","career","technical","campus","internship","higher-studies","general","placement","skills"];
 const TAG_COLORS = {

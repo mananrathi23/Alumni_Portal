@@ -9,7 +9,7 @@ import {
   PiTrash, PiCircleNotch, PiCheckCircle, PiWarningCircle,
 } from "react-icons/pi";
 
-const API = "http://localhost:4000/api/v1/resume";
+const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/resume`;
 
 export default function ResumeUploader({ accentColor = "sky" }) {
   const [resumeMeta, setMeta]   = useState(null);  // { originalName, uploadedAt, hasResume }

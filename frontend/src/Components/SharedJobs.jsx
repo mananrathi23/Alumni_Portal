@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 
 import RestrictedAccess from "./RestrictedAccess";
 
-const API = "http://localhost:4000/api/v1/jobs";
+const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/jobs`;
 const POSTER_ROLES = ["Admin", "Alumni", "Teacher"];
 const JOB_TYPES = ["full-time","part-time","internship","contract","remote"];
 const TYPE_COLORS = {
@@ -217,7 +217,7 @@ export default function SharedJobs({ role, accentColor = "sky" }) {
   const [connections, setConnections] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:4000/api/v1/connections", { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections`, { withCredentials: true })
       .then(res => setConnections(res.data.connections || []))
       .catch(() => {});
   }, []);

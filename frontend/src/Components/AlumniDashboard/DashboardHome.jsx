@@ -7,7 +7,7 @@ import {
   PiCalendarCheck, PiHandshake, PiArrowRight, PiStudent,
 } from "react-icons/pi";
 
-const BASE = "http://localhost:4000/api/v1";
+const BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1`;
 
 // ── Mini feed card ─────────────────────────────────────────────────────────────
 const FeedCard = ({ items, emptyText, renderItem, onViewAll, color }) => {

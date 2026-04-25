@@ -13,7 +13,7 @@ import {
 
 import RestrictedAccess from "../RestrictedAccess";
 
-const API  = "http://localhost:4000/api/v1/mentorship";
+const API  = `${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship`;
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
 // ── Mentor Score & Badge component ────────────────────────────────────────────

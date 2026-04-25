@@ -30,7 +30,7 @@ const OAuthSuccess = () => {
     const role = params.get("role") || "Student";
 
     axios
-      .get("http://localhost:4000/api/v1/user/me", { withCredentials: true })
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true })
       .then((res) => {
         setIsAuthenticated(true);
         setUser(res.data.user);

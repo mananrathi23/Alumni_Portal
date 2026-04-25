@@ -35,7 +35,7 @@ const Header = ({ teacher }) => {
   const initials = teacher?.name?.charAt(0).toUpperCase() ?? "T";
 
   useEffect(() => {
-    axios.get("http://localhost:4000/api/v1/connection/pending", { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
       .then((res) => setPendingCount(res.data.requests?.length ?? 0))
       .catch(() => setPendingCount(0));
   }, []);

@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import { useNavigate }         from "react-router-dom";
 import axios                   from "axios";
 
-const BASE = "http://localhost:4000/api/v1";
+const BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1`;
 
 const DashboardTicker = ({ accentColor = "sky", forumPath, eventsPath, jobsPath }) => {
   const [items,   setItems]   = useState([]);

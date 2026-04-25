@@ -21,7 +21,7 @@ const StudentLayout = () => {
   const { setIsAuthenticated, setUser } = useContext(Context);
 
   useEffect(() => {
-    axios.get("http://localhost:4000/api/v1/user/me", { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true })
       .then((res) => {
         setIsAuthenticated(true);
         setUser(res.data.user);
@@ -32,7 +32,7 @@ const StudentLayout = () => {
   }, []);
 
   useEffect(() => {
-    axios.get("http://localhost:4000/api/v1/connection/pending", { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
       .then((res) => setPending(res.data.requests?.length ?? 0))
       .catch(() => {});
   }, []);
@@ -64,7 +64,7 @@ const StudentLayout = () => {
   }, [isSocketReady]);
 
   const handleLogout = async () => {
-    try { await axios.get("http://localhost:4000/api/v1/user/logout", { withCredentials: true }); } catch {}
+    try { await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true }); } catch {}
     navigate("/login");
   };
 

@@ -20,7 +20,7 @@ const AlumniLayout = () => {
   const { setIsAuthenticated, setUser } = useContext(Context);
 
   useEffect(() => {
-    axios.get("http://localhost:4000/api/v1/user/me", { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true })
       .then((res) => {
         setIsAuthenticated(true);
         setUser(res.data.user);
@@ -33,7 +33,7 @@ const AlumniLayout = () => {
   // Re-fetch alumni data (called after settings save, etc.)
   const refreshAlumni = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/api/v1/user/me", { withCredentials: true });
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true });
       setUser(res.data.user);
       setAlumni(res.data.user);
     } catch {}
@@ -68,7 +68,7 @@ const AlumniLayout = () => {
   }, [isSocketReady]);
 
   const handleLogout = async () => {
-    try { await axios.get("http://localhost:4000/api/v1/user/logout", { withCredentials: true }); } catch {}
+    try { await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true }); } catch {}
     navigate("/login");
   };
 

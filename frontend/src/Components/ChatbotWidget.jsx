@@ -55,7 +55,7 @@ const ChatbotWidget = () => {
 
   const fetchTicket = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/api/v1/support/my-ticket", {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/support/my-ticket`, {
         withCredentials: true,
       });
       if (res.data.ticket) {
@@ -109,7 +109,7 @@ const ChatbotWidget = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:4000/api/v1/support/ask",
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/support/ask`,
         { text: userMessage, image: screenshotBase64 },
         { withCredentials: true }
       );

@@ -114,8 +114,8 @@ async function sendVerificationCode(
   try {
     if (verificationMethod === "email") {
       const message = generateEmailTemplate(verificationCode);
-      sendEmail({ email, subject: "Your Verification Code", message });
-      res.status(200).json({
+      await sendEmail({ email, subject: "Your Verification Code", message });
+      return res.status(200).json({
         success: true,
         message: `Verification email successfully sent to ${name}`,
       });
@@ -139,10 +139,11 @@ async function sendVerificationCode(
         message: "Invalid verification method.",
       });
     }
-  } catch {
+  } catch (error) {
+    console.error("OTP Send Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Verification code failed to send.",
+      message: "Verification code failed to send: " + (error.message || "Unknown error"),
     });
   }
 }

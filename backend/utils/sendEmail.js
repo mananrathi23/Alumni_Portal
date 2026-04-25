@@ -1,21 +1,26 @@
 import nodeMailer from "nodemailer";
 
 export const sendEmail = async ({ email, subject, message }) => {
-  const transporter = nodeMailer.createTransport({
+  const config = {
     host: process.env.SMTP_HOST?.trim(),
-    service: process.env.SMTP_SERVICE?.trim(),
     port: process.env.SMTP_PORT?.trim(),
-    secure: process.env.SMTP_PORT?.trim() == "465", // true for 465, false for other ports
+    secure: process.env.SMTP_PORT?.trim() == "465",
     auth: {
       user: process.env.SMTP_MAIL?.trim(),
       pass: process.env.SMTP_PASSWORD?.trim(),
     },
-    connectionTimeout: 10000, // 10 seconds max wait
+    connectionTimeout: 10000,
     greetingTimeout: 5000,
-  });
+  };
+  
+  if (process.env.SMTP_SERVICE && process.env.SMTP_SERVICE.trim() !== "") {
+    config.service = process.env.SMTP_SERVICE.trim();
+  }
+
+  const transporter = nodeMailer.createTransport(config);
 
   const options = {
-    from: process.env.SMTP_MAIL,
+    from: process.env.SMTP_FROM?.trim() || process.env.SMTP_MAIL?.trim(),
     to: email,
     subject,
     html: message,

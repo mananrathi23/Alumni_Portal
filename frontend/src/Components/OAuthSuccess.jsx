@@ -28,6 +28,11 @@ const OAuthSuccess = () => {
     }
 
     const role = params.get("role") || "Student";
+    const token = params.get("token");
+
+    if (token) {
+      localStorage.setItem("alumniToken", token);
+    }
 
     axios
       .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true })

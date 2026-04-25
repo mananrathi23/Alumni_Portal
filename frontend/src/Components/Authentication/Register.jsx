@@ -30,6 +30,9 @@ const Register = ({ selectedRole }) => {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });
+      if (res.data.token) {
+        localStorage.setItem("alumniToken", res.data.token);
+      }
       toast.success(res.data.message);
       navigateTo(`/otp-verification/${data.email}/${data.phone}/${selectedRole}`);
     } catch (error) {

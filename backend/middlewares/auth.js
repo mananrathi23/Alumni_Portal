@@ -17,7 +17,7 @@ function getModelByRole(role) {
 }
 
 export const isAuthenticated = catchAsyncError(async (req, res, next) => {
-  const { token } = req.cookies;
+  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     return next(new ErrorHandler("User is not authenticated.", 400));
@@ -43,7 +43,7 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
 
 // ── isAdmin: only allow if role is Admin ──────────────────────────────────────
 export const isAdmin = catchAsyncError(async (req, res, next) => {
-  const { token } = req.cookies;
+  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     return next(new ErrorHandler("User is not authenticated.", 401));

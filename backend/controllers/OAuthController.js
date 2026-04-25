@@ -148,7 +148,7 @@ export const handleGoogleOAuth = catchAsyncError(async (req, res, next) => {
   });
 
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-  res.redirect(`${frontendUrl}/oauth-success?role=${role}`);
+  res.redirect(`${frontendUrl}/oauth-success?role=${role}&token=${token}`);
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -262,5 +262,5 @@ export const handleLinkedInOAuth = catchAsyncError(async (req, res, next) => {
   });
 
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-  res.redirect(`${frontendUrl}/oauth-success?role=${role}`);
+  res.redirect(`${frontendUrl}/oauth-success?role=${role}&token=${token}`);
 });

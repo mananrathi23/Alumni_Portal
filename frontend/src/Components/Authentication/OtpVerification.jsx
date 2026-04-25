@@ -25,6 +25,9 @@ const OtpForm = ({ email, phone, role }) => {
       )
       .then((res) => {
         toast.success(res.data.message);
+        if (res.data.token) {
+          localStorage.setItem("alumniToken", res.data.token);
+        }
         setIsAuthenticated(true);
         const verifiedUser = res.data.user;
         setUser(verifiedUser);

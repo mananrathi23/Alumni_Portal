@@ -24,6 +24,7 @@ const Login = ({ selectedRole }) => {
       })
       .then((res) => {
         toast.success(res.data.message);
+        localStorage.setItem("alumniToken", res.data.token);
         setIsAuthenticated(true);
         setUser(res.data.user);
         if (selectedRole === "Student") navigateTo("/student/dashboard");

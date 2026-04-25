@@ -23,7 +23,8 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    const socket = io(`${import.meta.env.VITE_BACKEND_URL}`, {
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL;
+    const socket = io(`${socketUrl}`, {
       withCredentials: true,
       transports: ["websocket", "polling"],
     });

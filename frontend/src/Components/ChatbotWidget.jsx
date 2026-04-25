@@ -55,7 +55,7 @@ const ChatbotWidget = () => {
 
   const fetchTicket = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/my-ticket`, {
+      const res = await axios.get("http://localhost:4000/api/v1/support/my-ticket", {
         withCredentials: true,
       });
       if (res.data.ticket) {
@@ -88,17 +88,28 @@ const ChatbotWidget = () => {
     try {
       screenshotBase64 = await htmlToImage.toJpeg(document.body, {
         quality: 0.6,
+        allowTaint: true,
+        useCORS: true,
+        logging: false,
         filter: (node) => {
-          return node.id !== "chatbot-widget" && node.id !== "chatbot-button";
+          // Exclude chatbot widget and images that may cause tracking prevention issues
+          if (node.id === "chatbot-widget" || node.id === "chatbot-button") return false;
+          // Hide Cloudinary images to avoid tracking prevention blocks
+          if (node.tagName === "IMG" && node.src?.includes("cloudinary.com")) {
+            node.style.display = "none";
+            return true;
+          }
+          return true;
         }
       });
     } catch (err) {
-      console.error("Screenshot failed:", err);
+      console.error("Screenshot failed (non-critical):", err);
+      // Screenshot failure should not block message sending
     }
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/ask`,
+        "http://localhost:4000/api/v1/support/ask",
         { text: userMessage, image: screenshotBase64 },
         { withCredentials: true }
       );

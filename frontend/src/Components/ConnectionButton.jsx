@@ -24,7 +24,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
   useEffect(() => {
     if (!targetId) return;
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}`}/api/v1/connections/status/${targetId}`, {
+      .get(`http://localhost:4000/api/v1/connections/status/${targetId}`, {
         withCredentials: true,
       })
       .then((res) => {
@@ -112,7 +112,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     setActionLoading(true);
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/connections/send`,
+        "http://localhost:4000/api/v1/connections/send",
         { receiverId: targetId, receiverRole: targetRole, receiverName: targetName },
         { withCredentials: true }
       );
@@ -128,7 +128,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     setActionLoading(true);
     try {
       await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}`}/api/v1/connections/${connectionId}/withdraw`,
+        `http://localhost:4000/api/v1/connections/${connectionId}/withdraw`,
         { withCredentials: true }
       );
       updateStatus("None", null, false);
@@ -143,7 +143,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     setActionLoading(true);
     try {
       await axios.put(
-        `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}`}/api/v1/connections/${connectionId}/respond`,
+        `http://localhost:4000/api/v1/connections/${connectionId}/respond`,
         { status: action },
         { withCredentials: true }
       );
@@ -159,7 +159,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     setActionLoading(true);
     try {
       await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}`}/api/v1/connections/${connectionId}/remove`,
+        `http://localhost:4000/api/v1/connections/${connectionId}/remove`,
         { withCredentials: true }
       );
       updateStatus("None", null, false);

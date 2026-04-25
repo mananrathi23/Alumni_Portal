@@ -12,7 +12,7 @@ import ChatbotWidget from "./ChatbotWidget";
 import ThemeToggle from "./ThemeToggle.jsx";
 import { Context } from "../main";
 
-const BASE = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1`;
+const BASE = "http://localhost:4000/api/v1";
 
 const ACCENT = {
   sky:    { logo:"bg-sky-500",     avatar:"from-sky-400 to-sky-600",    active:"bg-sky-500/15 text-sky-400 ring-sky-500/20",    text:"text-sky-400",    dot:"bg-sky-500"    },
@@ -31,7 +31,6 @@ const ITEM_COLORS = [
 // ── Inline ticker ─────────────────────────────────────────────────────────────
 const InlineTicker = ({ collapsed }) => {
   const [items, setItems] = useState([]);
-  const [fast,  setFast]  = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -53,7 +52,8 @@ const InlineTicker = ({ collapsed }) => {
 
   if (!items.length || collapsed) return null;
 
-  const duration = fast ? "7s" : "45s";
+  // Fixed speed: 1x
+  const duration = "45s";
 
   // Build the repeating ticker with alternating coloured spans
   const makeSpans = (offset = 0) =>
@@ -68,25 +68,8 @@ const InlineTicker = ({ collapsed }) => {
     });
 
   return (
-    <div className="flex-1 flex items-center border-l border-white/[0.06] h-full overflow-hidden">
-      {/* Label + fast button */}
-      <div className="flex-shrink-0 flex items-center gap-1 px-2 h-full border-r border-white/[0.06]">
-        <PiSpeakerHigh size={11} className="text-slate-400" />
-        <span className="text-[9px] font-bold tracking-widest uppercase text-slate-400 whitespace-nowrap">Live</span>
-        <button
-          onClick={() => setFast(p => !p)}
-          title={fast ? "Normal speed" : "Read faster"}
-          className={`ml-1 text-[9px] font-bold px-1 py-0.5 rounded transition-all border ${
-            fast
-              ? "bg-sky-500/20 text-sky-400 border-sky-500/40"
-              : "text-slate-500 border-white/10 hover:text-slate-300"
-          }`}
-        >
-          {fast ? "1×" : "▶▶"}
-        </button>
-      </div>
-
-      {/* Scrolling strip */}
+    <div className="flex-1 flex items-center h-full overflow-hidden">
+      {/* Scrolling strip (no Live/role/speed controls) */}
       <div className="flex-1 overflow-hidden relative">
         <div className="flex whitespace-nowrap text-xs items-center"
           style={{ animation: `dash-ticker ${duration} linear infinite` }}>
@@ -293,9 +276,6 @@ const DashboardShell = ({
             </button>
             <div className="hidden lg:flex items-center gap-2">
               <span className={`w-1.5 h-1.5 rounded-full ${ac.dot}`} />
-              <span className="text-slate-400 text-[11px] font-medium tracking-widest uppercase">
-                {role}
-              </span>
             </div>
           </div>
 
@@ -319,11 +299,6 @@ const DashboardShell = ({
             <div className="hidden sm:block text-right leading-tight">
               <p className={`${theme === "dark" ? "text-white" : "text-slate-900"} text-sm font-semibold`}>
                 {user?.name}
-              </p>
-              <p
-                className={`${ac.text} text-[10px] tracking-widest uppercase font-medium`}
-              >
-                {role}
               </p>
             </div>
             <div className="relative" ref={dropRef}>

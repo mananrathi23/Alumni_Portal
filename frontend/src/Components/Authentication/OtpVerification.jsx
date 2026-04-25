@@ -19,7 +19,7 @@ const OtpForm = ({ email, phone, role }) => {
   const handleOtpVerification = async (data) => {
     await axios
       .post(
-        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/otp-verification`,
+        "http://localhost:4000/api/v1/user/otp-verification",
         { email, phone, otp: data.otp, role },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       )

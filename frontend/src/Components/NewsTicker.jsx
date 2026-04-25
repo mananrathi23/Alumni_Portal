@@ -8,7 +8,7 @@ import { toast } from "react-toastify";
 import { Context } from "../main";
 import { PiMegaphone, PiX, PiPlus, PiTrash, PiCaretRight } from "react-icons/pi";
 
-const API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/announcements`;
+const API = "http://localhost:4000/api/v1/announcements";
 
 const TYPE_STYLES = {
   info:    { bar: "bg-sky-500/10 border-sky-500/30",    text: "text-sky-300",    dot: "bg-sky-400",    icon: "📢" },

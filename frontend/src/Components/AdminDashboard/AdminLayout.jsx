@@ -5,18 +5,19 @@ import { toast } from "react-toastify";
 import { Context } from "../../main";
 import ThemeToggle from "../ThemeToggle.jsx";
 import {
-  PiGraduationCap, PiHouseLine, PiNewspaper,
+  PiGraduationCap, PiHouseLine, PiNewspaper, PiUsersThree,
   PiCalendarCheck, PiBriefcase, PiSignOut,
   PiShieldCheck, PiList, PiX, PiHeadset,
 } from "react-icons/pi";
 
 const NAV = [
   { label: "Dashboard", path: "/admin/dashboard", icon: PiHouseLine },
-  { label: "News",      path: "/admin/news",      icon: PiNewspaper },
-  { label: "Events",    path: "/admin/events",    icon: PiCalendarCheck },
-  { label: "Jobs",      path: "/admin/jobs",      icon: PiBriefcase },
-  { label: "Users",     path: "/admin/users",     icon: PiGraduationCap },
-  { label: "Support",   path: "/admin/support",   icon: PiHeadset },
+  { label: "News",      path: "/admin/news",      icon: PiNewspaper,  perm: "manageNews" },
+  { label: "Events",    path: "/admin/events",    icon: PiCalendarCheck, perm: "manageEvents" },
+  { label: "Jobs",      path: "/admin/jobs",      icon: PiBriefcase,  perm: "manageJobs" },
+  { label: "Students",  path: "/admin/students",  icon: PiUsersThree, perm: "viewStudents" },
+  { label: "Users",     path: "/admin/users",     icon: PiGraduationCap, perm: "manageUsers" },
+  { label: "Support",   path: "/admin/support",   icon: PiHeadset,    perm: "manageUsers" },
 ];
 
 const AdminLayout = () => {
@@ -27,7 +28,7 @@ const AdminLayout = () => {
 
   useEffect(() => {
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/me`, { withCredentials: true })
+      .get("http://localhost:4000/api/v1/user/me", { withCredentials: true })
       .then((res) => {
         setIsAuthenticated(true);
         setUser(res.data.user);
@@ -42,7 +43,7 @@ const AdminLayout = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/logout`, { withCredentials: true });
+      await axios.get("http://localhost:4000/api/v1/user/logout", { withCredentials: true });
     } catch {}
     setIsAuthenticated(false);
     setUser(null);
@@ -57,6 +58,8 @@ const AdminLayout = () => {
       </div>
     );
   }
+
+  const visibleNav = NAV.filter((n) => !n.perm || admin?.permissions?.[n.perm] === true);
 
   const renderSidebar = (mobile = false) => (
     <aside className={`${mobile ? "flex" : "hidden md:flex"} flex-col h-full w-64 ${theme === "dark" ? "bg-slate-900 border-r border-white/[0.06]" : "bg-white border-r border-slate-200/70"} p-4`}>
@@ -73,7 +76,7 @@ const AdminLayout = () => {
 
       {/* Nav */}
       <nav className="flex-1 space-y-1">
-        {NAV.map(({ label, path, icon: Icon }) => (
+        {visibleNav.map(({ label, path, icon: Icon }) => (
           <NavLink
             key={path}
             to={path}

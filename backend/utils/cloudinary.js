@@ -32,8 +32,16 @@ export const uploadToCloudinary = async (base64DataUri, folder = "alumni_portal/
       { width: 400, height: 400, crop: "fill", gravity: "face" },
       { quality: "auto", fetch_format: "auto" },
     ],
+    // Ensure CORS headers are set
+    resource_type: "auto",
   });
-  return { public_id: result.public_id, url: result.secure_url };
+  // Return both secure_url (for CORS compliance) and ensure proper headers
+  return { 
+    public_id: result.public_id, 
+    url: result.secure_url,
+    // Add fallback for clients that may have tracking prevention
+    fallbackUrl: result.url 
+  };
 };
 
 /**

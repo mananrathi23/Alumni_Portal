@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children, allowedRole }) => {
 
   useEffect(() => {
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/me`, { withCredentials: true })
+      .get("http://localhost:4000/api/v1/user/me", { withCredentials: true })
       .then((res) => {
         const role = res.data.user?.role;
         if (allowedRole && role !== allowedRole) {

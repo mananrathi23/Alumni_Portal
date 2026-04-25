@@ -13,9 +13,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate }         from "react-router-dom";
 import axios                   from "axios";
-import { PiSpeakerHigh }       from "react-icons/pi";
 
-const BASE = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1`;
+const BASE = "http://localhost:4000/api/v1";
 
 const DashboardTicker = ({ accentColor = "sky", forumPath, eventsPath, jobsPath }) => {
   const [items,   setItems]   = useState([]);
@@ -91,15 +90,7 @@ const DashboardTicker = ({ accentColor = "sky", forumPath, eventsPath, jobsPath 
   return (
     <div className={`w-full border rounded-xl overflow-hidden ${COLOR.bar}`}>
       <div className="flex items-center h-9">
-        {/* Label pill */}
-        <div className={`flex-shrink-0 flex items-center gap-1.5 px-3 h-full border-r border-white/[0.08]`}>
-          <PiSpeakerHigh size={13} className={COLOR.sep} />
-          <span className={`text-[10px] font-bold tracking-widest uppercase whitespace-nowrap ${COLOR.sep}`}>
-            Live Feed
-          </span>
-        </div>
-
-        {/* Scrolling text */}
+        {/* Scrolling text (fixed speed: 1x) */}
         <div className="flex-1 overflow-hidden relative">
           <div
             className="flex whitespace-nowrap text-xs text-slate-300 font-medium"

@@ -6,7 +6,7 @@ import { Context } from "../../main";
 import ProfilePhotoUpload from "../ProfilePhotoUpload.jsx";
 import {
   PiGraduationCap, PiPencilSimple, PiCheck, PiX,
-  PiLinkedinLogo, PiGithubLogo, PiBriefcase, PiStar, PiUser,
+  PiLinkedinLogo, PiGithubLogo, PiLink, PiBriefcase, PiStar, PiUser,
   PiEnvelope, PiIdentificationCard,
 } from "react-icons/pi";
 
@@ -42,6 +42,7 @@ const Profile = () => {
     bio: student?.bio || "",
     linkedIn: student?.linkedIn || "",
     github: student?.github || "",
+    portfolio: student?.portfolio || "",
     skills: student?.skills || [],
   });
 
@@ -56,7 +57,7 @@ const Profile = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/user/update-profile`,
+      const res = await axios.put("http://localhost:4000/api/v1/user/update-profile",
         { ...form, cgpa: form.cgpa ? Number(form.cgpa) : undefined, enrollmentYear: form.enrollmentYear ? Number(form.enrollmentYear) : undefined },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       );
@@ -182,7 +183,7 @@ const Profile = () => {
               </div>
             )}
             {/* Social links */}
-            {(student?.linkedIn || student?.github) && (
+            {(student?.linkedIn || student?.github || student?.portfolio) && (
               <div className="flex gap-2 pt-1">
                 {student.linkedIn && (
                   <a href={student.linkedIn} target="_blank" rel="noreferrer"
@@ -194,6 +195,12 @@ const Profile = () => {
                   <a href={student.github} target="_blank" rel="noreferrer"
                     className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition-colors">
                     <PiGithubLogo size={13}/> GitHub
+                  </a>
+                )}
+                {student.portfolio && (
+                  <a href={student.portfolio} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors">
+                    <PiLink size={13}/> Portfolio
                   </a>
                 )}
               </div>
@@ -313,6 +320,14 @@ const Profile = () => {
                   </a>
                 )}
                 {editing && <input type="url" placeholder="https://github.com/yourname" value={form.github} onChange={e => set("github", e.target.value)} className={inp}/>}
+              </Field>
+              <Field label="Portfolio" value={student?.portfolio}>
+                {student?.portfolio && !editing && (
+                  <a href={student.portfolio} target="_blank" rel="noreferrer" className="text-emerald-600 text-sm hover:underline flex items-center gap-1.5">
+                    <PiLink size={14}/> {student.portfolio}
+                  </a>
+                )}
+                {editing && <input type="url" placeholder="https://your-portfolio.com" value={form.portfolio} onChange={e => set("portfolio", e.target.value)} className={inp}/>}
               </Field>
             </div>
           </div>

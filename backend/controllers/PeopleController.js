@@ -46,7 +46,7 @@ export const getPeople = catchAsyncError(async (req, res) => {
   };
 
   const fields = {
-    Student: "name email department year skills bio linkedIn github enrollmentNumber",
+    Student: "name email department year skills bio linkedIn github portfolio enrollmentNumber enrollmentYear",
     Alumni:  "name email department graduationYear currentCompany currentDesignation industry skills bio linkedIn github availableForMentorship profilePhoto",
     Teacher: "name email department designation experience qualifications bio linkedIn profilePhoto",
   };

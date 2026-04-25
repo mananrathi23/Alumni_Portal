@@ -23,7 +23,7 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    const socket = io(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}`, {
+    const socket = io("http://localhost:4000", {
       withCredentials: true,
       transports: ["websocket", "polling"],
     });

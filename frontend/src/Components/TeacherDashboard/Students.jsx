@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FaLinkedin, FaGithub } from "react-icons/fa";
+import { FaLinkedin, FaGithub, FaGlobe } from "react-icons/fa";
 import { PiUsersThree, PiBriefcase, PiMagnifyingGlass } from "react-icons/pi";
 import axios from "axios";
 import ConnectButton from "../ConnectionButton.jsx";
@@ -17,7 +17,7 @@ const Students = () => {
     if (filterRole !== "All") params.filterRole = filterRole;
     if (department !== "All") params.department = department;
     setLoading(true);
-    axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/people`, { params, withCredentials: true })
+    axios.get("http://localhost:4000/api/v1/people", { params, withCredentials: true })
       .then((res) => setPeople(res.data.people))
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
@@ -111,6 +111,7 @@ const PersonCard = ({ person }) => {
         <div className="flex gap-3">
           {person.linkedIn && <a href={person.linkedIn} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-sky-400 transition-colors"><FaLinkedin size={14} /></a>}
           {person.github && <a href={person.github} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-slate-200 transition-colors"><FaGithub size={14} /></a>}
+          {person.portfolio && <a href={person.portfolio} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-400 transition-colors" title="Portfolio"><FaGlobe size={14} /></a>}
         </div>
         <ConnectButton targetId={person._id} targetRole={person.role} targetName={person.name} />
       </div>

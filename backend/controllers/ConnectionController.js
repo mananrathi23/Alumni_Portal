@@ -230,14 +230,37 @@ export const getMyConnections = catchAsyncError(async (req, res) => {
     ],
   }).sort({ updatedAt: -1 });
 
-  const normalized = connections.map((c) => {
+  const normalized = await Promise.all(connections.map(async (c) => {
     const isSender = c.sender.id.toString() === user._id.toString();
+    const otherStub = isSender ? c.receiver : c.sender; // {id,name,role}
+
+    const select =
+      otherStub.role === "Student"
+        ? "name department year linkedIn github portfolio profilePhoto"
+        : otherStub.role === "Alumni"
+        ? "name department linkedIn github profilePhoto currentCompany currentDesignation"
+        : otherStub.role === "Teacher"
+        ? "name department linkedIn profilePhoto designation"
+        : "";
+
+    const full =
+      otherStub.role === "Student"
+        ? await Student.findById(otherStub.id).select(select).lean()
+        : otherStub.role === "Alumni"
+        ? await Alumni.findById(otherStub.id).select(select).lean()
+        : otherStub.role === "Teacher"
+        ? await Teacher.findById(otherStub.id).select(select).lean()
+        : null;
+
     return {
-      connectionId:  c._id,
-      connectedWith: isSender ? c.receiver : c.sender,
-      connectedAt:   c.updatedAt,
+      connectionId: c._id,
+      connectedWith: {
+        ...otherStub,
+        ...(full || {}),
+      },
+      connectedAt: c.updatedAt,
     };
-  });
+  }));
 
   res.status(200).json({
     success: true,

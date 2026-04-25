@@ -58,6 +58,7 @@ import AdminEvents from './Components/AdminDashboard/Events.jsx'
 import AdminJobs from './Components/AdminDashboard/Jobs.jsx'
 import AdminUsers from './Components/AdminDashboard/Users.jsx'
 import AdminSupportTickets from './Components/AdminDashboard/SupportTickets.jsx'
+import AdminStudentProfiles from './Components/AdminDashboard/StudentProfiles.jsx'
 
 import GoogleLinked from './Components/GoogleLinked.jsx'
 import OAuthSuccess from './Components/OAuthSuccess.jsx'
@@ -136,6 +137,7 @@ function App() {
         { path: 'news',      element: <AdminNews /> },
         { path: 'events',    element: <AdminEvents /> },
         { path: 'jobs',      element: <AdminJobs /> },
+        { path: 'students',  element: <AdminStudentProfiles /> },
         { path: 'users',     element: <AdminUsers /> },
         { path: 'support',   element: <AdminSupportTickets /> },
       ],

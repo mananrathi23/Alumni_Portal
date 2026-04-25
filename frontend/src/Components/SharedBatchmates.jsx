@@ -7,10 +7,10 @@ import { toast } from "react-toastify";
 import {
   PiUsersThree, PiGraduationCap, PiCaretDown, PiCaretUp,
   PiMagnifyingGlass, PiCircleNotch, PiBriefcase, PiChalkboardTeacher,
-  PiLinkedinLogo, PiGithubLogo, PiHandshake,
+  PiLinkedinLogo, PiGithubLogo, PiLink, PiHandshake,
 } from "react-icons/pi";
 
-const API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/batchmates`;
+const API = "http://localhost:4000/api/v1/batchmates";
 
 const ROLE_AVATAR = {
   Student: "bg-gradient-to-br from-sky-400 to-sky-600",
@@ -29,11 +29,11 @@ function PersonCard({ person }) {
   const init = (person.name || "?").charAt(0).toUpperCase();
 
   return (
-    <div className="bg-slate-800/60 border border-white/[0.06] rounded-xl p-4 flex items-start gap-3 hover:border-white/[0.12] transition-all">
+    <div className="bg-slate-800/60 border border-white/[0.06] rounded-xl p-4 flex items-stretch gap-3 hover:border-white/[0.12] transition-all">
       <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-bold text-sm ${ROLE_AVATAR[r] || ROLE_AVATAR.Student}`}>
         {init}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-white font-semibold text-sm truncate">{person.name}</p>
           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${ROLE_BADGE[r] || ROLE_BADGE.Student}`}>{r}</span>
@@ -72,24 +72,38 @@ function PersonCard({ person }) {
         )}
 
         {/* Links */}
-        <div className="flex items-center gap-2 mt-2">
-          {person.linkedIn && (
-            <a href={person.linkedIn} target="_blank" rel="noreferrer"
-              className="text-slate-600 hover:text-sky-400 transition-colors">
-              <PiLinkedinLogo size={14}/>
-            </a>
-          )}
-          {person.github && (
-            <a href={person.github} target="_blank" rel="noreferrer"
-              className="text-slate-600 hover:text-white transition-colors">
-              <PiGithubLogo size={14}/>
-            </a>
-          )}
-          {person.availableForMentorship && (
-            <span className="flex items-center gap-1 text-[9px] text-emerald-400 font-semibold">
-              <PiHandshake size={11}/> Mentor
-            </span>
-          )}
+        <div className="pt-2">
+          <div className="flex items-center gap-2">
+            {person.linkedIn && (
+              <a href={person.linkedIn} target="_blank" rel="noreferrer"
+                className="text-slate-600 hover:text-sky-400 transition-colors"
+                title="LinkedIn"
+              >
+                <PiLinkedinLogo size={14}/>
+              </a>
+            )}
+            {person.github && (
+              <a href={person.github} target="_blank" rel="noreferrer"
+                className="text-slate-600 hover:text-white transition-colors"
+                title="GitHub"
+              >
+                <PiGithubLogo size={14}/>
+              </a>
+            )}
+            {person.portfolio && (
+              <a href={person.portfolio} target="_blank" rel="noreferrer"
+                className="text-slate-600 hover:text-emerald-400 transition-colors"
+                title="Portfolio"
+              >
+                <PiLink size={14}/>
+              </a>
+            )}
+            {person.availableForMentorship && (
+              <span className="flex items-center gap-1 text-[9px] text-emerald-400 font-semibold ml-1">
+                <PiHandshake size={11}/> Mentor
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

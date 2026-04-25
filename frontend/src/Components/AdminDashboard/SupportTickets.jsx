@@ -14,7 +14,7 @@ const SupportTickets = () => {
 
   const fetchTickets = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/admin/tickets`, {
+      const res = await axios.get("http://localhost:4000/api/v1/support/admin/tickets", {
         withCredentials: true,
       });
       setTickets(res.data.tickets || []);
@@ -39,7 +39,7 @@ const SupportTickets = () => {
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}`}/api/v1/support/admin/tickets/${selectedTicket._id}/reply`,
+        `http://localhost:4000/api/v1/support/admin/tickets/${selectedTicket._id}/reply`,
         { text: replyText.trim(), resolve },
         { withCredentials: true }
       );

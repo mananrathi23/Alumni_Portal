@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import {
   PiUsersThree, PiMagnifyingGlass, PiGraduationCap,
-  PiBriefcase, PiX, PiStudent,
+  PiBriefcase, PiX, PiStudent, PiLinkedinLogo, PiGithubLogo, PiLink,
 } from "react-icons/pi";
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
@@ -31,25 +31,58 @@ const RoleBadge = ({ role }) => {
 
 // ── User card ─────────────────────────────────────────────────────────────────
 const UserCard = ({ user }) => (
-  <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-800/50 border border-white/[0.05] hover:bg-slate-800 transition-colors">
+  <div className="flex items-stretch gap-3 p-3 rounded-lg bg-slate-800/50 border border-white/[0.05] hover:bg-slate-800 transition-colors">
     <Avatar name={user.name} role={user.role} />
-    <div className="min-w-0 flex-1">
-      <div className="flex items-center gap-2 flex-wrap">
-        <p className="text-sm font-semibold text-white truncate">{user.name}</p>
-        <RoleBadge role={user.role} />
-      </div>
-      <p className="text-xs text-slate-400 mt-0.5 truncate">
-        {user.department || "—"}
-        {user.currentDesignation ? ` · ${user.currentDesignation}` : ""}
-      </p>
-      {user.currentCompany && (
-        <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-          <PiBriefcase size={11} /> {user.currentCompany}
+    <div className="min-w-0 flex-1 flex flex-col justify-between">
+      <div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-semibold text-white truncate">{user.name}</p>
+          <RoleBadge role={user.role} />
+        </div>
+        <p className="text-xs text-slate-400 mt-0.5 truncate">
+          {user.department || "—"}
+          {user.currentDesignation ? ` · ${user.currentDesignation}` : ""}
         </p>
-      )}
-      {user.bio && (
-        <p className="text-xs text-slate-500 mt-1 line-clamp-1">{user.bio}</p>
-      )}
+        {user.currentCompany && (
+          <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+            <PiBriefcase size={11} /> {user.currentCompany}
+          </p>
+        )}
+        {user.bio && (
+          <p className="text-xs text-slate-500 mt-1 line-clamp-1">{user.bio}</p>
+        )}
+      </div>
+
+      {/* Bottom-left social icons */}
+      <div className="flex items-center gap-2 pt-2">
+        <a
+          href={user.linkedIn || undefined}
+          target={user.linkedIn ? "_blank" : undefined}
+          rel={user.linkedIn ? "noreferrer" : undefined}
+          className={`${user.linkedIn ? "text-slate-500 hover:text-sky-400" : "text-slate-700 opacity-60 pointer-events-none"} transition-colors`}
+          title="LinkedIn"
+        >
+          <PiLinkedinLogo size={14} />
+        </a>
+        <a
+          href={user.github || undefined}
+          target={user.github ? "_blank" : undefined}
+          rel={user.github ? "noreferrer" : undefined}
+          className={`${user.github ? "text-slate-500 hover:text-white" : "text-slate-700 opacity-60 pointer-events-none"} transition-colors`}
+          title="GitHub"
+        >
+          <PiGithubLogo size={14} />
+        </a>
+        <a
+          href={user.portfolio || undefined}
+          target={user.portfolio ? "_blank" : undefined}
+          rel={user.portfolio ? "noreferrer" : undefined}
+          className={`${user.portfolio ? "text-slate-500 hover:text-emerald-400" : "text-slate-700 opacity-60 pointer-events-none"} transition-colors`}
+          title="Portfolio"
+        >
+          <PiLink size={14} />
+        </a>
+      </div>
     </div>
   </div>
 );
@@ -150,7 +183,7 @@ const BatchmatesPage = ({
       const params = { viewerRole };
       if (search.trim()) params.search = search.trim();
 
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/batchmates`, {
+      const res = await axios.get("http://localhost:4000/api/v1/batchmates", {
         params,
         withCredentials: true,
       });

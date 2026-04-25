@@ -46,7 +46,9 @@ async function seed() {
         manageEvents: true,
         manageJobs: true,
         manageForum: true,
+        manageNews: true,
         manageAnnouncements: true,
+        viewStudents: true,
       },
     });
 

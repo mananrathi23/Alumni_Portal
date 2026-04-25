@@ -5,7 +5,7 @@ const getOAuth2Client = () => {
   return new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    `${process.env.BACKEND_URL || "http://localhost:4000"}/api/v1/mentorship/auth/callback`
   );
 };
 
@@ -55,7 +55,7 @@ export function buildGoogleAuthUrl(mentorId, mentorRole) {
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    `${process.env.BACKEND_URL || "http://localhost:4000"}/api/v1/mentorship/auth/callback`
   );
 
   const state = Buffer.from(
@@ -68,7 +68,7 @@ export function buildGoogleAuthUrl(mentorId, mentorRole) {
     prompt: "consent",
     state: state,
     client_id: process.env.GOOGLE_CLIENT_ID, // Explicitly pass it here
-    redirect_uri: process.env.GOOGLE_REDIRECT_URI 
+    redirect_uri: `${process.env.BACKEND_URL || "http://localhost:4000"}/api/v1/mentorship/auth/callback`
   });
 }
 

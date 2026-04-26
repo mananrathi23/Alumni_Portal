@@ -14,7 +14,7 @@ const studentSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
   },
-  phone: String,
+  phone: { type: String, default: null },
   password: {
     type: String,
     minLength: [8, "Password must have at least 8 characters."],

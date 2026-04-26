@@ -19,8 +19,6 @@ const Register = ({ selectedRole }) => {
   } = useForm();
 
   const handleRegister = async (data) => {
-    const rawPhone = String(data.phone || "").trim();
-    data.phone = `+91${rawPhone}`;
     data.role = selectedRole;
     data.verificationMethod = "email";
     if (data.enrollmentYear) data.enrollmentYear = Number(data.enrollmentYear);
@@ -34,7 +32,7 @@ const Register = ({ selectedRole }) => {
         localStorage.setItem("alumniToken", res.data.token);
       }
       toast.success(res.data.message);
-      navigateTo(`/otp-verification/${data.email}/${data.phone}/${selectedRole}`);
+      navigateTo(`/otp-verification/${data.email}/${selectedRole}`);
     } catch (error) {
       toast.error(error.response?.data?.message || "Something went wrong");
     }
@@ -47,7 +45,6 @@ const Register = ({ selectedRole }) => {
   const currentYear = new Date().getFullYear();
   const needsYear   = NEEDS_YEAR.includes(selectedRole);
 
-  // Alumni entered in past, Student will enter in future (or current)
   const isAlumni        = selectedRole === "Alumni";
   const yearLabel       = "Enrollment Year";
   const yearHint        = isAlumni
@@ -82,29 +79,6 @@ const Register = ({ selectedRole }) => {
           {...register("email", { required: "Email is required" })}
         />
         {errors.email && <p className={err}>{errors.email.message}</p>}
-      </div>
-
-      {/* Phone */}
-      <div>
-        <label className={lbl}>Phone No.</label>
-        <div className="flex items-center w-full rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 focus-within:ring-2 focus-within:ring-sky-500 transition-all duration-200">
-          <span className="pl-4 pr-2 text-slate-400 font-medium text-sm">+91</span>
-          <input
-            type="tel"
-            placeholder="Enter your phone number"
-            className="w-full py-3 pr-4 bg-transparent outline-none text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-            {...register("phone", {
-              required: "Phone No. is required",
-              validate: (v) => {
-                const s = String(v || "").trim();
-                if (!/^\d{10}$/.test(s)) return "Phone must be exactly 10 digits";
-                if (!/^[6-9]/.test(s)) return "Phone must start with 6-9";
-                return true;
-              },
-            })}
-          />
-        </div>
-        {errors.phone && <p className={err}>{errors.phone.message}</p>}
       </div>
 
       {/* Enrollment Year — Student and Alumni only */}

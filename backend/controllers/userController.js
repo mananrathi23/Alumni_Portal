@@ -23,10 +23,10 @@ function getModelByRole(role) {
 // REGISTER 
 export const register = catchAsyncError(async (req, res, next) => {
   try {
-    const { name, phone, password, verificationMethod, role, enrollmentYear } = req.body;
+    const { name, password, role, enrollmentYear } = req.body;
     const email = req.body.email?.toLowerCase().trim();
 
-    if (!name || !email || !phone || !password || !verificationMethod || !role) {
+    if (!name || !email || !password || !role) {
       return next(new ErrorHandler("All fields are required.", 400));
     }
 
@@ -44,38 +44,20 @@ export const register = catchAsyncError(async (req, res, next) => {
       );
     }
 
-    function validatePhoneNumber(phone) {
-      const phoneRegex = /^\+91[6-9]\d{9}$/;
-      return phoneRegex.test(phone);
-    }
-    if (!validatePhoneNumber(phone)) {
-      return next(new ErrorHandler("Invalid phone number.", 400));
-    }
-
     const Model = getModelByRole(role);
 
     const allModels = [Student, Teacher, Alumni, Admin];
     
     for (const m of allModels) {
-      const existingUser = await m.findOne({
-        $or: [
-          { email, accountVerified: true },
-          { phone, accountVerified: true },
-        ],
-      });
+      const existingUser = await m.findOne({ email, accountVerified: true });
       if (existingUser) {
-        return next(new ErrorHandler("Phone or Email is already used by another account.", 400));
+        return next(new ErrorHandler("Email is already registered.", 400));
       }
     }
 
     let totalAttempts = 0;
     for (const m of allModels) {
-      const attempts = await m.find({
-        $or: [
-          { phone, accountVerified: false },
-          { email, accountVerified: false },
-        ],
-      });
+      const attempts = await m.find({ email, accountVerified: false });
       totalAttempts += attempts.length;
     }
 
@@ -88,7 +70,7 @@ export const register = catchAsyncError(async (req, res, next) => {
       );
     }
 
-    const userData = { name, email, phone, password };
+    const userData = { name, email, password };
     // Save enrollmentYear at signup for Student and Alumni — used for "Class of YEAR" grouping
     if (enrollmentYear && (role === "Student" || role === "Alumni")) {
       userData.enrollmentYear = Number(enrollmentYear);
@@ -97,49 +79,21 @@ export const register = catchAsyncError(async (req, res, next) => {
     const verificationCode = user.generateVerificationCode();
     await user.save();
 
-    sendVerificationCode(verificationMethod, verificationCode, name, email, phone, res);
+    sendVerificationCode(verificationCode, name, email, res);
   } catch (error) {
     next(error);
   }
 });
 
 // SEND VERIFICATION CODE
-async function sendVerificationCode(
-  verificationMethod,
-  verificationCode,
-  name,
-  email,
-  phone,
-  res
-) {
+async function sendVerificationCode(verificationCode, name, email, res) {
   try {
-    if (verificationMethod === "email") {
-      const message = generateEmailTemplate(verificationCode);
-      await sendEmail({ email, subject: "Your Verification Code", message });
-      return res.status(200).json({
-        success: true,
-        message: `Verification email successfully sent to ${name}`,
-      });
-    } else if (verificationMethod === "phone") {
-      const verificationCodeWithSpace = verificationCode
-        .toString()
-        .split("")
-        .join(" ");
-      await client.calls.create({
-        twiml: `<Response><Say>Your verification code is ${verificationCodeWithSpace}. Your verification code is ${verificationCodeWithSpace}.</Say></Response>`,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: phone,
-      });
-      res.status(200).json({
-        success: true,
-        message: `OTP sent.`,
-      });
-    } else {
-      return res.status(500).json({
-        success: false,
-        message: "Invalid verification method.",
-      });
-    }
+    const message = generateEmailTemplate(verificationCode);
+    await sendEmail({ email, subject: "Your Verification Code", message });
+    return res.status(200).json({
+      success: true,
+      message: `Verification email successfully sent to ${name}`,
+    });
   } catch (error) {
     console.error("OTP Send Error:", error);
     return res.status(500).json({
@@ -151,16 +105,8 @@ async function sendVerificationCode(
 
 // VERIFY OTP 
 export const verifyOTP = catchAsyncError(async (req, res, next) => {
-  const { otp, phone, role } = req.body;
+  const { otp, role } = req.body;
   const email = req.body.email?.toLowerCase().trim();
-
-  function validatePhoneNumber(phone) {
-    const phoneRegex = /^\+91[6-9]\d{9}$/;
-    return phoneRegex.test(phone);
-  }
-  if (!validatePhoneNumber(phone)) {
-    return next(new ErrorHandler("Invalid phone number.", 400));
-  }
 
   const Model = getModelByRole(role);
   if (!Model) {
@@ -169,10 +115,8 @@ export const verifyOTP = catchAsyncError(async (req, res, next) => {
 
   try {
     const userAllEntries = await Model.find({
-      $or: [
-        { email, accountVerified: false },
-        { phone, accountVerified: false },
-      ],
+      email,
+      accountVerified: false,
     }).sort({ createdAt: -1 });
 
     if (!userAllEntries || userAllEntries.length === 0) {
@@ -184,10 +128,8 @@ export const verifyOTP = catchAsyncError(async (req, res, next) => {
       user = userAllEntries[0];
       await Model.deleteMany({
         _id: { $ne: user._id },
-        $or: [
-          { phone, accountVerified: false },
-          { email, accountVerified: false },
-        ],
+        email,
+        accountVerified: false,
       });
     } else {
       user = userAllEntries[0];
@@ -206,14 +148,9 @@ export const verifyOTP = catchAsyncError(async (req, res, next) => {
 
     const allModels = [Student, Teacher, Alumni, Admin];
     for (const m of allModels) {
-      const existingVerified = await m.findOne({
-        $or: [
-          { email: user.email, accountVerified: true },
-          { phone: user.phone, accountVerified: true },
-        ],
-      });
+      const existingVerified = await m.findOne({ email: user.email, accountVerified: true });
       if (existingVerified) {
-        return next(new ErrorHandler("This email or phone is already verified under another account.", 400));
+        return next(new ErrorHandler("This email is already verified under another account.", 400));
       }
     }
 
@@ -332,8 +269,6 @@ export const forgotPassword = catchAsyncError(async (req, res, next) => {
 });
 
 //  RESET PASSWORD 
-// In userController.js — replace ONLY the resetPassword function
-
 export const resetPassword = catchAsyncError(async (req, res, next) => {
   const { token } = req.params;
 
@@ -342,8 +277,6 @@ export const resetPassword = catchAsyncError(async (req, res, next) => {
     .update(token)
     .digest("hex");
 
-  // ✅ Search all 4 collections
-  // resetPasswordToken is unique so it will only match one user in one collection
   let user = null;
 
   user = await Student.findOne({ resetPasswordToken, resetPasswordExpire: { $gt: Date.now() } });
@@ -368,11 +301,9 @@ export const resetPassword = catchAsyncError(async (req, res, next) => {
 });
 
 // ── UPDATE PROFILE ────────────────────────────────────────────────────────────
-// Called from dashboard after login — student/teacher fills in department, year, etc.
-// PUT /api/v1/user/update-profile
 export const updateProfile = catchAsyncError(async (req, res, next) => {
-  const user = req.user;                    // set by isAuthenticated middleware
-  const role = user.constructor.modelName; // "Student" | "Teacher" | "Alumni" | "Admin"
+  const user = req.user;
+  const role = user.constructor.modelName;
 
   const allowedFields = {
     Student: ["department", "year", "section", "cgpa", "skills", "bio", "linkedIn", "github", "portfolio", "enrollmentNumber", "enrollmentYear"],
@@ -386,7 +317,6 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Invalid role.", 400));
   }
 
-  // Only update fields that were actually sent — ignore everything else
   fields.forEach((field) => {
     if (req.body[field] !== undefined) {
       user[field] = req.body[field];
@@ -401,15 +331,14 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
     user,
   });
 });
+
 // UPLOAD PROFILE PHOTO
-// Accepts { photo: "data:image/...;base64,..." } in the request body
 export const uploadProfilePhoto = catchAsyncError(async (req, res, next) => {
   const { photo } = req.body;
   if (!photo) return next(new ErrorHandler("No photo provided.", 400));
 
   const user = req.user;
 
-  // Delete old photo from Cloudinary if it exists
   if (user.profilePhoto?.public_id) {
     await deleteFromCloudinary(user.profilePhoto.public_id).catch(() => {});
   }

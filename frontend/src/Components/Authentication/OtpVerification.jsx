@@ -6,7 +6,7 @@ import { PiGraduationCap } from "react-icons/pi";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-const OtpForm = ({ email, phone, role }) => {
+const OtpForm = ({ email, role }) => {
   const navigateTo = useNavigate();
   const { setIsAuthenticated, setUser } = useContext(Context);
 
@@ -20,7 +20,7 @@ const OtpForm = ({ email, phone, role }) => {
     await axios
       .post(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/otp-verification`,
-        { email, phone, otp: data.otp, role },
+        { email, otp: data.otp, role },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       )
       .then((res) => {
@@ -82,7 +82,7 @@ const OtpForm = ({ email, phone, role }) => {
 };
 
 const OtpVerification = () => {
-  const { email, phone, role } = useParams();
+  const { email, role } = useParams();
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
@@ -147,13 +147,13 @@ const OtpVerification = () => {
               <h2 className="text-2xl font-bold text-white">OTP Verification</h2>
               <p className="text-slate-400 text-sm mt-1">
                 Enter the code sent to your{" "}
-                <span className="text-sky-400 font-medium">{email ? "email" : "phone"}</span>
+                <span className="text-sky-400 font-medium">email</span>
               </p>
               {email && (
                 <p className="text-slate-500 text-xs mt-1 truncate">{email}</p>
               )}
             </div>
-            <OtpForm email={email} phone={phone} role={role} />
+            <OtpForm email={email} role={role} />
           </div>
         </div>
       </div>

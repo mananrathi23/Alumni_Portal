@@ -68,7 +68,7 @@ function App() {
   const router = createBrowserRouter([
     { path: '/', element: <MainPage /> },
     { path: '/login', element: <Auth /> },
-    { path: '/otp-verification/:email/:phone/:role', element: <OtpVerification /> },
+    { path: '/otp-verification/:email/:role', element: <OtpVerification /> },
     { path: '/password/reset/:token', element: <ResetPassword /> },
     { path: '/google-linked',  element: <GoogleLinked /> },
     { path: '/oauth-success',  element: <OAuthSuccess /> },

@@ -42,6 +42,8 @@ const adminSchema = new mongoose.Schema({
 
   // ── Auth Fields ──────────────────────────────────────────
   accountVerified: { type: Boolean, default: false },
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Date, default: null },
   verificationCode: Number,
   verificationCodeExpire: Date,
   resetPasswordToken: String,

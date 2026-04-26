@@ -171,6 +171,43 @@ describe('POST /api/v1/user/login', () => {
     expect(res.body.message).toMatch(/invalid email or password/i);
   });
 
+  it('should lock the account for 30 minutes after 3 failed login attempts', async () => {
+    const { Student } = await import('../models/StudentModel.js');
+    await Student.create({
+      name: 'Brute Force Student',
+      email: 'brute@test.com',
+      password: 'CorrectPass@123',
+      accountVerified: true,
+    });
+
+    // Attempt 1
+    let res = await request(testApp)
+      .post('/api/v1/user/login')
+      .send({ email: 'brute@test.com', password: 'WrongPass@123', role: 'Student' });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/attempts left/i);
+
+    // Attempt 2
+    res = await request(testApp)
+      .post('/api/v1/user/login')
+      .send({ email: 'brute@test.com', password: 'WrongPass@123', role: 'Student' });
+    expect(res.status).toBe(400);
+
+    // Attempt 3 (Should lock)
+    res = await request(testApp)
+      .post('/api/v1/user/login')
+      .send({ email: 'brute@test.com', password: 'WrongPass@123', role: 'Student' });
+    expect(res.status).toBe(403);
+    expect(res.body.message).toMatch(/locked for 30 minutes/i);
+
+    // Attempt 4 (Should remain locked even with correct password)
+    res = await request(testApp)
+      .post('/api/v1/user/login')
+      .send({ email: 'brute@test.com', password: 'CorrectPass@123', role: 'Student' });
+    expect(res.status).toBe(403);
+    expect(res.body.message).toMatch(/temporarily locked/i);
+  });
+
   it('should return 403 when a blocked user tries to login', async () => {
     const { Student } = await import('../models/StudentModel.js');
     await Student.create({

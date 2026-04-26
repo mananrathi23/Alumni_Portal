@@ -184,9 +184,34 @@ export const login = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Invalid email or Password.", 400));
   }
 
+  // 1. Check if account is locked
+  if (user.lockUntil && user.lockUntil > Date.now()) {
+    const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / (1000 * 60));
+    return next(new ErrorHandler(`Your account is temporarily locked due to multiple failed login attempts. Please try again in ${minutesLeft} minutes.`, 403));
+  }
+
   const isPasswordMatched = await user.comparePassword(password);
   if (!isPasswordMatched) {
-    return next(new ErrorHandler("Invalid email or Password.", 400));
+    // 2. Increment failed attempts
+    user.loginAttempts += 1;
+    
+    // Lock account if >= 3
+    if (user.loginAttempts >= 3) {
+      user.lockUntil = new Date(Date.now() + 30 * 60 * 1000); // Lock for 30 mins
+      user.loginAttempts = 0; // Reset attempts after lock
+      await user.save({ validateModifiedOnly: true });
+      return next(new ErrorHandler("You have exceeded the maximum number of failed attempts. Your account is now locked for 30 minutes.", 403));
+    }
+    
+    await user.save({ validateModifiedOnly: true });
+    return next(new ErrorHandler(`Invalid email or Password. You have ${3 - user.loginAttempts} attempts left.`, 400));
+  }
+
+  // 3. Reset failed attempts on successful login
+  if (user.loginAttempts > 0 || user.lockUntil) {
+    user.loginAttempts = 0;
+    user.lockUntil = null;
+    await user.save({ validateModifiedOnly: true });
   }
 
   if (user.isBlocked) {

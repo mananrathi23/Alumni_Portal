@@ -19,6 +19,7 @@ import oauthRouter      from "./routes/OAuthRouter.js";
 import adminUserRouter  from "./routes/AdminUserRouter.js";
 import supportRouter    from "./routes/SupportRouter.js";
 import { removeUnverifiedAccounts } from "./automation/removeUnverifiedAccounts.js";
+import { expireMentorshipRequests } from "./automation/expireMentorshipRequests.js";
 
 export const app = express();
 
@@ -51,6 +52,7 @@ app.use("/api/v1/support",     supportRouter);
 app.use("/auth",              oauthRouter);
 
 removeUnverifiedAccounts();
+expireMentorshipRequests();
 connection();
 
 app.use(errorMiddleware);

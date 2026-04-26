@@ -10,7 +10,7 @@ import { jest } from '@jest/globals';
 
 jest.unstable_mockModule('../Socket.js', () => ({ emitToUser: jest.fn() }));
 
-const { default: mentorshipRouter } = await import('../routes/mentorshipRouter.js');
+const { default: mentorshipRouter } = await import('../routes/MentorshipRouter.js');
 const { default: userRouter } = await import('../routes/userRouter.js');
 const { errorMiddleware } = await import('../middlewares/error.js');
 

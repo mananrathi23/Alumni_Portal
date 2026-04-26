@@ -26,7 +26,7 @@ jobs:
       working-directory: ./backend
 
     - name: Run backend tests
-      run: npm test
+      run: npm run test:coverage
       working-directory: ./backend
 
     - name: Install frontend dependencies
@@ -34,7 +34,7 @@ jobs:
       working-directory: ./frontend
 
     - name: Run frontend tests
-      run: npm test
+      run: npm run test:coverage
       working-directory: ./frontend
 
     - name: Install Playwright E2E dependencies

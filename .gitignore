@@ -13,3 +13,6 @@
 
 # Ignore logs
 /logs
+coverage/
+backend/coverage/
+frontend/coverage/

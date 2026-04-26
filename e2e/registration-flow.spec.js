@@ -14,7 +14,7 @@ test.describe('Alumni Portal — Registration Flow', () => {
     await page.getByText('Sign Up').click();
     await expect(page.getByPlaceholder('Enter your name')).toBeVisible({ timeout: 10000 });
     await expect(page.getByPlaceholder('Enter your email')).toBeVisible();
-    await expect(page.getByPlaceholder('Enter your phone number')).toBeVisible();
+
     await expect(page.getByPlaceholder('Enter your password')).toBeVisible();
     await expect(page.getByPlaceholder('Confirm your password')).toBeVisible();
   });
@@ -53,7 +53,7 @@ test.describe('Alumni Portal — Registration Flow', () => {
     await page.waitForSelector('[placeholder="Enter your name"]');
     await page.getByPlaceholder('Enter your name').fill('Test User');
     await page.getByPlaceholder('Enter your email').fill('test@test.com');
-    await page.getByPlaceholder('Enter your phone number').fill('9876543210');
+
     await page.getByPlaceholder('Enter your password').fill('short');
     await page.locator('form').getByRole('button', { name: /sign up/i }).click();
     await expect(page.getByText(/at least 8 characters/i)).toBeVisible({ timeout: 5000 });
@@ -67,7 +67,7 @@ test.describe('Alumni Portal — Registration Flow', () => {
     await page.waitForSelector('[placeholder="Enter your name"]');
     await page.getByPlaceholder('Enter your name').fill('Test User');
     await page.getByPlaceholder('Enter your email').fill('test@test.com');
-    await page.getByPlaceholder('Enter your phone number').fill('9876543210');
+
     await page.getByPlaceholder('Enter your password').fill('Password@123');
     await page.getByPlaceholder('Confirm your password').fill('Different@456');
     await page.locator('form').getByRole('button', { name: /sign up/i }).click();

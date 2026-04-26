@@ -43,7 +43,6 @@ async function seedStudentWithOtp(overrides = {}) {
   const student = await Student.create({
     name: 'OTP User',
     email: 'otp@test.com',
-    phone: '+919876543210',
     password: 'Password@123',
     accountVerified: false,
     ...overrides,
@@ -55,18 +54,10 @@ async function seedStudentWithOtp(overrides = {}) {
 
 describe('POST /api/v1/user/otp-verification', () => {
 
-  it('should return 400 for an invalid phone number', async () => {
-    const res = await request(testApp)
-      .post('/api/v1/user/otp-verification')
-      .send({ email: 'otp@test.com', otp: '12345', phone: '1234567890', role: 'Student' });
-    expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/invalid phone/i);
-  });
-
   it('should return 400 for an invalid role', async () => {
     const res = await request(testApp)
       .post('/api/v1/user/otp-verification')
-      .send({ email: 'otp@test.com', otp: '12345', phone: '+919876543210', role: 'Robot' });
+      .send({ email: 'otp@test.com', otp: '12345', role: 'Robot' });
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/invalid role/i);
   });
@@ -74,7 +65,7 @@ describe('POST /api/v1/user/otp-verification', () => {
   it('should return 404 if user is not found', async () => {
     const res = await request(testApp)
       .post('/api/v1/user/otp-verification')
-      .send({ email: 'nobody@test.com', otp: '12345', phone: '+919999999999', role: 'Student' });
+      .send({ email: 'nobody@test.com', otp: '12345', role: 'Student' });
     expect(res.status).toBe(404);
     expect(res.body.message).toMatch(/user not found/i);
   });
@@ -83,17 +74,16 @@ describe('POST /api/v1/user/otp-verification', () => {
     await seedStudentWithOtp();
     const res = await request(testApp)
       .post('/api/v1/user/otp-verification')
-      .send({ email: 'otp@test.com', otp: '00000', phone: '+919876543210', role: 'Student' });
+      .send({ email: 'otp@test.com', otp: '00000', role: 'Student' });
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/invalid otp/i);
   });
 
   it('should return 400 for an expired OTP', async () => {
     const { Student } = await import('../models/StudentModel.js');
-    const student = await Student.create({
+    await Student.create({
       name: 'Exp User',
       email: 'exp@test.com',
-      phone: '+919876543211',
       password: 'Password@123',
       accountVerified: false,
       verificationCode: 11111,
@@ -102,7 +92,7 @@ describe('POST /api/v1/user/otp-verification', () => {
 
     const res = await request(testApp)
       .post('/api/v1/user/otp-verification')
-      .send({ email: 'exp@test.com', otp: '11111', phone: '+919876543211', role: 'Student' });
+      .send({ email: 'exp@test.com', otp: '11111', role: 'Student' });
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/expired/i);
   });
@@ -111,7 +101,7 @@ describe('POST /api/v1/user/otp-verification', () => {
     const { code } = await seedStudentWithOtp();
     const res = await request(testApp)
       .post('/api/v1/user/otp-verification')
-      .send({ email: 'otp@test.com', otp: String(code), phone: '+919876543210', role: 'Student' });
+      .send({ email: 'otp@test.com', otp: String(code), role: 'Student' });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.token).toBeDefined();

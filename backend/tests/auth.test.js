@@ -66,21 +66,6 @@ describe('POST /api/v1/user/register', () => {
     expect(res.body.message).toMatch(/required/i);
   });
 
-  it('should return 400 for an invalid phone number', async () => {
-    const res = await request(testApp)
-      .post('/api/v1/user/register')
-      .send({
-        name: 'Test User',
-        email: 'test@test.com',
-        phone: '1234567890',        // invalid — must start with +91[6-9]
-        password: 'Password@1234',
-        verificationMethod: 'email',
-        role: 'Student',
-      });
-
-    expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/invalid phone/i);
-  });
 
   it('should return 403 if someone tries to self-register as Admin', async () => {
     const res = await request(testApp)
@@ -88,7 +73,6 @@ describe('POST /api/v1/user/register', () => {
       .send({
         name: 'Hacker',
         email: 'hacker@example.com',
-        phone: '+919876543210',
         password: 'Password@1234',
         verificationMethod: 'email',
         role: 'Admin',
@@ -104,7 +88,6 @@ describe('POST /api/v1/user/register', () => {
       .send({
         name: 'Test User',
         email: 'test@test.com',
-        phone: '+919876543210',
         password: 'Password@1234',
         verificationMethod: 'email',
         role: 'SuperUser',         // not a valid role
@@ -154,7 +137,6 @@ describe('POST /api/v1/user/login', () => {
     const student = await Student.create({
       name: 'Test Student',
       email: 'student@test.com',
-      phone: '+919876543210',
       password: 'MyPassword@123',
       accountVerified: true,
       adminVerified: true,
@@ -177,7 +159,6 @@ describe('POST /api/v1/user/login', () => {
     await Student.create({
       name: 'Test Student',
       email: 'student2@test.com',
-      phone: '+919876543211',
       password: 'CorrectPass@123',
       accountVerified: true,
     });
@@ -195,7 +176,6 @@ describe('POST /api/v1/user/login', () => {
     await Student.create({
       name: 'Blocked Student',
       email: 'blocked@test.com',
-      phone: '+919876543212',
       password: 'MyPassword@123',
       accountVerified: true,
       isBlocked: true,
@@ -227,7 +207,6 @@ describe('GET /api/v1/user/me', () => {
     await Student.create({
       name: 'Me Student',
       email: 'me@test.com',
-      phone: '+919876543213',
       password: 'MyPassword@123',
       accountVerified: true,
       adminVerified: true,

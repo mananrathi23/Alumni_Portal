@@ -7,6 +7,7 @@ module.exports = defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+  timeout: 60000, // 60 seconds per test — needed for live Vercel app
   use: {
     trace: 'on-first-retry',
   },

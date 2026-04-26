@@ -24,7 +24,7 @@ describe('Register Component', () => {
     render_();
     expect(screen.getByPlaceholderText('Enter your name')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Enter your phone number')).toBeInTheDocument();
+
     expect(screen.getByPlaceholderText('Enter your password')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Confirm your password')).toBeInTheDocument();
   });
@@ -67,20 +67,13 @@ describe('Register Component', () => {
     await waitFor(() => expect(screen.getByText('Email is required')).toBeInTheDocument());
   });
 
-  it('shows phone validation error for short phone', async () => {
-    render_();
-    await userEvent.type(screen.getByPlaceholderText('Enter your name'), 'Test');
-    await userEvent.type(screen.getByPlaceholderText('Enter your email'), 'test@test.com');
-    await userEvent.type(screen.getByPlaceholderText('Enter your phone number'), '123');
-    await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
-    await waitFor(() => expect(screen.getByText(/10 digits/i)).toBeInTheDocument());
-  });
+
 
   it('shows "Password is required" error', async () => {
     render_();
     await userEvent.type(screen.getByPlaceholderText('Enter your name'), 'Test');
     await userEvent.type(screen.getByPlaceholderText('Enter your email'), 'test@test.com');
-    await userEvent.type(screen.getByPlaceholderText('Enter your phone number'), '9876543210');
+
     await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
     await waitFor(() => expect(screen.getByText('Password is required')).toBeInTheDocument());
   });
@@ -89,7 +82,7 @@ describe('Register Component', () => {
     render_('Teacher');
     await userEvent.type(screen.getByPlaceholderText('Enter your name'), 'Test');
     await userEvent.type(screen.getByPlaceholderText('Enter your email'), 'test@test.com');
-    await userEvent.type(screen.getByPlaceholderText('Enter your phone number'), '9876543210');
+
     await userEvent.type(screen.getByPlaceholderText('Enter your password'), 'Password@123');
     await userEvent.type(screen.getByPlaceholderText('Confirm your password'), 'Different@123');
     await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
@@ -100,7 +93,7 @@ describe('Register Component', () => {
     render_('Teacher');
     await userEvent.type(screen.getByPlaceholderText('Enter your name'), 'Test');
     await userEvent.type(screen.getByPlaceholderText('Enter your email'), 'test@test.com');
-    await userEvent.type(screen.getByPlaceholderText('Enter your phone number'), '9876543210');
+
     await userEvent.type(screen.getByPlaceholderText('Enter your password'), 'short');
     await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
     await waitFor(() => expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument());

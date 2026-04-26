@@ -43,12 +43,12 @@ vi.mock('react-router-dom', async (importOriginal) => {
   };
 });
 
-// ── Render helper — injects route params email, phone, role ───────────────────
-const renderOtp = (email = 'user@test.com', phone = '+919876543210', role = 'Student') =>
+// ── Render helper — injects route params email, role ───────────────────
+const renderOtp = (email = 'user@test.com', role = 'Student') =>
   render(
-    <MemoryRouter initialEntries={[`/otp/${email}/${phone}/${role}`]}>
+    <MemoryRouter initialEntries={[`/otp/${email}/${role}`]}>
       <Routes>
-        <Route path="/otp/:email/:phone/:role" element={<OtpVerification />} />
+        <Route path="/otp/:email/:role" element={<OtpVerification />} />
       </Routes>
     </MemoryRouter>
   );

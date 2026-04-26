@@ -49,9 +49,11 @@ export const getGoogleOAuthUrl = (req, res) => {
   const role = req.query.role || "Student";
   const state = Buffer.from(JSON.stringify({ role })).toString("base64");
 
+  const backendUrl = (process.env.BACKEND_URL || "http://localhost:4000").replace(/\/+$/, "");
+
   const params = new URLSearchParams({
     client_id:     process.env.GOOGLE_CLIENT_ID_LOGIN,
-    redirect_uri:  `${process.env.BACKEND_URL || "http://localhost:4000"}/auth/google/callback`,
+    redirect_uri:  `${backendUrl}/auth/google/callback`,
     response_type: "code",
     scope:         "openid email profile",
     access_type:   "offline",
@@ -73,12 +75,14 @@ export const handleGoogleOAuth = catchAsyncError(async (req, res, next) => {
     role = parsed.role || "Student";
   } catch {}
 
+  const backendUrl = (process.env.BACKEND_URL || "http://localhost:4000").replace(/\/+$/, "");
+
   // Exchange code for tokens
   const tokenRes = await axios.post("https://oauth2.googleapis.com/token", {
     code,
     client_id:     process.env.GOOGLE_CLIENT_ID_LOGIN,
     client_secret: process.env.GOOGLE_CLIENT_SECRET_LOGIN,
-    redirect_uri:  `${process.env.BACKEND_URL || "http://localhost:4000"}/auth/google/callback`,
+    redirect_uri:  `${backendUrl}/auth/google/callback`,
     grant_type:    "authorization_code",
   });
 
@@ -160,10 +164,12 @@ export const getLinkedInOAuthUrl = (req, res) => {
   const role  = req.query.role || "Alumni";
   const state = Buffer.from(JSON.stringify({ role })).toString("base64");
 
+  const backendUrl = (process.env.BACKEND_URL || "http://localhost:4000").replace(/\/+$/, "");
+
   const params = new URLSearchParams({
     response_type: "code",
     client_id:     process.env.LINKEDIN_CLIENT_ID,
-    redirect_uri:  `${process.env.BACKEND_URL || "http://localhost:4000"}/api/v1/oauth/linkedin/callback`,
+    redirect_uri:  `${backendUrl}/api/v1/oauth/linkedin/callback`,
     scope:         "openid profile email",
     state,
   });
@@ -183,7 +189,7 @@ export const handleLinkedInOAuth = catchAsyncError(async (req, res, next) => {
     role = parsed.role || "Alumni";
   } catch {}
 
-  const backendUrl = process.env.BACKEND_URL || "http://localhost:4000";
+  const backendUrl = (process.env.BACKEND_URL || "http://localhost:4000").replace(/\/+$/, "");
 
   // Exchange code for access token
   const tokenRes = await axios.post(

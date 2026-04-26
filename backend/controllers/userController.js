@@ -23,7 +23,8 @@ function getModelByRole(role) {
 // REGISTER 
 export const register = catchAsyncError(async (req, res, next) => {
   try {
-    const { name, email, phone, password, verificationMethod, role, enrollmentYear } = req.body;
+    const { name, phone, password, verificationMethod, role, enrollmentYear } = req.body;
+    const email = req.body.email?.toLowerCase().trim();
 
     if (!name || !email || !phone || !password || !verificationMethod || !role) {
       return next(new ErrorHandler("All fields are required.", 400));
@@ -150,7 +151,8 @@ async function sendVerificationCode(
 
 // VERIFY OTP 
 export const verifyOTP = catchAsyncError(async (req, res, next) => {
-  const { email, otp, phone, role } = req.body;
+  const { otp, phone, role } = req.body;
+  const email = req.body.email?.toLowerCase().trim();
 
   function validatePhoneNumber(phone) {
     const phoneRegex = /^\+91[6-9]\d{9}$/;
@@ -228,7 +230,8 @@ export const verifyOTP = catchAsyncError(async (req, res, next) => {
 
 // LOGIN
 export const login = catchAsyncError(async (req, res, next) => {
-  const { email, password, role, keepSignedIn } = req.body;
+  const { password, role, keepSignedIn } = req.body;
+  const email = req.body.email?.toLowerCase().trim();
 
   if (!email || !password || !role) {
     return next(new ErrorHandler("Email, password and role are required.", 400));
@@ -286,7 +289,8 @@ export const getUser = catchAsyncError(async (req, res, next) => {
 
 //  FORGOT PASSWORD 
 export const forgotPassword = catchAsyncError(async (req, res, next) => {
-  const { email, role } = req.body;
+  const { role } = req.body;
+  const email = req.body.email?.toLowerCase().trim();
 
   const Model = getModelByRole(role);
   if (!Model) {

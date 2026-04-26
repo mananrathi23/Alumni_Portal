@@ -11,6 +11,8 @@ const alumniSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, "Email is required."],
+    lowercase: true,
+    trim: true,
   },
   phone: String,
   password: {

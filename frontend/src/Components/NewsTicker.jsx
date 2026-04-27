@@ -144,10 +144,10 @@ export default function NewsTicker() {
 
   useEffect(() => { load(); }, []);
 
-  // Auto-rotate every 5 seconds
+  // Auto-rotate every 2 seconds
   useEffect(() => {
     if (announcements.length <= 1) return;
-    const id = setInterval(() => setCurrent(p => (p + 1) % announcements.length), 5000);
+    const id = setInterval(() => setCurrent(p => (p + 1) % announcements.length), 2000);
     return () => clearInterval(id);
   }, [announcements.length]);
 
@@ -172,12 +172,17 @@ export default function NewsTicker() {
           )}
         </div>
 
-        {/* Text — scrolling marquee if long */}
+        {/* Text — scrolling marquee */}
         <div className="flex-1 min-w-0 overflow-hidden">
           {ann ? (
-            <p className={`text-xs font-medium truncate ${style.text}`} ref={tickerRef}>
-              {ann.text}
-            </p>
+            <div className="overflow-hidden whitespace-nowrap" ref={tickerRef}>
+              <span
+                className={`inline-block text-xs font-medium ${style.text}`}
+                style={{ animation: "tickerScroll 12s linear infinite" }}
+              >
+                {ann.text}&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;{ann.text}
+              </span>
+            </div>
           ) : (
             <p className="text-xs text-slate-600 italic">No announcements — post one to notify all users.</p>
           )}

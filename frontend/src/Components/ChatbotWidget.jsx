@@ -3,9 +3,10 @@ import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import * as htmlToImage from "html-to-image";
-import { 
-  PiChatTeardropText, PiX, PiPaperPlaneRight, 
-  PiRobot, PiUser, PiHeadset, PiShieldCheck
+import {
+  PiChatTeardropText, PiX, PiPaperPlaneRight,
+  PiRobot, PiUser, PiHeadset, PiShieldCheck,
+  PiCheckCircle, PiCircleNotch
 } from "react-icons/pi";
 import { Context } from "../main";
 import { useSocket } from "../SocketContext.jsx";
@@ -19,6 +20,9 @@ const ChatbotWidget = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("AI_Handling");
+  const [ticketId, setTicketId] = useState(null);
+  const [choosingEscalation, setChoosingEscalation] = useState(false);
+  const [startChoicePending, setStartChoicePending] = useState(false);
   const messagesEndRef = useRef(null);
 
 
@@ -55,19 +59,90 @@ const ChatbotWidget = () => {
 
   const fetchTicket = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/support/my-ticket`, {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/my-ticket`, {
         withCredentials: true,
       });
       if (res.data.ticket) {
         setMessages(res.data.ticket.messages);
         setStatus(res.data.ticket.status);
+        setTicketId(res.data.ticket._id);
+        setStartChoicePending(false);
+        // If escalation is offered, show choice buttons
+        if (res.data.ticket.status === "Escalation_Offered") {
+          setChoosingEscalation(true);
+        }
       } else {
         setMessages([
           { sender: "AI", text: "Hi there! I am your AI assistant. How can I help you navigate the portal today?" }
         ]);
+        setStartChoicePending(true);
       }
     } catch (err) {
       console.error("Failed to fetch chat:", err);
+    }
+  };
+
+  const handleStartChoiceAdmin = async () => {
+    setLoading(true);
+    setStartChoicePending(false);
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/ask`,
+        { text: "I want to talk to support admin." },
+        { withCredentials: true }
+      );
+
+      setStatus(res.data.ticket.status);
+      setTicketId(res.data.ticket._id);
+      if (res.data.reply) {
+        setMessages((prev) => [...prev, { sender: "AI", text: res.data.reply }]);
+      }
+
+      if (res.data.ticket.status === "Escalation_Offered" || res.data.escalationOffered || res.data.escalationPending) {
+        const choiceRes = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/escalation-choice`,
+          { choice: "escalate_to_admin" },
+          { withCredentials: true }
+        );
+        setStatus(choiceRes.data.ticket.status);
+        setMessages(choiceRes.data.ticket.messages);
+        setChoosingEscalation(false);
+      }
+    } catch (err) {
+      console.error("Failed to start admin chat:", err);
+      setMessages((prev) => [...prev, { sender: "System", text: "Failed to connect to admin. Please try again." }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEscalationChoice = async (choice) => {
+    setChoosingEscalation(false);
+    setLoading(true);
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/escalation-choice`,
+        { choice },
+        { withCredentials: true }
+      );
+
+      setStatus(res.data.ticket.status);
+      setMessages(res.data.ticket.messages);
+      setStartChoicePending(false);
+
+      if (choice === "continue_with_ai") {
+        // Continue with AI - show input field
+        setInput("");
+      } else if (choice === "escalate_to_admin") {
+        // Escalated - show admin waiting message
+        setInput("");
+      }
+    } catch (err) {
+      console.error("Failed to handle escalation choice:", err);
+      setChoosingEscalation(true); // Show choice buttons again
+      setMessages((prev) => [...prev, { sender: "System", text: "Failed to process your choice. Please try again." }]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,16 +184,29 @@ const ChatbotWidget = () => {
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/support/ask`,
+        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/ask`,
         { text: userMessage, image: screenshotBase64 },
         { withCredentials: true }
       );
-      
+
       setStatus(res.data.ticket.status);
-      
+      setTicketId(res.data.ticket._id);
+      setStartChoicePending(false);
+
       // Only append AI reply if it exists (if Escalated, AI might not reply further)
       if (res.data.reply) {
         setMessages((prev) => [...prev, { sender: "AI", text: res.data.reply }]);
+      }
+
+      // Check if escalation is offered
+      if (res.data.escalationOffered) {
+        setChoosingEscalation(true);
+      }
+      if (res.data.escalationPending) {
+        setChoosingEscalation(true);
+      }
+      if (res.data.ticket.status !== "Escalation_Offered" && !res.data.escalationPending) {
+        setChoosingEscalation(false);
       }
     } catch (err) {
       console.error(err);
@@ -155,12 +243,12 @@ const ChatbotWidget = () => {
         <div className="flex items-center justify-between p-4 bg-gradient-to-r from-sky-500 to-indigo-600 rounded-t-2xl text-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-              {status === "Escalated" ? <PiHeadset size={20} /> : <PiRobot size={20} />}
+              {status === "Escalated" ? <PiHeadset size={20} /> : status === "Escalation_Offered" ? <PiCircleNotch size={20} /> : <PiRobot size={20} />}
             </div>
             <div>
               <h3 className="font-bold leading-tight">Support</h3>
               <p className="text-xs text-sky-100">
-                {status === "AI_Handling" ? "AI Assistant (Online)" : status === "Escalated" ? "Waiting for Admin..." : "Ticket Resolved"}
+                {status === "AI_Handling" ? "AI Assistant (Online)" : status === "Escalation_Offered" ? "Choose assistance method..." : status === "Escalated" ? "Waiting for Admin..." : "Ticket Resolved"}
               </p>
             </div>
           </div>
@@ -187,23 +275,23 @@ const ChatbotWidget = () => {
               </div>
               <div
                 className={`px-4 py-2.5 rounded-2xl text-sm shadow-sm markdown-body
-                  ${msg.sender === "User" 
-                    ? "bg-sky-500 text-white rounded-br-sm" 
-                    : msg.sender === "System" 
-                    ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-200 italic"
-                    : msg.sender === "Admin"
-                    ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-100 rounded-bl-sm border border-emerald-200 dark:border-emerald-500/30"
-                    : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-white/5"
+                  ${msg.sender === "User"
+                    ? "bg-sky-500 text-white rounded-br-sm"
+                    : msg.sender === "System"
+                      ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-200 italic"
+                      : msg.sender === "Admin"
+                        ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-100 rounded-bl-sm border border-emerald-200 dark:border-emerald-500/30"
+                        : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-white/5"
                   }`}
               >
-                <ReactMarkdown 
+                <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    p: ({node, ...props}) => <p className="mb-1 last:mb-0" {...props} />,
-                    ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
-                    ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
-                    li: ({node, ...props}) => <li className="mb-0.5" {...props} />,
-                    strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
+                    p: ({ node, ...props }) => <p className="mb-1 last:mb-0" {...props} />,
+                    ul: ({ node, ...props }) => <ul className="list-disc ml-4 mb-2" {...props} />,
+                    ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+                    li: ({ node, ...props }) => <li className="mb-0.5" {...props} />,
+                    strong: ({ node, ...props }) => <strong className="font-bold" {...props} />,
                   }}
                 >
                   {msg.text}
@@ -229,6 +317,50 @@ const ChatbotWidget = () => {
           {status === "Resolved" ? (
             <div className="text-center text-sm text-slate-500 dark:text-slate-400 py-2">
               This ticket has been resolved.
+            </div>
+          ) : startChoicePending ? (
+            <div className="space-y-2">
+              <p className="text-xs text-slate-600 dark:text-slate-400 text-center mb-3">
+                How would you like to start?
+              </p>
+              <button
+                onClick={() => setStartChoicePending(false)}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-white rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+              >
+                <PiRobot size={16} />
+                Discuss with AI
+              </button>
+              <button
+                onClick={handleStartChoiceAdmin}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+              >
+                {loading ? <PiCircleNotch size={16} className="animate-spin" /> : <PiHeadset size={16} />}
+                Discuss with Admin
+              </button>
+            </div>
+          ) : (choosingEscalation || status === "Escalation_Offered") ? (
+            <div className="space-y-2">
+              <p className="text-xs text-slate-600 dark:text-slate-400 text-center mb-3">
+                How would you like to proceed?
+              </p>
+              <button
+                onClick={() => handleEscalationChoice("continue_with_ai")}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-white rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+              >
+                {loading ? <PiCircleNotch size={16} className="animate-spin" /> : <PiRobot size={16} />}
+                Continue with AI
+              </button>
+              <button
+                onClick={() => handleEscalationChoice("escalate_to_admin")}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+              >
+                {loading ? <PiCircleNotch size={16} className="animate-spin" /> : <PiHeadset size={16} />}
+                Talk to Admin
+              </button>
             </div>
           ) : (
             <form onSubmit={handleSend} className="flex gap-2">

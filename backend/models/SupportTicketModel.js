@@ -30,10 +30,19 @@ const supportTicketSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["AI_Handling", "Escalated", "Resolved"],
+      enum: ["AI_Handling", "Escalation_Offered", "Escalated", "Resolved"],
       default: "AI_Handling",
     },
     messages: [messageSchema],
+    escalationOffered: {
+      type: Boolean,
+      default: false,
+    },
+    userChoice: {
+      type: String,
+      enum: ["continue_with_ai", "escalate_to_admin"],
+      default: null,
+    },
   },
   { timestamps: true }
 );

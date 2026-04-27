@@ -25,6 +25,39 @@ Important Rules:
 - Only answer questions related to the portal, UI, networking, mentorship, jobs, and events.
 `;
 
+function normalizeChoiceFromText(text = "") {
+  const t = String(text).trim().toLowerCase();
+  if (!t) return null;
+  if (["2", "admin", "human", "support", "talk to admin", "escalate"].some((k) => t.includes(k))) {
+    return "escalate_to_admin";
+  }
+  if (["1", "ai", "continue", "continue with ai", "chat with ai"].some((k) => t.includes(k))) {
+    return "continue_with_ai";
+  }
+  return null;
+}
+
+async function applyEscalationChoice(ticket, choice) {
+  ticket.userChoice = choice;
+
+  if (choice === "escalate_to_admin") {
+    ticket.status = "Escalated";
+    ticket.messages.push({
+      sender: "AI",
+      text: "Okay, I'm connecting you with a support admin. They'll assist you shortly."
+    });
+  } else {
+    ticket.status = "AI_Handling";
+    ticket.escalationOffered = false;
+    ticket.messages.push({
+      sender: "AI",
+      text: "Great! I'm here to help. Please tell me more about what you need, and I'll do my best to assist you."
+    });
+  }
+
+  await ticket.save();
+}
+
 // ── ASK AI (User sends message) ────────────────────────────────────────────
 export const askSupportChat = catchAsyncError(async (req, res, next) => {
   const { text, image } = req.body;
@@ -45,6 +78,28 @@ export const askSupportChat = catchAsyncError(async (req, res, next) => {
     });
   }
 
+  // If escalation was offered earlier, wait for explicit choice
+  // (or accept typed shortcuts like "1/2", "ai/admin").
+  if (ticket.status === "Escalation_Offered") {
+    const inferredChoice = normalizeChoiceFromText(text);
+    if (!inferredChoice) {
+      return res.status(200).json({
+        success: true,
+        ticket,
+        reply: null,
+        escalationPending: true,
+      });
+    }
+
+    await applyEscalationChoice(ticket, inferredChoice);
+    return res.status(200).json({
+      success: true,
+      ticket,
+      reply: ticket.messages[ticket.messages.length - 1]?.text || null,
+      choice: inferredChoice,
+    });
+  }
+
   // Append user message
   ticket.messages.push({ sender: "User", text });
   await ticket.save();
@@ -60,11 +115,11 @@ export const askSupportChat = catchAsyncError(async (req, res, next) => {
 
   // AI Handling
   let aiText = "Sorry, I am currently unavailable. Please ask an Admin.";
-  
+
   if (genAI) {
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-      
+
       // Build conversation history for Gemini
       const history = ticket.messages.slice(-10).map((m) => {
         return {
@@ -79,7 +134,7 @@ export const askSupportChat = catchAsyncError(async (req, res, next) => {
       });
 
       let messageParts = [text];
-      
+
       if (image) {
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
         messageParts.push({
@@ -105,10 +160,11 @@ export const askSupportChat = catchAsyncError(async (req, res, next) => {
     }
   }
 
-  // Handle Escalation Trigger
+  // Handle Escalation Trigger - Offer Choice Instead of Auto-Escalating
   if (aiText === "ESCALATE" || aiText.includes("ESCALATE")) {
-    ticket.status = "Escalated";
-    aiText = "I'm escalating this chat to an Admin. They will assist you shortly.";
+    ticket.status = "Escalation_Offered";
+    ticket.escalationOffered = true;
+    aiText = "I'm not able to fully assist with this. Would you like to:\n1. Continue discussing with me\n2. Speak with a support admin\n\nPlease let me know your preference!";
   }
 
   // Append AI message
@@ -118,7 +174,8 @@ export const askSupportChat = catchAsyncError(async (req, res, next) => {
   res.status(200).json({
     success: true,
     ticket,
-    reply: aiText
+    reply: aiText,
+    escalationOffered: ticket.escalationOffered // Frontend knows to show choice buttons
   });
 });
 
@@ -130,6 +187,30 @@ export const getUserTicket = catchAsyncError(async (req, res, next) => {
   res.status(200).json({
     success: true,
     ticket,
+  });
+});
+
+// ── HANDLE ESCALATION CHOICE (Continue with AI or Escalate to Admin) ────────
+export const handleEscalationChoice = catchAsyncError(async (req, res, next) => {
+  const { choice } = req.body; // 'continue_with_ai' or 'escalate_to_admin'
+
+  if (!choice || !["continue_with_ai", "escalate_to_admin"].includes(choice)) {
+    return next(new ErrorHandler("Invalid choice. Must be 'continue_with_ai' or 'escalate_to_admin'.", 400));
+  }
+
+  const userId = req.user._id;
+  let ticket = await SupportTicket.findOne({ userId, status: "Escalation_Offered" });
+
+  if (!ticket) {
+    return next(new ErrorHandler("No pending escalation choice found.", 404));
+  }
+
+  await applyEscalationChoice(ticket, choice);
+
+  res.status(200).json({
+    success: true,
+    ticket,
+    choice,
   });
 });
 

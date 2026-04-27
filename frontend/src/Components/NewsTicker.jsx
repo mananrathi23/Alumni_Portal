@@ -178,7 +178,7 @@ export default function NewsTicker() {
             <div className="overflow-hidden whitespace-nowrap" ref={tickerRef}>
               <span
                 className={`inline-block text-xs font-medium ${style.text}`}
-                style={{ animation: "tickerScroll 12s linear infinite" }}
+                style={{ animation: "tickerScroll 9.6s linear infinite" }}
               >
                 {ann.text}&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;{ann.text}
               </span>

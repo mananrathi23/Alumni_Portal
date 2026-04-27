@@ -128,8 +128,12 @@ const PersonCard = ({ person, onViewProfile }) => {
     <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-4 space-y-3 hover:border-sky-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-sky-500/5">
       {/* Clickable top row → opens profile modal */}
       <button onClick={() => onViewProfile(person)} className="flex items-start gap-3 w-full text-left group">
-        <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${style.grad} flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow group-hover:scale-105 transition-transform`}>
-          {person.name?.charAt(0).toUpperCase()}
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow group-hover:scale-105 transition-transform overflow-hidden ${!person.profilePhoto?.url ? `bg-gradient-to-br ${style.grad}` : 'bg-slate-800'}`}>
+          {person.profilePhoto?.url ? (
+            <img src={person.profilePhoto.url} alt={person.name} className="w-full h-full object-cover" />
+          ) : (
+            person.name?.charAt(0).toUpperCase()
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-white font-semibold text-sm truncate group-hover:text-sky-400 transition-colors">{person.name}</p>

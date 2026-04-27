@@ -85,8 +85,12 @@ const PersonCard = ({ person }) => {
   return (
     <div className="bg-slate-900 border border-white/[0.07] rounded-xl p-4 space-y-3 hover:border-violet-500/30 transition-all duration-200">
       <div className="flex items-start gap-3">
-        <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${s.grad} flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow`}>
-          {person.name?.charAt(0).toUpperCase()}
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow overflow-hidden ${!person.profilePhoto?.url ? `bg-gradient-to-br ${s.grad}` : 'bg-slate-800'}`}>
+          {person.profilePhoto?.url ? (
+            <img src={person.profilePhoto.url} alt={person.name} className="w-full h-full object-cover" />
+          ) : (
+            person.name?.charAt(0).toUpperCase()
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-white font-semibold text-sm truncate">{person.name}</p>

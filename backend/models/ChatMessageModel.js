@@ -37,6 +37,9 @@ const chatMessageSchema = new mongoose.Schema(
     // System messages (slot refresh, session expiry notices)
     isSystem: { type: Boolean, default: false },
 
+    // Profanity flagging — flagged messages are saved but hidden/reported to admin
+    is_flagged: { type: Boolean, default: false },
+
     // Read receipt — receiver has seen it
     readBy: [{ type: mongoose.Schema.Types.ObjectId }],
   },

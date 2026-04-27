@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useSocket } from "../SocketContext";
+import { isProfane } from "../utils/profanityCheck";
 import {
   PiX, PiPaperPlaneTilt, PiLink, PiCircleNotch,
   PiCheckCircle, PiWarningCircle, PiChatCircleText, PiLockSimple,
@@ -31,6 +32,7 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = "http://localhost:4000/api/v1/
   const [sending,   setSending]   = useState(false);
   const [error,     setError]     = useState(null);
   const [isTyping,  setIsTyping]  = useState(false);
+  const [profanityWarning, setProfanityWarning] = useState(false);
   // Fix 4: track session status for read-only mode
   const [sessionStatus, setSessionStatus] = useState(initialStatus || "Accepted");
 
@@ -102,6 +104,11 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = "http://localhost:4000/api/v1/
   const sendMessage = async () => {
     const trimmed = text.trim();
     if (!trimmed || sending || isReadOnly) return;
+    if (await isProfane(trimmed)) {
+      setProfanityWarning(true);
+      return;
+    }
+    setProfanityWarning(false);
     setSending(true);
     const optimistic = {
       _id: `opt-${Date.now()}`,
@@ -130,6 +137,7 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = "http://localhost:4000/api/v1/
 
   const handleTextChange = (e) => {
     setText(e.target.value);
+    if (profanityWarning) setProfanityWarning(false);
     if (!socketRef.current || isReadOnly) return;
     socketRef.current.emit("chat:typing", { mentorshipId: sessionId, userName: currentUser.name });
     clearTimeout(typingTimeout.current);
@@ -296,25 +304,35 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = "http://localhost:4000/api/v1/
           <p className="text-slate-600 text-xs">Chat is closed for this session</p>
         </div>
       ) : (
-        <div className="px-4 py-3 border-t border-white/[0.07] flex gap-2 items-end">
-          <textarea
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message… (Enter to send)"
-            rows={1}
-            className={`flex-1 px-3 py-2.5 rounded-xl bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-${accentColor}-500 max-h-32 overflow-y-auto`}
-            style={{ minHeight: "42px" }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!text.trim() || sending}
-            className={`p-2.5 rounded-xl ${accent.bg} text-white flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90`}>
-            {sending
-              ? <PiCircleNotch size={18} className="animate-spin" />
-              : <PiPaperPlaneTilt size={18} />
-            }
-          </button>
+        <div className="px-4 py-3 border-t border-white/[0.07] flex flex-col gap-2">
+          {profanityWarning && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/25 rounded-lg">
+              <PiWarningCircle size={14} className="text-red-400 flex-shrink-0" />
+              <p className="text-red-400 text-xs">Your message contains unprofessional language. Please revise before sending.</p>
+            </div>
+          )}
+          <div className="flex gap-2 items-end">
+            <textarea
+              value={text}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message… (Enter to send)"
+              rows={1}
+              className={`flex-1 px-3 py-2.5 rounded-xl bg-slate-800 border ${
+                profanityWarning ? "border-red-500/50" : "border-white/[0.07]"
+              } text-slate-200 placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-${accentColor}-500 max-h-32 overflow-y-auto`}
+              style={{ minHeight: "42px" }}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!text.trim() || sending}
+              className={`p-2.5 rounded-xl ${accent.bg} text-white flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90`}>
+              {sending
+                ? <PiCircleNotch size={18} className="animate-spin" />
+                : <PiPaperPlaneTilt size={18} />
+              }
+            </button>
+          </div>
         </div>
       )}
     </div>

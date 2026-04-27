@@ -38,6 +38,10 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("User not found.", 404));
   }
 
+  if (req.user.isBlocked) {
+    return next(new ErrorHandler("Your account has been blocked by an administrator.", 403));
+  }
+
   next();
 });
 

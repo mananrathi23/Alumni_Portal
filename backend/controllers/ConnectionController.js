@@ -7,6 +7,7 @@ import { Student } from "../models/StudentModel.js";
 import { Alumni } from "../models/AlumniModel.js";
 import { Teacher } from "../models/TeacherModel.js";
 import { emitToUser } from "../Socket.js";
+import { containsProfanity } from "../utils/ProfanityFilter.js";
 
 // Helper — find any user by id and role
 async function findUserByIdAndRole(id, role) {
@@ -368,6 +369,34 @@ export const sendChatMessage = catchAsyncError(async (req, res, next) => {
 
   if (connection.status !== "Accepted") {
     return next(new ErrorHandler("Chat is only available for accepted connections.", 403));
+  }
+
+  if (connection.isBlocked) {
+    return next(new ErrorHandler("This chat has been blocked by an administrator.", 403));
+  }
+
+  if (await containsProfanity(text.trim())) {
+    // 1️⃣ Save the message with is_flagged = true so admin can audit it
+    const flaggedMessage = await ChatMessage.create({
+      connectionId,
+      sender: { id: user._id, name: user.name, role },
+      text: text.trim(),
+      is_flagged: true,
+    });
+
+    // 2️⃣ Block the user and the chat room
+    user.isBlocked = true;
+    await user.save({ validateModifiedOnly: true });
+
+    connection.isBlocked = true;
+    await connection.save({ validateModifiedOnly: true });
+
+    // 3️⃣ Real-time notifications
+    emitToUser(user._id, "user:blocked", { isBlocked: true });
+    const otherId = isSender ? connection.receiver.id : connection.sender.id;
+    emitToUser(otherId, "chat:blocked", { connectionId });
+
+    return next(new ErrorHandler("Message blocked: inappropriate content detected. Your account has been suspended pending admin review.", 403));
   }
 
   const message = await ChatMessage.create({

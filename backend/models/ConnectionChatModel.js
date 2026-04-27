@@ -20,6 +20,8 @@ const connectionChatMessageSchema = new mongoose.Schema(
       trim: true,
     },
     readBy: [{ type: mongoose.Schema.Types.ObjectId }],
+    // Profanity flagging — flagged messages are saved but reported to admin
+    is_flagged: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

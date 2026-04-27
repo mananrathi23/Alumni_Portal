@@ -3,6 +3,7 @@ import ErrorHandler from "../middlewares/error.js";
 import { Connection } from "../models/ConnectionModel.js";
 import { ConnectionChatMessage } from "../models/ConnectionChatModel.js";
 import { emitToUser } from "../Socket.js";
+import { containsProfanity } from "../utils/ProfanityFilter.js";
 
 // ── GET chat history for a connection ────────────────────────────────────────
 // GET /api/v1/connections/:connectionId/chat
@@ -60,6 +61,25 @@ export const sendConnectionMessage = catchAsyncError(async (req, res, next) => {
   const isReceiver = connection.receiver.id.equals(user._id);
   if (!isSender && !isReceiver) {
     return next(new ErrorHandler("You are not part of this connection.", 403));
+  }
+
+  if (connection.isBlocked) {
+    return next(new ErrorHandler("This chat has been blocked.", 403));
+  }
+
+  if (await containsProfanity(text.trim())) {
+    user.isBlocked = true;
+    await user.save({ validateModifiedOnly: true });
+
+    connection.isBlocked = true;
+    await connection.save({ validateModifiedOnly: true });
+
+    emitToUser(user._id, "user:blocked", { isBlocked: true });
+    
+    const recipientId = isSender ? connection.receiver.id : connection.sender.id;
+    emitToUser(recipientId, "chat:blocked", { connectionId });
+
+    return next(new ErrorHandler("Message blocked due to inappropriate content. Your account and this chat have been blocked.", 403));
   }
 
   const message = await ConnectionChatMessage.create({

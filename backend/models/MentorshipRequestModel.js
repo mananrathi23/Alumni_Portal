@@ -27,6 +27,7 @@ const mentorshipRequestSchema = new mongoose.Schema({
     enum: ["Pending", "Accepted", "Rejected", "Cancelled", "Completed"],
     default: "Pending",
   },
+  isBlocked: { type: Boolean, default: false },
   requestedAt: { type: Date, default: Date.now },
   // Exact datetime of the session (set when mentor accepts + slot day/time resolved)
   sessionDateTime: { type: Date, default: null },

@@ -13,6 +13,7 @@ import {
   mentorshipSlotTakenEmail,
 } from "../utils/mentorshipEmailTemplates.js";
 import { emitToUser } from "../Socket.js";
+import { containsProfanity } from "../utils/ProfanityFilter.js";
 import {
   buildGoogleAuthUrl,
   decodeOAuthState,
@@ -809,6 +810,34 @@ export const sendChatMessage = catchAsyncError(async (req, res, next) => {
       return next(new ErrorHandler("This session has ended. The chat is now read-only.", 403));
     }
     return next(new ErrorHandler("Chat is only available for active (accepted) sessions.", 403));
+  }
+
+  if (mentorship.isBlocked) {
+    return next(new ErrorHandler("This chat has been blocked.", 403));
+  }
+
+  if (await containsProfanity(text.trim())) {
+    // 1️⃣ Save with is_flagged so admin can audit it
+    await ChatMessage.create({
+      mentorshipId,
+      sender: { id: user._id, name: user.name, role },
+      text: text.trim(),
+      is_flagged: true,
+    });
+
+    // 2️⃣ Block user and chat session
+    user.isBlocked = true;
+    await user.save({ validateModifiedOnly: true });
+
+    mentorship.isBlocked = true;
+    await mentorship.save({ validateModifiedOnly: true });
+
+    // 3️⃣ Real-time notifications
+    emitToUser(user._id, "user:blocked", { isBlocked: true });
+    const recipientId = isStudent ? mentorship.mentor.id : mentorship.student.id;
+    emitToUser(recipientId, "chat:blocked", { mentorshipId });
+
+    return next(new ErrorHandler("Message blocked: inappropriate content detected. Your account has been suspended pending admin review.", 403));
   }
 
   const message = await ChatMessage.create({

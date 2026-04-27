@@ -23,6 +23,9 @@ const connectionSchema = new mongoose.Schema({
     default: "Pending",
   },
 
+  // If the connection chat is blocked due to profanity
+  isBlocked: { type: Boolean, default: false },
+
   // Optional note when sending the request
   note: {
     type: String,

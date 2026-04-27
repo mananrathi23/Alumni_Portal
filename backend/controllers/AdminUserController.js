@@ -3,6 +3,8 @@ import ErrorHandler from "../middlewares/error.js";
 import { Student } from "../models/StudentModel.js";
 import { Teacher } from "../models/TeacherModel.js";
 import { Alumni } from "../models/AlumniModel.js";
+import { Connection } from "../models/ConnectionModel.js";
+import { MentorshipRequest } from "../models/MentorshipRequestModel.js";
 import { emitToUser } from "../Socket.js";
 
 // Helper to get model
@@ -78,4 +80,33 @@ export const toggleBlockUser = catchAsyncError(async (req, res, next) => {
     message: `User ${user.isBlocked ? "blocked" : "unblocked"} successfully.`,
     user: { ...user.toObject(), role }
   });
+});
+
+// ── UNBLOCK CHATS ────────────────────────────────────────────────────────────
+export const unblockConnection = catchAsyncError(async (req, res, next) => {
+  const { id } = req.params;
+  const connection = await Connection.findById(id);
+  if (!connection) return next(new ErrorHandler("Connection not found", 404));
+
+  connection.isBlocked = false;
+  await connection.save({ validateModifiedOnly: true });
+
+  emitToUser(connection.sender.id, "chat:unblocked", { connectionId: id });
+  emitToUser(connection.receiver.id, "chat:unblocked", { connectionId: id });
+
+  res.status(200).json({ success: true, message: "Connection chat unblocked successfully." });
+});
+
+export const unblockMentorship = catchAsyncError(async (req, res, next) => {
+  const { id } = req.params;
+  const mentorship = await MentorshipRequest.findById(id);
+  if (!mentorship) return next(new ErrorHandler("Mentorship session not found", 404));
+
+  mentorship.isBlocked = false;
+  await mentorship.save({ validateModifiedOnly: true });
+
+  emitToUser(mentorship.student.id, "chat:unblocked", { mentorshipId: id });
+  emitToUser(mentorship.mentor.id, "chat:unblocked", { mentorshipId: id });
+
+  res.status(200).json({ success: true, message: "Mentorship chat unblocked successfully." });
 });

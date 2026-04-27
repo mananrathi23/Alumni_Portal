@@ -8,6 +8,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../main";
 import { useSocket } from "../SocketContext";
+import { isProfane } from "../utils/profanityCheck";
 import {
   PiMagnifyingGlass, PiUsersThree, PiChatCircleText,
   PiPaperPlaneTilt, PiCircleNotch, PiX, PiTrash,
@@ -59,6 +60,7 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
   const [sending, setSending]     = useState(false);
   const [isTyping, setIsTyping]   = useState(false);
   const [showInfo, setShowInfo]   = useState(false);
+  const [profanityWarning, setProfanityWarning] = useState(false);
 
   const bottomRef     = useRef(null);
   const typingTimeout = useRef(null);
@@ -116,6 +118,11 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
   const sendMessage = async () => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
+    if (await isProfane(trimmed)) {
+      setProfanityWarning(true);
+      return;
+    }
+    setProfanityWarning(false);
     setSending(true);
     const optimistic = {
       _id: `opt-${Date.now()}`,
@@ -145,6 +152,7 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
 
   const handleTextChange = (e) => {
     setText(e.target.value);
+    if (profanityWarning) setProfanityWarning(false);
     if (!socketRef.current) return;
     socketRef.current.emit("conn_chat:typing", { connectionId, userName: currentUser.name });
     clearTimeout(typingTimeout.current);
@@ -288,26 +296,35 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-white/[0.07] flex gap-2 items-end flex-shrink-0">
-        <textarea
-          value={text}
-          onChange={handleTextChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message… (Enter to send)"
-          rows={1}
-          className={`flex-1 px-3 py-2.5 rounded-xl bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 ${ac.ring} max-h-32 overflow-y-auto`}
-          style={{ minHeight: "42px" }}
-        />
-        <button
-          onClick={sendMessage}
-          disabled={!text.trim() || sending}
-          className={`p-2.5 rounded-xl ${ac.send} text-white flex-shrink-0 disabled:opacity-40 transition-all`}
-        >
-          {sending
-            ? <PiCircleNotch size={18} className="animate-spin" />
-            : <PiPaperPlaneTilt size={18} />
-          }
-        </button>
+      <div className="px-4 py-3 border-t border-white/[0.07] flex flex-col gap-2 flex-shrink-0">
+        {profanityWarning && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/25 rounded-lg">
+            <span className="text-red-400 text-xs leading-tight">⚠️ Your message contains unprofessional language. Please revise before sending.</span>
+          </div>
+        )}
+        <div className="flex gap-2 items-end">
+          <textarea
+            value={text}
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message… (Enter to send)"
+            rows={1}
+            className={`flex-1 px-3 py-2.5 rounded-xl bg-slate-800 border ${
+              profanityWarning ? "border-red-500/50" : "border-white/[0.07]"
+            } text-slate-200 placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 ${ac.ring} max-h-32 overflow-y-auto`}
+            style={{ minHeight: "42px" }}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!text.trim() || sending}
+            className={`p-2.5 rounded-xl ${ac.send} text-white flex-shrink-0 disabled:opacity-40 transition-all`}
+          >
+            {sending
+              ? <PiCircleNotch size={18} className="animate-spin" />
+              : <PiPaperPlaneTilt size={18} />
+            }
+          </button>
+        </div>
       </div>
     </div>
   );

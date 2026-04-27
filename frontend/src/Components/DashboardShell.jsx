@@ -144,6 +144,7 @@ const DashboardShell = ({
   const [bellPendingCount, setBellPendingCount] = useState(0);
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [expandedNotifications, setExpandedNotifications] = useState(false);
   const notifRef = useRef(null);
   const { socketRef, isSocketReady } = useSocket();
 
@@ -202,7 +203,10 @@ const DashboardShell = ({
   useEffect(() => {
     const h = e => { 
       if (dropRef.current && !dropRef.current.contains(e.target)) setShowDrop(false); 
-      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifications(false);
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+        setExpandedNotifications(false);
+      }
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
@@ -387,7 +391,7 @@ const DashboardShell = ({
                   <div className={`px-3 py-2 border-b flex items-center justify-between ${theme === "dark" ? "border-white/[0.07]" : "border-slate-200/70"}`}>
                     <span className={`font-bold text-sm ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Connection Requests</span>
                   </div>
-                  <div className="max-h-[300px] overflow-y-auto p-1">
+                  <div className={`overflow-y-auto p-1 transition-all duration-300 ${expandedNotifications ? 'max-h-[70vh]' : 'max-h-[300px]'}`}>
                     {incomingRequests.length === 0 ? (
                       <div className="text-center p-4 text-slate-500 text-sm">No new requests</div>
                     ) : (
@@ -408,11 +412,13 @@ const DashboardShell = ({
                       ))
                     )}
                   </div>
-                  <div className={`p-2 border-t ${theme === "dark" ? "border-white/[0.07]" : "border-slate-200/70"}`}>
-                    <button onClick={() => { setShowNotifications(false); handleBellClick(); }} className="w-full py-1.5 text-center text-[10px] text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-widest font-bold">
-                      View All
-                    </button>
-                  </div>
+                  {incomingRequests.length > 0 && (
+                    <div className={`p-2 border-t ${theme === "dark" ? "border-white/[0.07]" : "border-slate-200/70"}`}>
+                      <button onClick={() => setExpandedNotifications(!expandedNotifications)} className="w-full py-1.5 text-center text-[10px] text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-widest font-bold">
+                        {expandedNotifications ? "Show Less" : "View All"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

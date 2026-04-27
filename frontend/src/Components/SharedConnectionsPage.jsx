@@ -183,8 +183,12 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
           onClick={() => setShowInfo((v) => !v)}
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
-          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center text-white font-bold text-sm`}>
-            {other?.name?.charAt(0)?.toUpperCase() || "?"}
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm overflow-hidden flex-shrink-0 ${!other?.profilePhoto?.url ? `bg-gradient-to-br ${grad}` : 'bg-slate-800'}`}>
+            {other?.profilePhoto?.url ? (
+              <img src={other.profilePhoto.url} alt={other.name} className="w-full h-full object-cover" />
+            ) : (
+              other?.name?.charAt(0)?.toUpperCase() || "?"
+            )}
           </div>
           <div className="text-left">
             <p className="text-white font-semibold text-sm leading-tight">{other?.name}</p>
@@ -340,8 +344,12 @@ const ConnectionItem = ({ connection, isSelected, unread, onClick, accentColor }
       className={`w-full flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] text-left transition-all hover:bg-slate-800/50 ${isSelected ? `${ac.active} border-l-2 ${ac.border}` : ""
         }`}
     >
-      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-        {other?.name?.charAt(0)?.toUpperCase() || "?"}
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden ${!other?.profilePhoto?.url ? `bg-gradient-to-br ${grad}` : 'bg-slate-800'}`}>
+        {other?.profilePhoto?.url ? (
+          <img src={other.profilePhoto.url} alt={other.name} className="w-full h-full object-cover" />
+        ) : (
+          other?.name?.charAt(0)?.toUpperCase() || "?"
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">

@@ -14,6 +14,7 @@ const Alumni = () => {
   const [filterRole, setFilterRole] = useState("All");
   const [department, setDepartment] = useState("All");
   const [mentorOnly, setMentorOnly] = useState(false);
+  const [myConnectionsOnly, setMyConnectionsOnly] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState(null);
 
   useEffect(() => {
@@ -23,16 +24,35 @@ const Alumni = () => {
     if (department !== "All") params.department = department;
 
     setLoading(true);
+    const endpoint = myConnectionsOnly 
+      ? `${import.meta.env.VITE_BACKEND_URL}/api/v1/connections`
+      : `${import.meta.env.VITE_BACKEND_URL}/api/v1/people`;
+
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/people`, { params, withCredentials: true })
+      .get(endpoint, { params, withCredentials: true })
       .then((res) => {
-        let result = res.data.people;
+        let result = [];
+        if (myConnectionsOnly) {
+          result = (res.data.connections || []).map(c => ({
+            ...c.connectedWith,
+            _id: c.connectedWith.id || c.connectedWith._id
+          }));
+          if (search) {
+            const low = search.toLowerCase();
+            result = result.filter(p => p.name?.toLowerCase().includes(low) || p.department?.toLowerCase().includes(low));
+          }
+          if (filterRole !== "All") result = result.filter(p => p.role === filterRole);
+          if (department !== "All") result = result.filter(p => p.department === department);
+        } else {
+          result = res.data.people || [];
+        }
+        
         if (mentorOnly) result = result.filter((p) => p.availableForMentorship === true);
         setPeople(result);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [search, filterRole, department, mentorOnly]);
+  }, [search, filterRole, department, mentorOnly, myConnectionsOnly]);
 
   const selectClass = "px-3 py-2 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500";
 
@@ -76,16 +96,29 @@ const Alumni = () => {
           </select>
         </div>
 
-        {/* Mentor toggle */}
-        <label className="flex items-center gap-2.5 cursor-pointer w-fit">
-          <div
-            onClick={() => setMentorOnly(!mentorOnly)}
-            className={`w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0 relative ${mentorOnly ? "bg-sky-500" : "bg-slate-700"}`}
-          >
-            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${mentorOnly ? "translate-x-4" : "translate-x-0"}`} />
-          </div>
-          <span className="text-slate-300 text-sm">Available for mentorship only</span>
-        </label>
+        <div className="flex flex-wrap items-center gap-6">
+          {/* Mentor toggle */}
+          <label className="flex items-center gap-2.5 cursor-pointer w-fit">
+            <div
+              onClick={() => setMentorOnly(!mentorOnly)}
+              className={`w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0 relative ${mentorOnly ? "bg-sky-500" : "bg-slate-700"}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${mentorOnly ? "translate-x-4" : "translate-x-0"}`} />
+            </div>
+            <span className="text-slate-300 text-sm">Available for mentorship only</span>
+          </label>
+
+          {/* My Connections toggle */}
+          <label className="flex items-center gap-2.5 cursor-pointer w-fit">
+            <div
+              onClick={() => setMyConnectionsOnly(!myConnectionsOnly)}
+              className={`w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0 relative ${myConnectionsOnly ? "bg-sky-500" : "bg-slate-700"}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${myConnectionsOnly ? "translate-x-4" : "translate-x-0"}`} />
+            </div>
+            <span className="text-slate-300 text-sm">My Connections Only</span>
+          </label>
+        </div>
       </div>
 
       {/* Results */}

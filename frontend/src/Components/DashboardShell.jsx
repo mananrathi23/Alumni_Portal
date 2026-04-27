@@ -12,6 +12,7 @@ import ChatbotWidget from "./ChatbotWidget";
 import ThemeToggle from "./ThemeToggle.jsx";
 import { Context } from "../main";
 import { useSocket } from "../SocketContext";
+import { toast } from "react-toastify";
 
 const BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1`;
 
@@ -141,12 +142,22 @@ const DashboardShell = ({
 
   // Real-time Notification Bell Logic
   const [bellPendingCount, setBellPendingCount] = useState(0);
+  const [incomingRequests, setIncomingRequests] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef(null);
   const { socketRef, isSocketReady } = useSocket();
 
   const fetchPendingCount = () => {
     axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
-      .then((res) => setBellPendingCount(res.data.requests?.length ?? 0))
-      .catch(() => setBellPendingCount(0));
+      .then((res) => {
+        const inc = res.data.incoming || [];
+        setIncomingRequests(inc);
+        setBellPendingCount(inc.length);
+      })
+      .catch(() => {
+        setIncomingRequests([]);
+        setBellPendingCount(0);
+      });
   };
 
   useEffect(() => {
@@ -178,8 +189,21 @@ const DashboardShell = ({
     else if (role === "Teacher") navigate("/teacher/messages");
   };
 
+  const handleRequestResponse = async (requestId, status) => {
+    try {
+      await axios.put(`${BASE}/connection/${requestId}/respond`, { status }, { withCredentials: true });
+      fetchPendingCount(); // Refresh the counts and the list
+      toast.success(`Request ${status}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to respond");
+    }
+  };
+
   useEffect(() => {
-    const h = e => { if (dropRef.current && !dropRef.current.contains(e.target)) setShowDrop(false); };
+    const h = e => { 
+      if (dropRef.current && !dropRef.current.contains(e.target)) setShowDrop(false); 
+      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifications(false);
+    };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
@@ -343,18 +367,55 @@ const DashboardShell = ({
             </div>
 
             {/* Notification Bell */}
-            <button
-              onClick={handleBellClick}
-              className={`relative p-2 ml-1 rounded-full transition-all flex-shrink-0 ${theme === "dark" ? "text-slate-400 hover:text-white hover:bg-slate-800" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"}`}
-              title="Connection Requests"
-            >
-              <PiBell size={20} />
-              {bellPendingCount > 0 && (
-                <span className={`absolute top-0.5 right-0 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ${theme === "dark" ? "ring-slate-900" : "ring-white"} leading-none`}>
-                  {bellPendingCount > 9 ? "9+" : bellPendingCount}
-                </span>
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className={`relative p-2 ml-1 rounded-full transition-all flex-shrink-0 ${theme === "dark" ? "text-slate-400 hover:text-white hover:bg-slate-800" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"}`}
+                title="Connection Requests"
+              >
+                <PiBell size={20} />
+                {bellPendingCount > 0 && (
+                  <span className={`absolute top-0.5 right-0 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ${theme === "dark" ? "ring-slate-900" : "ring-white"} leading-none`}>
+                    {bellPendingCount > 9 ? "9+" : bellPendingCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown Card */}
+              {showNotifications && (
+                <div className={`absolute right-0 top-full mt-2 w-80 rounded-xl shadow-2xl overflow-hidden z-50 p-2 border ${theme === "dark" ? "bg-slate-900 border-white/[0.07]" : "bg-white border-slate-200/70"}`}>
+                  <div className={`px-3 py-2 border-b flex items-center justify-between ${theme === "dark" ? "border-white/[0.07]" : "border-slate-200/70"}`}>
+                    <span className={`font-bold text-sm ${theme === "dark" ? "text-white" : "text-slate-900"}`}>Connection Requests</span>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto p-1">
+                    {incomingRequests.length === 0 ? (
+                      <div className="text-center p-4 text-slate-500 text-sm">No new requests</div>
+                    ) : (
+                      incomingRequests.map(req => (
+                        <div key={req._id} className={`p-3 rounded-lg mb-1 flex items-start gap-3 ${theme === "dark" ? "bg-white/[0.02]" : "bg-slate-50 border border-slate-200/70"}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white bg-gradient-to-br ${ACCENT[req.sender.role === 'Student' ? 'sky' : (req.sender.role === 'Alumni' ? 'emerald' : 'violet')].avatar} flex-shrink-0`}>
+                            {req.sender.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-xs font-semibold truncate ${theme === "dark" ? "text-white" : "text-slate-900"}`}>{req.sender.name}</p>
+                            <p className="text-slate-400 text-[10px] truncate">{req.sender.role}</p>
+                            <div className="flex gap-2 mt-2">
+                              <button onClick={() => handleRequestResponse(req._id, "Accepted")} className="flex-1 py-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30 rounded text-[10px] font-bold transition-colors">Accept</button>
+                              <button onClick={() => handleRequestResponse(req._id, "Rejected")} className="flex-1 py-1 bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/30 rounded text-[10px] font-bold transition-colors">Reject</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className={`p-2 border-t ${theme === "dark" ? "border-white/[0.07]" : "border-slate-200/70"}`}>
+                    <button onClick={() => { setShowNotifications(false); handleBellClick(); }} className="w-full py-1.5 text-center text-[10px] text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors uppercase tracking-widest font-bold">
+                      View All
+                    </button>
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
 
             <div className="relative" ref={dropRef}>
               <button

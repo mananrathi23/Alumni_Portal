@@ -5,9 +5,10 @@ import { FaSignOutAlt, FaTimes, FaBars } from "react-icons/fa";
 import {
   PiChalkboardTeacher, PiHouseLine, PiChatsCircle, PiEnvelope,
   PiUsersThree, PiHandshake, PiBriefcase, PiCalendarCheck,
-  PiUserCircle, PiCaretDown,
+  PiUserCircle, PiCaretDown, PiBell,
 } from "react-icons/pi";
 import { Context } from "../../main";
+import { useSocket } from "../../SocketContext";
 
 const NAV_LINKS = [
   { label: "Dashboard",   path: "/teacher/dashboard",  icon: PiHouseLine },
@@ -24,6 +25,7 @@ const Header = ({ teacher }) => {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
   const { theme } = useContext(Context);
+  const { socketRef, isSocketReady } = useSocket();
   const [mobileOpen, setMobileOpen]           = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDropdown, setShowDropdown]       = useState(false);
@@ -34,11 +36,34 @@ const Header = ({ teacher }) => {
   const cancelLogout  = () => setShowLogoutConfirm(false);
   const initials = teacher?.name?.charAt(0).toUpperCase() ?? "T";
 
-  useEffect(() => {
+  const fetchPendingCount = () => {
     axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
       .then((res) => setPendingCount(res.data.requests?.length ?? 0))
       .catch(() => setPendingCount(0));
+  };
+
+  useEffect(() => {
+    fetchPendingCount();
   }, []);
+
+  useEffect(() => {
+    const socket = socketRef?.current;
+    if (!isSocketReady || !socket) return;
+
+    socket.on("connection:new_request", fetchPendingCount);
+    socket.on("connection:accepted", fetchPendingCount);
+    socket.on("connection:rejected", fetchPendingCount);
+    socket.on("connection:withdrawn", fetchPendingCount);
+    socket.on("connection:removed", fetchPendingCount);
+
+    return () => {
+      socket.off("connection:new_request", fetchPendingCount);
+      socket.off("connection:accepted", fetchPendingCount);
+      socket.off("connection:rejected", fetchPendingCount);
+      socket.off("connection:withdrawn", fetchPendingCount);
+      socket.off("connection:removed", fetchPendingCount);
+    };
+  }, [isSocketReady, socketRef]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -87,6 +112,19 @@ const Header = ({ teacher }) => {
             <p className={`${theme === "dark" ? "text-white" : "text-black"} text-sm font-semibold`}>{teacher?.name}</p>
             <p className={`${theme === "dark" ? "text-violet-400" : "text-violet-600"} text-xs tracking-widest uppercase font-medium`}>Teacher</p>
           </div>
+          <button
+            onClick={() => navigate("/teacher/messages")}
+            className={`relative p-2 mr-1 rounded-full transition-all ${theme === "dark" ? "text-slate-400 hover:text-white hover:bg-slate-800" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"}`}
+            title="Connection Requests"
+          >
+            <PiBell size={20} />
+            {pendingCount > 0 && (
+              <span className={`absolute top-0.5 right-0 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ${theme === "dark" ? "ring-slate-900" : "ring-white"} leading-none`}>
+                {pendingCount > 9 ? "9+" : pendingCount}
+              </span>
+            )}
+          </button>
+
           <div className="relative" ref={dropdownRef}>
             <button onClick={() => setShowDropdown((p) => !p)} className="flex items-center gap-1">
               <div className="relative">

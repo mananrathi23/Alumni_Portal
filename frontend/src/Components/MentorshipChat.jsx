@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useSocket } from "../SocketContext";
+import { isProfane } from "../utils/profanityCheck";
 import {
   PiX, PiPaperPlaneTilt, PiLink, PiCircleNotch,
   PiCheckCircle, PiWarningCircle, PiChatCircleText, PiLockSimple,
@@ -23,18 +24,19 @@ function formatDay(iso) {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship`, currentUser, otherPerson, accentColor = "sky", onClose, sessionStatus: initialStatus }) => {
+const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/mentorship`, currentUser, otherPerson, accentColor = "sky", onClose, sessionStatus: initialStatus }) => {
   const { socketRef, isSocketReady } = useSocket();
-  const [messages,  setMessages]  = useState([]);
-  const [text,      setText]      = useState("");
-  const [loading,   setLoading]   = useState(true);
-  const [sending,   setSending]   = useState(false);
-  const [error,     setError]     = useState(null);
-  const [isTyping,  setIsTyping]  = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [profanityWarning, setProfanityWarning] = useState(false);
   // Fix 4: track session status for read-only mode
   const [sessionStatus, setSessionStatus] = useState(initialStatus || "Accepted");
 
-  const bottomRef     = useRef(null);
+  const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
 
   // Session is read-only if Completed
@@ -66,7 +68,7 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
         });
         setIsTyping(false);
         // Mark as read explicitly to avoid unread badge bug
-        axios.put(`${apiBaseUrl}/${sessionId}/chat/read`, {}, { withCredentials: true }).catch(() => {});
+        axios.put(`${apiBaseUrl}/${sessionId}/chat/read`, {}, { withCredentials: true }).catch(() => { });
       }
     };
 
@@ -77,19 +79,19 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
       }
     };
 
-    socket.on("chat:new_message",        onNewMessage);
-    socket.on("chat:typing",             () => setIsTyping(true));
-    socket.on("chat:stop_typing",        () => setIsTyping(false));
+    socket.on("chat:new_message", onNewMessage);
+    socket.on("chat:typing", () => setIsTyping(true));
+    socket.on("chat:stop_typing", () => setIsTyping(false));
     socket.on("mentorship:session_expired", onSessionExpired);
-    socket.on("mentorship:completed",    onSessionExpired);
+    socket.on("mentorship:completed", onSessionExpired);
 
     return () => {
       socket.emit("chat:leave", sessionId);
-      socket.off("chat:new_message",        onNewMessage);
-      socket.off("chat:typing",             () => setIsTyping(true));
-      socket.off("chat:stop_typing",        () => setIsTyping(false));
+      socket.off("chat:new_message", onNewMessage);
+      socket.off("chat:typing", () => setIsTyping(true));
+      socket.off("chat:stop_typing", () => setIsTyping(false));
       socket.off("mentorship:session_expired", onSessionExpired);
-      socket.off("mentorship:completed",    onSessionExpired);
+      socket.off("mentorship:completed", onSessionExpired);
     };
   }, [isSocketReady, sessionId]);
 
@@ -102,6 +104,11 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
   const sendMessage = async () => {
     const trimmed = text.trim();
     if (!trimmed || sending || isReadOnly) return;
+    if (await isProfane(trimmed)) {
+      setProfanityWarning(true);
+      return;
+    }
+    setProfanityWarning(false);
     setSending(true);
     const optimistic = {
       _id: `opt-${Date.now()}`,
@@ -130,6 +137,7 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
 
   const handleTextChange = (e) => {
     setText(e.target.value);
+    if (profanityWarning) setProfanityWarning(false);
     if (!socketRef.current || isReadOnly) return;
     socketRef.current.emit("chat:typing", { mentorshipId: sessionId, userName: currentUser.name });
     clearTimeout(typingTimeout.current);
@@ -151,9 +159,9 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
   }, {});
 
   const accent = {
-    sky:    { bg: "bg-sky-500",     text: "text-sky-400",     bubble: "bg-sky-500 text-white" },
-    emerald:{ bg: "bg-emerald-500", text: "text-emerald-400", bubble: "bg-emerald-500 text-white" },
-    violet: { bg: "bg-violet-500",  text: "text-violet-400",  bubble: "bg-violet-500 text-white" },
+    sky: { bg: "bg-sky-500", text: "text-sky-400", bubble: "bg-sky-500 text-white" },
+    emerald: { bg: "bg-emerald-500", text: "text-emerald-400", bubble: "bg-emerald-500 text-white" },
+    violet: { bg: "bg-violet-500", text: "text-violet-400", bubble: "bg-violet-500 text-white" },
   }[accentColor] || { bg: "bg-sky-500", text: "text-sky-400", bubble: "bg-sky-500 text-white" };
 
   return (
@@ -218,9 +226,9 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
               </div>
               <div className="space-y-2">
                 {dayMessages.map((msg) => {
-                  const isOwn   = msg.sender?.id?.toString() === currentUser._id?.toString();
-                  const isLink  = !!msg.meetingLink;
-                  const isSys   = msg.isSystem || msg.sender?.role === "System";
+                  const isOwn = msg.sender?.id?.toString() === currentUser._id?.toString();
+                  const isLink = !!msg.meetingLink;
+                  const isSys = msg.isSystem || msg.sender?.role === "System";
 
                   // System messages — centered, neutral style
                   if (isSys) {
@@ -239,11 +247,10 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
                         {!isOwn && (
                           <span className="text-xs text-slate-600 px-1">{msg.sender?.name}</span>
                         )}
-                        <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${
-                          isOwn
-                            ? `${accent.bubble} rounded-br-sm`
-                            : "bg-slate-800 text-slate-200 rounded-bl-sm"
-                        } ${msg.optimistic ? "opacity-70" : ""} ${isLink ? "border border-emerald-500/30" : ""}`}>
+                        <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${isOwn
+                          ? `${accent.bubble} rounded-br-sm`
+                          : "bg-slate-800 text-slate-200 rounded-bl-sm"
+                          } ${msg.optimistic ? "opacity-70" : ""} ${isLink ? "border border-emerald-500/30" : ""}`}>
                           {isLink ? (
                             <div>
                               <p className="mb-1.5 whitespace-pre-line">{msg.text.split("\n")[0]}</p>
@@ -272,7 +279,7 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
         {isTyping && (
           <div className="flex justify-start">
             <div className="bg-slate-800 rounded-2xl rounded-bl-sm px-4 py-2.5 flex gap-1 items-center">
-              {[0,1,2].map(i => (
+              {[0, 1, 2].map(i => (
                 <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
               ))}
             </div>
@@ -296,25 +303,34 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
           <p className="text-slate-600 text-xs">Chat is closed for this session</p>
         </div>
       ) : (
-        <div className="px-4 py-3 border-t border-white/[0.07] flex gap-2 items-end">
-          <textarea
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message… (Enter to send)"
-            rows={1}
-            className={`flex-1 px-3 py-2.5 rounded-xl bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-${accentColor}-500 max-h-32 overflow-y-auto`}
-            style={{ minHeight: "42px" }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!text.trim() || sending}
-            className={`p-2.5 rounded-xl ${accent.bg} text-white flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90`}>
-            {sending
-              ? <PiCircleNotch size={18} className="animate-spin" />
-              : <PiPaperPlaneTilt size={18} />
-            }
-          </button>
+        <div className="px-4 py-3 border-t border-white/[0.07] flex flex-col gap-2">
+          {profanityWarning && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/25 rounded-lg">
+              <PiWarningCircle size={14} className="text-red-400 flex-shrink-0" />
+              <p className="text-red-400 text-xs">Your message contains unprofessional language. Please revise before sending.</p>
+            </div>
+          )}
+          <div className="flex gap-2 items-end">
+            <textarea
+              value={text}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message… (Enter to send)"
+              rows={1}
+              className={`flex-1 px-3 py-2.5 rounded-xl bg-slate-800 border ${profanityWarning ? "border-red-500/50" : "border-white/[0.07]"
+                } text-slate-200 placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-${accentColor}-500 max-h-32 overflow-y-auto`}
+              style={{ minHeight: "42px" }}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!text.trim() || sending}
+              className={`p-2.5 rounded-xl ${accent.bg} text-white flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90`}>
+              {sending
+                ? <PiCircleNotch size={18} className="animate-spin" />
+                : <PiPaperPlaneTilt size={18} />
+              }
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -4,14 +4,14 @@ const connectionSchema = new mongoose.Schema({
 
   // Who sent the request
   sender: {
-    id:   { type: mongoose.Schema.Types.ObjectId, required: true },
+    id: { type: mongoose.Schema.Types.ObjectId, required: true },
     name: { type: String, required: true },
     role: { type: String, enum: ["Student", "Alumni", "Teacher"], required: true },
   },
 
   // Who received the request
   receiver: {
-    id:   { type: mongoose.Schema.Types.ObjectId, required: true },
+    id: { type: mongoose.Schema.Types.ObjectId, required: true },
     name: { type: String, required: true },
     role: { type: String, enum: ["Student", "Alumni", "Teacher"], required: true },
   },
@@ -22,6 +22,9 @@ const connectionSchema = new mongoose.Schema({
     enum: ["Pending", "Accepted", "Rejected", "Withdrawn"],
     default: "Pending",
   },
+
+  // If the connection chat is blocked due to profanity
+  isBlocked: { type: Boolean, default: false },
 
   // Optional note when sending the request
   note: {

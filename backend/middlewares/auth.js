@@ -10,14 +10,14 @@ function getModelByRole(role) {
   switch (role) {
     case "Student": return Student;
     case "Teacher": return Teacher;
-    case "Alumni":  return Alumni;
-    case "Admin":   return Admin;
-    default:        return null;
+    case "Alumni": return Alumni;
+    case "Admin": return Admin;
+    default: return null;
   }
 }
 
 export const isAuthenticated = catchAsyncError(async (req, res, next) => {
-  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+  const { token } = req.cookies;
 
   if (!token) {
     return next(new ErrorHandler("User is not authenticated.", 400));
@@ -38,12 +38,16 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("User not found.", 404));
   }
 
+  if (req.user.isBlocked) {
+    return next(new ErrorHandler("Your account has been blocked by an administrator.", 403));
+  }
+
   next();
 });
 
 // ── isAdmin: only allow if role is Admin ──────────────────────────────────────
 export const isAdmin = catchAsyncError(async (req, res, next) => {
-  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+  const { token } = req.cookies;
 
   if (!token) {
     return next(new ErrorHandler("User is not authenticated.", 401));

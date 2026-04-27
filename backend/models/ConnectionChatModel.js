@@ -9,7 +9,7 @@ const connectionChatMessageSchema = new mongoose.Schema(
       index: true,
     },
     sender: {
-      id:   { type: mongoose.Schema.Types.ObjectId, required: true },
+      id: { type: mongoose.Schema.Types.ObjectId, required: true },
       name: { type: String, required: true },
       role: { type: String, enum: ["Student", "Alumni", "Teacher"], required: true },
     },
@@ -20,6 +20,8 @@ const connectionChatMessageSchema = new mongoose.Schema(
       trim: true,
     },
     readBy: [{ type: mongoose.Schema.Types.ObjectId }],
+    // Profanity flagging — flagged messages are saved but reported to admin
+    is_flagged: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

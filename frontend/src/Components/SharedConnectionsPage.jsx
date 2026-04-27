@@ -8,6 +8,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../main";
 import { useSocket } from "../SocketContext";
+import { isProfane } from "../utils/profanityCheck";
 import {
   PiMagnifyingGlass, PiUsersThree, PiChatCircleText,
   PiPaperPlaneTilt, PiCircleNotch, PiX, PiTrash,
@@ -15,24 +16,24 @@ import {
 } from "react-icons/pi";
 import { FaLinkedin, FaGithub, FaGlobe } from "react-icons/fa";
 
-const API_BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1`;
+const API_BASE = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1`;
 
 const ROLE_GRADIENT = {
   Student: "from-sky-400 to-sky-600",
-  Alumni:  "from-emerald-400 to-emerald-600",
+  Alumni: "from-emerald-400 to-emerald-600",
   Teacher: "from-violet-400 to-violet-600",
 };
 
 const ROLE_BADGE = {
   Student: "bg-sky-500/15 text-sky-400 border-sky-500/25",
-  Alumni:  "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
+  Alumni: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
   Teacher: "bg-violet-500/15 text-violet-400 border-violet-500/25",
 };
 
 const ACCENT = {
-  sky:    { ring: "focus:ring-sky-500",     send: "bg-sky-500 hover:bg-sky-400",     text: "text-sky-400",     border: "border-l-sky-500",     active: "bg-sky-500/10" },
-  emerald:{ ring: "focus:ring-emerald-500", send: "bg-emerald-500 hover:bg-emerald-400", text: "text-emerald-400", border: "border-l-emerald-500", active: "bg-emerald-500/10" },
-  violet: { ring: "focus:ring-violet-500",  send: "bg-violet-500 hover:bg-violet-400",  text: "text-violet-400",  border: "border-l-violet-500",  active: "bg-violet-500/10" },
+  sky: { ring: "focus:ring-sky-500", send: "bg-sky-500 hover:bg-sky-400", text: "text-sky-400", border: "border-l-sky-500", active: "bg-sky-500/10" },
+  emerald: { ring: "focus:ring-emerald-500", send: "bg-emerald-500 hover:bg-emerald-400", text: "text-emerald-400", border: "border-l-emerald-500", active: "bg-emerald-500/10" },
+  violet: { ring: "focus:ring-violet-500", send: "bg-violet-500 hover:bg-violet-400", text: "text-violet-400", border: "border-l-violet-500", active: "bg-violet-500/10" },
 };
 
 function formatTime(iso) {
@@ -53,17 +54,18 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
   const { socketRef, isSocketReady } = useSocket();
   const ac = ACCENT[accentColor] || ACCENT.sky;
 
-  const [messages, setMessages]   = useState([]);
-  const [text, setText]           = useState("");
-  const [loading, setLoading]     = useState(true);
-  const [sending, setSending]     = useState(false);
-  const [isTyping, setIsTyping]   = useState(false);
-  const [showInfo, setShowInfo]   = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [profanityWarning, setProfanityWarning] = useState(false);
 
-  const bottomRef     = useRef(null);
+  const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
-  const connectionId  = connection.connectionId;
-  const other         = connection.connectedWith;
+  const connectionId = connection.connectionId;
+  const other = connection.connectedWith;
 
   // Fetch chat history
   useEffect(() => {
@@ -91,21 +93,21 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
         });
         setIsTyping(false);
         // Mark as read explicitly to avoid unread badge bug
-        axios.put(`${API_BASE}/connections/${connectionId}/chat/read`, {}, { withCredentials: true }).catch(() => {});
+        axios.put(`${API_BASE}/connections/${connectionId}/chat/read`, {}, { withCredentials: true }).catch(() => { });
       }
     };
-    const onTyping    = (data) => { if (data.connectionId === connectionId) setIsTyping(true); };
+    const onTyping = (data) => { if (data.connectionId === connectionId) setIsTyping(true); };
     const onStopTyping = (data) => { if (data.connectionId === connectionId) setIsTyping(false); };
 
     socket.on("connection:chat_message", onMsg);
-    socket.on("conn_chat:typing",        onTyping);
-    socket.on("conn_chat:stop_typing",   onStopTyping);
+    socket.on("conn_chat:typing", onTyping);
+    socket.on("conn_chat:stop_typing", onStopTyping);
 
     return () => {
       socket.emit("conn_chat:leave", connectionId);
       socket.off("connection:chat_message", onMsg);
-      socket.off("conn_chat:typing",        onTyping);
-      socket.off("conn_chat:stop_typing",   onStopTyping);
+      socket.off("conn_chat:typing", onTyping);
+      socket.off("conn_chat:stop_typing", onStopTyping);
     };
   }, [isSocketReady, connectionId]);
 
@@ -116,6 +118,11 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
   const sendMessage = async () => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
+    if (await isProfane(trimmed)) {
+      setProfanityWarning(true);
+      return;
+    }
+    setProfanityWarning(false);
     setSending(true);
     const optimistic = {
       _id: `opt-${Date.now()}`,
@@ -145,6 +152,7 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
 
   const handleTextChange = (e) => {
     setText(e.target.value);
+    if (profanityWarning) setProfanityWarning(false);
     if (!socketRef.current) return;
     socketRef.current.emit("conn_chat:typing", { connectionId, userName: currentUser.name });
     clearTimeout(typingTimeout.current);
@@ -254,11 +262,10 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
                         {!isOwn && (
                           <span className="text-xs text-slate-600 px-1">{msg.sender?.name}</span>
                         )}
-                        <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${
-                          isOwn
-                            ? `bg-${accentColor === "sky" ? "sky" : accentColor === "emerald" ? "emerald" : "violet"}-500 text-white rounded-br-sm`
-                            : "bg-slate-800 text-slate-200 rounded-bl-sm"
-                        } ${msg.optimistic ? "opacity-70" : ""}`}>
+                        <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${isOwn
+                          ? `bg-${accentColor === "sky" ? "sky" : accentColor === "emerald" ? "emerald" : "violet"}-500 text-white rounded-br-sm`
+                          : "bg-slate-800 text-slate-200 rounded-bl-sm"
+                          } ${msg.optimistic ? "opacity-70" : ""}`}>
                           <span className="whitespace-pre-line">{msg.text}</span>
                         </div>
                         <span className="text-[10px] text-slate-600 px-1">
@@ -288,26 +295,34 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-white/[0.07] flex gap-2 items-end flex-shrink-0">
-        <textarea
-          value={text}
-          onChange={handleTextChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message… (Enter to send)"
-          rows={1}
-          className={`flex-1 px-3 py-2.5 rounded-xl bg-slate-800 border border-white/[0.07] text-slate-200 placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 ${ac.ring} max-h-32 overflow-y-auto`}
-          style={{ minHeight: "42px" }}
-        />
-        <button
-          onClick={sendMessage}
-          disabled={!text.trim() || sending}
-          className={`p-2.5 rounded-xl ${ac.send} text-white flex-shrink-0 disabled:opacity-40 transition-all`}
-        >
-          {sending
-            ? <PiCircleNotch size={18} className="animate-spin" />
-            : <PiPaperPlaneTilt size={18} />
-          }
-        </button>
+      <div className="px-4 py-3 border-t border-white/[0.07] flex flex-col gap-2 flex-shrink-0">
+        {profanityWarning && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/25 rounded-lg">
+            <span className="text-red-400 text-xs leading-tight">⚠️ Your message contains unprofessional language. Please revise before sending.</span>
+          </div>
+        )}
+        <div className="flex gap-2 items-end">
+          <textarea
+            value={text}
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message… (Enter to send)"
+            rows={1}
+            className={`flex-1 px-3 py-2.5 rounded-xl bg-slate-800 border ${profanityWarning ? "border-red-500/50" : "border-white/[0.07]"
+              } text-slate-200 placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 ${ac.ring} max-h-32 overflow-y-auto`}
+            style={{ minHeight: "42px" }}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!text.trim() || sending}
+            className={`p-2.5 rounded-xl ${ac.send} text-white flex-shrink-0 disabled:opacity-40 transition-all`}
+          >
+            {sending
+              ? <PiCircleNotch size={18} className="animate-spin" />
+              : <PiPaperPlaneTilt size={18} />
+            }
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -317,14 +332,13 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
 const ConnectionItem = ({ connection, isSelected, unread, onClick, accentColor }) => {
   const ac = ACCENT[accentColor] || ACCENT.sky;
   const other = connection.connectedWith;
-  const grad  = ROLE_GRADIENT[other?.role] || "from-sky-400 to-sky-600";
+  const grad = ROLE_GRADIENT[other?.role] || "from-sky-400 to-sky-600";
 
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] text-left transition-all hover:bg-slate-800/50 ${
-        isSelected ? `${ac.active} border-l-2 ${ac.border}` : ""
-      }`}
+      className={`w-full flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] text-left transition-all hover:bg-slate-800/50 ${isSelected ? `${ac.active} border-l-2 ${ac.border}` : ""
+        }`}
     >
       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
         {other?.name?.charAt(0)?.toUpperCase() || "?"}
@@ -333,11 +347,10 @@ const ConnectionItem = ({ connection, isSelected, unread, onClick, accentColor }
         <div className="flex items-center justify-between">
           <p className="text-white text-sm font-semibold truncate">{other?.name}</p>
           {unread > 0 && (
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-2 flex-shrink-0 ${
-              accentColor === "sky" ? "bg-sky-500 text-white" :
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-2 flex-shrink-0 ${accentColor === "sky" ? "bg-sky-500 text-white" :
               accentColor === "emerald" ? "bg-emerald-500 text-white" :
-              "bg-violet-500 text-white"
-            }`}>
+                "bg-violet-500 text-white"
+              }`}>
               {unread}
             </span>
           )}
@@ -355,18 +368,18 @@ const ConnectionItem = ({ connection, isSelected, unread, onClick, accentColor }
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function SharedConnectionsPage({ role, accentColor = "sky" }) {
-  const { user }                     = useContext(Context);
+  const { user } = useContext(Context);
   const { socketRef, isSocketReady } = useSocket();
-  const [searchParams]               = useSearchParams();
-  const deepLinkId                   = searchParams.get("conn");
+  const [searchParams] = useSearchParams();
+  const deepLinkId = searchParams.get("conn");
 
   const ac = ACCENT[accentColor] || ACCENT.sky;
 
-  const [connections, setConnections]   = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [search, setSearch]             = useState("");
-  const [selectedId, setSelectedId]     = useState(deepLinkId || null);
-  const [unread, setUnread]             = useState({});
+  const [connections, setConnections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState(deepLinkId || null);
+  const [unread, setUnread] = useState({});
   const [mobileShowChat, setMobileShowChat] = useState(!!deepLinkId);
 
   const fetchConnections = useCallback(async () => {
@@ -384,7 +397,7 @@ export default function SharedConnectionsPage({ role, accentColor = "sky" }) {
     try {
       const res = await axios.get(`${API_BASE}/connections/chat/unread-counts`, { withCredentials: true });
       setUnread(res.data.unread || {});
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -460,10 +473,9 @@ export default function SharedConnectionsPage({ role, accentColor = "sky" }) {
                   My Connections
                 </h2>
                 {totalUnread > 0 && (
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    accentColor === "sky" ? "bg-sky-500" :
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${accentColor === "sky" ? "bg-sky-500" :
                     accentColor === "emerald" ? "bg-emerald-500" : "bg-violet-500"
-                  } text-white`}>
+                    } text-white`}>
                     {totalUnread}
                   </span>
                 )}

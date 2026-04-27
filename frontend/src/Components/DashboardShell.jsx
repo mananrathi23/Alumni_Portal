@@ -6,11 +6,12 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FaSignOutAlt, FaBars, FaTimes } from "react-icons/fa";
-import { PiGraduationCap, PiUserCircle, PiCaretDown, PiSpeakerHigh, PiWarningCircle } from "react-icons/pi";
+import { PiGraduationCap, PiUserCircle, PiCaretDown, PiSpeakerHigh, PiWarningCircle, PiBell } from "react-icons/pi";
 import axios from "axios";
 import ChatbotWidget from "./ChatbotWidget";
 import ThemeToggle from "./ThemeToggle.jsx";
 import { Context } from "../main";
+import { useSocket } from "../SocketContext";
 
 const BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1`;
 
@@ -137,6 +138,45 @@ const DashboardShell = ({
   const navigate = useNavigate();
   const ac       = ACCENT[accentColor] || ACCENT.sky;
   const initials = user?.name?.charAt(0)?.toUpperCase() ?? "?";
+
+  // Real-time Notification Bell Logic
+  const [bellPendingCount, setBellPendingCount] = useState(0);
+  const { socketRef, isSocketReady } = useSocket();
+
+  const fetchPendingCount = () => {
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
+      .then((res) => setBellPendingCount(res.data.requests?.length ?? 0))
+      .catch(() => setBellPendingCount(0));
+  };
+
+  useEffect(() => {
+    fetchPendingCount();
+  }, []);
+
+  useEffect(() => {
+    const socket = socketRef?.current;
+    if (!isSocketReady || !socket) return;
+
+    socket.on("connection:new_request", fetchPendingCount);
+    socket.on("connection:accepted", fetchPendingCount);
+    socket.on("connection:rejected", fetchPendingCount);
+    socket.on("connection:withdrawn", fetchPendingCount);
+    socket.on("connection:removed", fetchPendingCount);
+
+    return () => {
+      socket.off("connection:new_request", fetchPendingCount);
+      socket.off("connection:accepted", fetchPendingCount);
+      socket.off("connection:rejected", fetchPendingCount);
+      socket.off("connection:withdrawn", fetchPendingCount);
+      socket.off("connection:removed", fetchPendingCount);
+    };
+  }, [isSocketReady, socketRef]);
+
+  const handleBellClick = () => {
+    if (role === "Student") navigate("/student/requests");
+    else if (role === "Alumni") navigate("/alumni/messages");
+    else if (role === "Teacher") navigate("/teacher/messages");
+  };
 
   useEffect(() => {
     const h = e => { if (dropRef.current && !dropRef.current.contains(e.target)) setShowDrop(false); };
@@ -301,6 +341,21 @@ const DashboardShell = ({
                 {user?.name}
               </p>
             </div>
+
+            {/* Notification Bell */}
+            <button
+              onClick={handleBellClick}
+              className={`relative p-2 ml-1 rounded-full transition-all flex-shrink-0 ${theme === "dark" ? "text-slate-400 hover:text-white hover:bg-slate-800" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"}`}
+              title="Connection Requests"
+            >
+              <PiBell size={20} />
+              {bellPendingCount > 0 && (
+                <span className={`absolute top-0.5 right-0 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ${theme === "dark" ? "ring-slate-900" : "ring-white"} leading-none`}>
+                  {bellPendingCount > 9 ? "9+" : bellPendingCount}
+                </span>
+              )}
+            </button>
+
             <div className="relative" ref={dropRef}>
               <button
                 onClick={() => setShowDrop((p) => !p)}

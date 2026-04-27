@@ -6,7 +6,13 @@ import {
 } from "react-icons/pi";
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
-const Avatar = ({ name, role }) => {
+const Avatar = ({ name, role, profilePhotoUrl }) => {
+  if (profilePhotoUrl) {
+    return (
+      <img src={profilePhotoUrl} alt={name} className="w-10 h-10 rounded-full object-cover border border-white/[0.1] flex-shrink-0 bg-slate-800" />
+    );
+  }
+
   const cls = role === "Alumni"
     ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
     : "bg-sky-500/20 text-sky-400 border-sky-500/30";
@@ -32,7 +38,7 @@ const RoleBadge = ({ role }) => {
 // ── User card ─────────────────────────────────────────────────────────────────
 const UserCard = ({ user }) => (
   <div className="flex items-stretch gap-3 p-3 rounded-lg bg-slate-800/50 border border-white/[0.05] hover:bg-slate-800 transition-colors">
-    <Avatar name={user.name} role={user.role} />
+    <Avatar name={user.name} role={user.role} profilePhotoUrl={user.profilePhoto?.url} />
     <div className="min-w-0 flex-1 flex flex-col justify-between">
       <div>
         <div className="flex items-center gap-2 flex-wrap">

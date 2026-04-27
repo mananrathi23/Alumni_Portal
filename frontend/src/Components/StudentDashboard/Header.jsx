@@ -180,7 +180,7 @@ const Header = ({ student }) => {
               <div className={`absolute right-0 top-full mt-2 w-44 rounded-xl shadow-2xl overflow-hidden z-50 ${theme === "dark" ? "bg-slate-900 border border-white/[0.07]" : "bg-white border border-slate-200/70"}`}>
                 <button
                   onClick={() => { setShowDropdown(false); navigate("/student/profile"); }}
-                  className={`w-full flex items-center gap-2.5 px-4 py-3 text-sm ${theme === "dark" ? "text-slate-300 hover:bg-slate-800 hover:text-white" : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"} transition-all text-left`
+                  className={`w-full flex items-center gap-2.5 px-4 py-3 text-sm ${theme === "dark" ? "text-slate-300 hover:bg-slate-800 hover:text-white" : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"} transition-all text-left`}
                 >
                   <PiUserCircle size={16} className="text-sky-400" />
                   My Profile
@@ -188,7 +188,7 @@ const Header = ({ student }) => {
                 <div className="h-px bg-white/[0.07]" />
                 <button
                   onClick={handleLogout}
-                  className={`w-full flex items-center gap-2.5 px-4 py-3 text-sm ${theme === "dark" ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400" : "text-slate-700 hover:bg-red-500/10 hover:text-red-400"} transition-all text-left`
+                  className={`w-full flex items-center gap-2.5 px-4 py-3 text-sm ${theme === "dark" ? "text-slate-400 hover:bg-red-500/10 hover:text-red-400" : "text-slate-700 hover:bg-red-500/10 hover:text-red-400"} transition-all text-left`}
                 >
                   <FaSignOutAlt size={13} className="flex-shrink-0" />
                   Logout

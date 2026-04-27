@@ -344,7 +344,12 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
 
   fields.forEach((field) => {
     if (req.body[field] !== undefined) {
-      user[field] = req.body[field];
+      // Treat empty strings for unique sparse fields as undefined to avoid duplicate key errors
+      if (req.body[field] === "" && (field === "enrollmentNumber" || field === "employeeId")) {
+        user[field] = undefined;
+      } else {
+        user[field] = req.body[field];
+      }
     }
   });
 

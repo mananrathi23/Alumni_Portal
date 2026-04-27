@@ -11,7 +11,7 @@ import { emitToUser } from "../Socket.js";
 // Helper — find any user by id and role
 async function findUserByIdAndRole(id, role) {
   if (role === "Student") return await Student.findById(id);
-  if (role === "Alumni")  return await Alumni.findById(id);
+  if (role === "Alumni") return await Alumni.findById(id);
   if (role === "Teacher") return await Teacher.findById(id);
   return null;
 }
@@ -20,7 +20,7 @@ async function findUserByIdAndRole(id, role) {
 // POST /api/v1/connections/send
 // Body: { receiverId, receiverRole, note? }
 export const sendConnectionRequest = catchAsyncError(async (req, res, next) => {
-  const sender     = req.user;
+  const sender = req.user;
   const senderRole = sender.constructor.modelName;
   const { receiverId, receiverRole, note } = req.body;
 
@@ -39,8 +39,8 @@ export const sendConnectionRequest = catchAsyncError(async (req, res, next) => {
 
   const existingRequest = await Connection.findOne({
     $or: [
-      { "sender.id": sender._id,  "receiver.id": receiverId },
-      { "sender.id": receiverId,  "receiver.id": sender._id },
+      { "sender.id": sender._id, "receiver.id": receiverId },
+      { "sender.id": receiverId, "receiver.id": sender._id },
     ],
   });
 
@@ -53,10 +53,10 @@ export const sendConnectionRequest = catchAsyncError(async (req, res, next) => {
     }
     // Rejected or Withdrawn — allow re-send
     if (existingRequest.status === "Rejected" || existingRequest.status === "Withdrawn") {
-      existingRequest.status    = "Pending";
-      existingRequest.note      = note || "";
-      existingRequest.sender    = { id: sender._id,  name: sender.name,   role: senderRole   };
-      existingRequest.receiver  = { id: receiverId,  name: receiver.name, role: receiverRole };
+      existingRequest.status = "Pending";
+      existingRequest.note = note || "";
+      existingRequest.sender = { id: sender._id, name: sender.name, role: senderRole };
+      existingRequest.receiver = { id: receiverId, name: receiver.name, role: receiverRole };
       existingRequest.updatedAt = Date.now();
       await existingRequest.save();
 
@@ -77,8 +77,8 @@ export const sendConnectionRequest = catchAsyncError(async (req, res, next) => {
 
   // Create brand new request
   const request = await Connection.create({
-    sender:   { id: sender._id,  name: sender.name,   role: senderRole   },
-    receiver: { id: receiverId,  name: receiver.name, role: receiverRole },
+    sender: { id: sender._id, name: sender.name, role: senderRole },
+    receiver: { id: receiverId, name: receiver.name, role: receiverRole },
     note,
   });
 
@@ -120,7 +120,7 @@ export const respondToRequest = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler(`This request is already ${request.status}.`, 400));
   }
 
-  request.status    = status;
+  request.status = status;
   request.updatedAt = Date.now();
   await request.save();
 
@@ -165,7 +165,7 @@ export const withdrawRequest = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Only pending requests can be withdrawn.", 400));
   }
 
-  request.status    = "Withdrawn";
+  request.status = "Withdrawn";
   request.updatedAt = Date.now();
   await request.save();
 
@@ -191,7 +191,7 @@ export const removeConnection = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Connection not found.", 404));
   }
 
-  const isSender   = request.sender.id.toString()   === user._id.toString();
+  const isSender = request.sender.id.toString() === user._id.toString();
   const isReceiver = request.receiver.id.toString() === user._id.toString();
 
   if (!isSender && !isReceiver) {
@@ -225,7 +225,7 @@ export const getMyConnections = catchAsyncError(async (req, res) => {
   const connections = await Connection.find({
     status: "Accepted",
     $or: [
-      { "sender.id":   user._id },
+      { "sender.id": user._id },
       { "receiver.id": user._id },
     ],
   }).sort({ updatedAt: -1 });
@@ -238,19 +238,19 @@ export const getMyConnections = catchAsyncError(async (req, res) => {
       otherStub.role === "Student"
         ? "name department year linkedIn github portfolio profilePhoto"
         : otherStub.role === "Alumni"
-        ? "name department linkedIn github profilePhoto currentCompany currentDesignation"
-        : otherStub.role === "Teacher"
-        ? "name department linkedIn profilePhoto designation"
-        : "";
+          ? "name department linkedIn github profilePhoto currentCompany currentDesignation"
+          : otherStub.role === "Teacher"
+            ? "name department linkedIn profilePhoto designation"
+            : "";
 
     const full =
       otherStub.role === "Student"
         ? await Student.findById(otherStub.id).select(select).lean()
         : otherStub.role === "Alumni"
-        ? await Alumni.findById(otherStub.id).select(select).lean()
-        : otherStub.role === "Teacher"
-        ? await Teacher.findById(otherStub.id).select(select).lean()
-        : null;
+          ? await Alumni.findById(otherStub.id).select(select).lean()
+          : otherStub.role === "Teacher"
+            ? await Teacher.findById(otherStub.id).select(select).lean()
+            : null;
 
     return {
       connectionId: c._id,
@@ -276,7 +276,7 @@ export const getPendingRequests = catchAsyncError(async (req, res) => {
 
   const [incoming, outgoing] = await Promise.all([
     Connection.find({ "receiver.id": user._id, status: "Pending" }).sort({ createdAt: -1 }),
-    Connection.find({ "sender.id":   user._id, status: "Pending" }).sort({ createdAt: -1 }),
+    Connection.find({ "sender.id": user._id, status: "Pending" }).sort({ createdAt: -1 }),
   ]);
 
   res.status(200).json({
@@ -289,13 +289,13 @@ export const getPendingRequests = catchAsyncError(async (req, res) => {
 // ── CHECK CONNECTION STATUS ───────────────────────────────────────────────────
 // GET /api/v1/connections/status/:userId
 export const getConnectionStatus = catchAsyncError(async (req, res) => {
-  const user     = req.user;
+  const user = req.user;
   const targetId = req.params.userId;
 
   const connection = await Connection.findOne({
     $or: [
-      { "sender.id":   user._id,  "receiver.id": targetId },
-      { "sender.id":   targetId,  "receiver.id": user._id },
+      { "sender.id": user._id, "receiver.id": targetId },
+      { "sender.id": targetId, "receiver.id": user._id },
     ],
   });
 
@@ -392,7 +392,7 @@ export const getUnreadCounts = catchAsyncError(async (req, res) => {
       { "receiver.id": user._id },
     ]
   }).select("_id").lean();
-  
+
   const connectionIds = connections.map(c => c._id);
 
   const counts = await ChatMessage.aggregate([

@@ -20,6 +20,7 @@ import {
   createGoogleMeetLink,
   getNextSlotISO,
 } from "../utils/googleCalendar.js";
+import { containsProfanity } from "../utils/ProfanityFilter.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getMentorModel(role) {
@@ -809,6 +810,35 @@ export const sendChatMessage = catchAsyncError(async (req, res, next) => {
       return next(new ErrorHandler("This session has ended. The chat is now read-only.", 403));
     }
     return next(new ErrorHandler("Chat is only available for active (accepted) sessions.", 403));
+  }
+
+  // ── Block check ──────────────────────────────────────────────────────────
+  if (mentorship.isBlocked) {
+    return next(new ErrorHandler(
+      "This chat has been blocked due to a policy violation. Please contact an administrator to restore access.",
+      403
+    ));
+  }
+
+  // ── Profanity check ───────────────────────────────────────────────────────
+  if (await containsProfanity(text.trim())) {
+    mentorship.violationCount = (mentorship.violationCount || 0) + 1;
+    if (mentorship.violationCount >= 3) {
+      mentorship.isBlocked = true;
+      await mentorship.save();
+      const recipientId = isStudent ? mentorship.mentor.id : mentorship.student.id;
+      emitToUser(recipientId, "chat:blocked", { mentorshipId, blockedBy: user.name });
+      emitToUser(user._id, "chat:blocked", { mentorshipId });
+      return next(new ErrorHandler(
+        "Your chat has been blocked due to repeated use of inappropriate language. Please contact an administrator.",
+        403
+      ));
+    }
+    await mentorship.save();
+    return next(new ErrorHandler(
+      "Your message contains inappropriate language and was not sent. Please keep the conversation professional.",
+      400
+    ));
   }
 
   const message = await ChatMessage.create({

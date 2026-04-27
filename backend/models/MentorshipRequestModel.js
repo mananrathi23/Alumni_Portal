@@ -27,6 +27,10 @@ const mentorshipRequestSchema = new mongoose.Schema({
     enum: ["Pending", "Accepted", "Rejected", "Cancelled", "Completed"],
     default: "Pending",
   },
+  // If the chat is blocked due to profanity
+  isBlocked: { type: Boolean, default: false },
+  // Number of profanity violations (chat blocked after 3)
+  violationCount: { type: Number, default: 0 },
   requestedAt: { type: Date, default: Date.now },
   // Exact datetime of the session (set when mentor accepts + slot day/time resolved)
   sessionDateTime: { type: Date, default: null },

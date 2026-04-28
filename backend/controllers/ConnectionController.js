@@ -24,6 +24,14 @@ export const sendConnectionRequest = catchAsyncError(async (req, res, next) => {
   const senderRole = sender.constructor.modelName;
   const { receiverId, receiverRole, note } = req.body;
 
+  // Block the sender if they are blocked or not yet admin-verified
+  if (sender.isBlocked) {
+    return next(new ErrorHandler("Your account has been blocked. Contact the administrator.", 403));
+  }
+  if (!sender.adminVerified) {
+    return next(new ErrorHandler("Your account is pending admin verification. You cannot send connection requests yet.", 403));
+  }
+
   if (!receiverId || !receiverRole) {
     return next(new ErrorHandler("Receiver ID and role are required.", 400));
   }

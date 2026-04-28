@@ -8,7 +8,7 @@ import { Context } from "../main";
 import {
   PiCalendarCheck, PiPlus, PiX, PiMapPin, PiLink, PiCircleNotch,
   PiClock, PiUser, PiCalendarBlank, PiCheck, PiTrash, PiPencilSimple,
-  PiWarningCircle,
+  PiWarningCircle, PiArrowUpRight,
 } from "react-icons/pi";
 
 import RestrictedAccess from "./RestrictedAccess";
@@ -183,8 +183,154 @@ function EventModal({ existing, onClose, onSaved, accentColor }) {
   );
 }
 
+// ── Event Detail Modal ───────────────────────────────────────────────────────
+function EventDetailModal({ event, currentUser, onClose, onToggleRegister, isRegistered }) {
+  const now             = new Date();
+  const isPast          = new Date(event.date) < now;
+  const deadlinePassed  = event.registrationDeadline && new Date(event.registrationDeadline) < now;
+  const registrationOpen = !isPast && !deadlinePassed;
+  const isOrganizer     = event.organizer?.id === currentUser?._id?.toString()
+                       || event.organizer?.id?.toString() === currentUser?._id?.toString();
+  const countdown       = !isPast ? daysUntil(event.date) : null;
+
+  const typeColors = {
+    seminar:"bg-sky-500/15 text-sky-400 border-sky-500/25",
+    workshop:"bg-violet-500/15 text-violet-400 border-violet-500/25",
+    webinar:"bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
+    hackathon:"bg-amber-500/15 text-amber-400 border-amber-500/25",
+    reunion:"bg-pink-500/15 text-pink-400 border-pink-500/25",
+    placement:"bg-orange-500/15 text-orange-400 border-orange-500/25",
+    other:"bg-slate-500/15 text-slate-400 border-slate-500/25",
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-slate-900 border border-white/[0.07] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between px-5 py-4 border-b border-white/[0.07]">
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${typeColors[event.type]||typeColors.other}`}>
+                {event.type}
+              </span>
+              {event.audience && event.audience !== "All" && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/25">
+                  {event.audience}s Only
+                </span>
+              )}
+              {countdown && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                  {countdown}
+                </span>
+              )}
+              {isRegistered && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/25">
+                  ✓ Registered
+                </span>
+              )}
+            </div>
+            <h2 className="text-white font-bold text-lg leading-snug">{event.title}</h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 flex-shrink-0">
+            <PiX size={18}/>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-5 space-y-5">
+          {/* Full Description */}
+          <div>
+            <p className="text-xs font-semibold text-slate-400 tracking-widest uppercase mb-2">About this Event</p>
+            <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{event.description}</p>
+          </div>
+
+          {/* Event Details Grid */}
+          <div className="bg-slate-800/50 border border-white/[0.05] rounded-xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-slate-400 tracking-widest uppercase">Event Details</p>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center gap-2.5 text-sm text-slate-300">
+                <PiCalendarBlank size={15} className="text-slate-500 flex-shrink-0"/>
+                <span>{formatDate(event.date)}</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-sm text-slate-300">
+                <PiClock size={15} className="text-slate-500 flex-shrink-0"/>
+                <span>{event.time}</span>
+              </div>
+              {event.location && (
+                <div className="flex items-center gap-2.5 text-sm text-slate-300">
+                  <PiMapPin size={15} className="text-slate-500 flex-shrink-0"/>
+                  <span>{event.location}</span>
+                </div>
+              )}
+              {event.link && (
+                <div className="flex items-center gap-2.5 text-sm">
+                  <PiLink size={15} className="text-slate-500 flex-shrink-0"/>
+                  <a href={event.link} target="_blank" rel="noreferrer"
+                     className="text-sky-400 hover:text-sky-300 hover:underline flex items-center gap-1">
+                    Join Online <PiArrowUpRight size={12}/>
+                  </a>
+                </div>
+              )}
+              <div className="flex items-center gap-2.5 text-sm text-slate-300">
+                <PiUser size={15} className="text-slate-500 flex-shrink-0"/>
+                <span>{event.organizer?.name} <span className="text-slate-500">· {event.organizer?.role}</span></span>
+              </div>
+            </div>
+          </div>
+
+          {/* Registration Deadline */}
+          {event.registrationDeadline && !isPast && (
+            <div className={`flex items-center gap-1.5 text-xs rounded-lg px-3 py-2 ${
+              deadlinePassed
+                ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+            }`}>
+              <PiCalendarBlank size={13}/>
+              {deadlinePassed ? "Registration is now closed" : `Register by ${formatDate(event.registrationDeadline)}`}
+            </div>
+          )}
+
+          {/* Registered Students (Admin/Organizer only) */}
+          {(currentUser?.role === "Admin" || isOrganizer) && event.registeredStudents?.length > 0 && (
+            <div className="pt-2 border-t border-white/[0.04]">
+              <p className="text-xs font-semibold text-slate-400 mb-2">Registered Students ({event.registeredStudents.length})</p>
+              <div className="flex flex-wrap gap-2">
+                {event.registeredStudents.map((s, i) => (
+                  <span key={i} className="text-[10px] px-2 py-1 rounded-md bg-slate-800 border border-white/[0.05] text-slate-300">
+                    {s.name || "Unknown"} {s.department && s.department !== "Not Set" ? `(${s.department})` : ""}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer — Register Button */}
+        {!isPast && currentUser?.role !== "Admin" && !isOrganizer && (
+          <div className="px-5 pb-5">
+            <button
+              onClick={onToggleRegister}
+              disabled={!registrationOpen && !isRegistered}
+              className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                isRegistered
+                  ? "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
+                  : "bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500/20"
+              }`}
+            >
+              {isRegistered ? <><PiX size={14}/> Unregister</> : <><PiCheck size={14}/> Register for this Event</>}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Event Card ────────────────────────────────────────────────────────────────
-function EventCard({ event, currentUser, canPost, onEdit, onDelete, onToggleRegister, isRegistered }) {
+function EventCard({ event, currentUser, canPost, onEdit, onDelete, onToggleRegister, isRegistered, onViewDetails }) {
   const now         = new Date();
   const isPast      = new Date(event.date) < now;
   const isOrganizer = event.organizer?.id === currentUser?._id?.toString()
@@ -235,6 +381,12 @@ function EventCard({ event, currentUser, canPost, onEdit, onDelete, onToggleRegi
           </div>
           <h3 className="text-white font-semibold text-base">{event.title}</h3>
           <p className="text-slate-400 text-sm mt-1 leading-relaxed line-clamp-2">{event.description}</p>
+          <button
+            onClick={onViewDetails}
+            className="text-xs text-sky-400 hover:text-sky-300 font-semibold mt-1 hover:underline transition-colors"
+          >
+            View Full Details →
+          </button>
         </div>
         {isOrganizer && (
           <div className="flex gap-1 flex-shrink-0">
@@ -308,6 +460,7 @@ export default function SharedEvents({ role, accentColor = "sky" }) {
   const [showModal, setModal]  = useState(false);
   const [editing, setEditing]  = useState(null);
   const [registered, setReg]   = useState({});
+  const [viewingEvent, setViewingEvent] = useState(null);
 
   const btnCls = {
     sky:"bg-sky-500 hover:bg-sky-400 shadow-sky-500/30",
@@ -420,6 +573,7 @@ export default function SharedEvents({ role, accentColor = "sky" }) {
               onEdit={() => setEditing(e)}
               onDelete={() => deleteEvent(e._id)}
               onToggleRegister={() => toggleRegister(e._id)}
+              onViewDetails={() => setViewingEvent(e)}
             />
           ))}
         </div>
@@ -431,6 +585,19 @@ export default function SharedEvents({ role, accentColor = "sky" }) {
           accentColor={accentColor}
           onClose={() => { setModal(false); setEditing(null); }}
           onSaved={() => { setModal(false); setEditing(null); fetchEvents(); }}
+        />
+      )}
+
+      {viewingEvent && (
+        <EventDetailModal
+          event={viewingEvent}
+          currentUser={user}
+          isRegistered={registered[viewingEvent._id] || false}
+          onToggleRegister={async () => {
+            await toggleRegister(viewingEvent._id);
+            setViewingEvent(prev => prev ? { ...prev } : null);
+          }}
+          onClose={() => setViewingEvent(null)}
         />
       )}
     </div>

@@ -37,6 +37,14 @@ export const sendConnectionRequest = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Receiver not found.", 404));
   }
 
+  // Block requests to users who are blocked or not yet admin-verified
+  if (receiver.isBlocked) {
+    return next(new ErrorHandler("You cannot connect with this user.", 403));
+  }
+  if (!receiver.adminVerified) {
+    return next(new ErrorHandler("This user has not been verified yet.", 403));
+  }
+
   const existingRequest = await Connection.findOne({
     $or: [
       { "sender.id": sender._id, "receiver.id": receiverId },
@@ -230,17 +238,17 @@ export const getMyConnections = catchAsyncError(async (req, res) => {
     ],
   }).sort({ updatedAt: -1 });
 
-  const normalized = await Promise.all(connections.map(async (c) => {
+  const normalized = (await Promise.all(connections.map(async (c) => {
     const isSender = c.sender.id.toString() === user._id.toString();
     const otherStub = isSender ? c.receiver : c.sender; // {id,name,role}
 
     const select =
       otherStub.role === "Student"
-        ? "name department year linkedIn github portfolio profilePhoto"
+        ? "name department year linkedIn github portfolio profilePhoto isBlocked adminVerified"
         : otherStub.role === "Alumni"
-          ? "name department linkedIn github profilePhoto currentCompany currentDesignation"
+          ? "name department linkedIn github profilePhoto currentCompany currentDesignation isBlocked adminVerified"
           : otherStub.role === "Teacher"
-            ? "name department linkedIn profilePhoto designation"
+            ? "name department linkedIn profilePhoto designation isBlocked adminVerified"
             : "";
 
     const full =
@@ -252,15 +260,21 @@ export const getMyConnections = catchAsyncError(async (req, res) => {
             ? await Teacher.findById(otherStub.id).select(select).lean()
             : null;
 
+    // Hide connections where the other user is blocked or not admin-verified
+    if (!full || full.isBlocked || !full.adminVerified) return null;
+
+    // Strip internal admin fields before sending to client
+    const { isBlocked: _b, adminVerified: _v, ...safeFields } = full;
+
     return {
       connectionId: c._id,
       connectedWith: {
         ...otherStub,
-        ...(full || {}),
+        ...safeFields,
       },
       connectedAt: c.updatedAt,
     };
-  }));
+  }))).filter(Boolean);
 
   res.status(200).json({
     success: true,

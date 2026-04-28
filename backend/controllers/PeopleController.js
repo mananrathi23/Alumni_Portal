@@ -40,6 +40,8 @@ export const getPeople = catchAsyncError(async (req, res) => {
 
   const baseFilter = {
     accountVerified: true,
+    adminVerified: true,   // hide users not yet verified by admin
+    isBlocked: false,      // hide blocked users
     _id: { $ne: user._id }, // never show yourself
     ...searchFilter,
     ...deptFilter,

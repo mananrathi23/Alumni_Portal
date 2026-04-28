@@ -15,7 +15,7 @@ export const getBatchmates = catchAsyncError(async (req, res) => {
     ? { $or: [{ name: { $regex: search.trim(), $options: "i" } }] }
     : {};
 
-  const baseFilter = { accountVerified: true, ...nameFilter };
+  const baseFilter = { accountVerified: true, adminVerified: true, isBlocked: false, ...nameFilter };
 
   const [rawStudents, rawAlumni] = await Promise.all([
     Student.find(baseFilter).select(STUDENT_FIELDS),

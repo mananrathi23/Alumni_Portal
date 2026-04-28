@@ -223,7 +223,7 @@ describe('POST /api/v1/user/login', () => {
       .send({ email: 'blocked@test.com', password: 'MyPassword@123', role: 'Student' });
 
     expect(res.status).toBe(403);
-    expect(res.body.message).toMatch(/suspended/i);
+    expect(res.body.message).toMatch(/blocked/i);
   });
 });
 

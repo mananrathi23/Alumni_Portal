@@ -179,6 +179,40 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     return <button disabled className="px-4 py-2 rounded-lg text-sm bg-gray-100 text-gray-500 cursor-not-allowed">Wait...</button>;
   }
 
+  // ── Guard: current user is blocked ───────────────────────────────────────
+  if (user?.isBlocked) {
+    return (
+      <div className="group relative inline-block">
+        <button
+          disabled
+          className="w-28 py-2 rounded-lg text-sm font-medium bg-red-100 text-red-400 cursor-not-allowed"
+        >
+          🚫 Blocked
+        </button>
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-56 text-center text-xs text-white bg-gray-800 rounded-lg px-3 py-2 shadow-lg pointer-events-none">
+          Your account has been blocked. Please contact the administrator.
+        </div>
+      </div>
+    );
+  }
+
+  // ── Guard: current user is not yet admin-verified ────────────────────────
+  if (!user?.adminVerified) {
+    return (
+      <div className="group relative inline-block">
+        <button
+          disabled
+          className="w-28 py-2 rounded-lg text-sm font-medium bg-amber-100 text-amber-500 cursor-not-allowed"
+        >
+          ⏳ Pending
+        </button>
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-64 text-center text-xs text-white bg-gray-800 rounded-lg px-3 py-2 shadow-lg pointer-events-none">
+          You need to be verified by the admin before sending connection requests.
+        </div>
+      </div>
+    );
+  }
+
   if (status === "Accepted") {
     return (
       <button

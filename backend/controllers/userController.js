@@ -184,6 +184,11 @@ export const login = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Invalid email or Password.", 400));
   }
 
+  // 0. Immediately reject blocked accounts — before any other check
+  if (user.isBlocked) {
+    return next(new ErrorHandler("Your account has been blocked by the administrator. Please contact support.", 403));
+  }
+
   // 1. Check if account is locked
   if (user.lockUntil && user.lockUntil > Date.now()) {
     const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / (1000 * 60));
@@ -212,10 +217,6 @@ export const login = catchAsyncError(async (req, res, next) => {
     user.loginAttempts = 0;
     user.lockUntil = null;
     await user.save({ validateModifiedOnly: true });
-  }
-
-  if (user.isBlocked) {
-    return next(new ErrorHandler("Your account has been suspended by the administrator. Please contact support.", 403));
   }
 
   // keepSignedIn = true → 30 day cookie, false/undefined → 7 day cookie

@@ -1,405 +1,505 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Alumni Portal is currently under maintenance. We'll be back soon!" />
-    <title>Alumni Portal — Under Maintenance</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-    <style>
-      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-      :root {
-        --bg: #0a0e1a;
-        --surface: rgba(255,255,255,0.04);
-        --border: rgba(255,255,255,0.08);
-        --accent: #6366f1;
-        --accent2: #8b5cf6;
-        --text: #f1f5f9;
-        --muted: #94a3b8;
-        --glow: rgba(99,102,241,0.3);
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Alumni Portal is currently under maintenance. We'll be back soon!" />
+  <title>Alumni Portal — Under Maintenance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0a0e1a;
+      --surface: rgba(255, 255, 255, 0.04);
+      --border: rgba(255, 255, 255, 0.08);
+      --accent: #6366f1;
+      --accent2: #8b5cf6;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --glow: rgba(99, 102, 241, 0.3);
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(139, 92, 246, 0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
+      z-index: 0;
+      animation: bgPulse 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes bgPulse {
+      0% {
+        opacity: 0.7;
       }
 
-      html, body {
-        height: 100%;
-        font-family: 'Inter', sans-serif;
-        background: var(--bg);
-        color: var(--text);
-        overflow-x: hidden;
+      100% {
+        opacity: 1;
       }
+    }
 
-      /* Animated background */
-      body::before {
-        content: '';
-        position: fixed;
-        inset: 0;
-        background:
-          radial-gradient(ellipse 80% 50% at 20% 20%, rgba(99,102,241,0.12) 0%, transparent 60%),
-          radial-gradient(ellipse 60% 40% at 80% 80%, rgba(139,92,246,0.10) 0%, transparent 60%),
-          radial-gradient(ellipse 40% 30% at 50% 50%, rgba(99,102,241,0.05) 0%, transparent 70%);
-        z-index: 0;
-        animation: bgPulse 8s ease-in-out infinite alternate;
-      }
+    /* Floating particles */
+    .particles {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
 
-      @keyframes bgPulse {
-        0% { opacity: 0.7; }
-        100% { opacity: 1; }
-      }
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0;
+      animation: float linear infinite;
+    }
 
-      /* Floating particles */
-      .particles {
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        pointer-events: none;
-        overflow: hidden;
-      }
-
-      .particle {
-        position: absolute;
-        width: 2px;
-        height: 2px;
-        border-radius: 50%;
-        background: var(--accent);
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) translateX(0) scale(0);
         opacity: 0;
-        animation: float linear infinite;
       }
 
-      @keyframes float {
-        0%   { transform: translateY(100vh) translateX(0) scale(0); opacity: 0; }
-        10%  { opacity: 0.6; }
-        90%  { opacity: 0.3; }
-        100% { transform: translateY(-10vh) translateX(60px) scale(1.5); opacity: 0; }
+      10% {
+        opacity: 0.6;
       }
 
-      /* Main layout */
-      .container {
-        position: relative;
-        z-index: 1;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        text-align: center;
+      90% {
+        opacity: 0.3;
       }
 
-      /* Gear animation */
-      .gear-wrap {
-        margin-bottom: 2rem;
-        position: relative;
-        width: 100px;
-        height: 100px;
+      100% {
+        transform: translateY(-10vh) translateX(60px) scale(1.5);
+        opacity: 0;
+      }
+    }
+
+    /* Main layout */
+    .container {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* Gear animation */
+    .gear-wrap {
+      margin-bottom: 2rem;
+      position: relative;
+      width: 100px;
+      height: 100px;
+    }
+
+    .gear-wrap svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 20px var(--glow));
+    }
+
+    .gear-big {
+      animation: spinCW 6s linear infinite;
+      transform-origin: center;
+    }
+
+    .gear-small {
+      animation: spinCCW 4s linear infinite;
+      transform-origin: center;
+    }
+
+    @keyframes spinCW {
+      from {
+        transform: rotate(0deg);
       }
 
-      .gear-wrap svg {
-        width: 100%;
-        height: 100%;
-        filter: drop-shadow(0 0 20px var(--glow));
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes spinCCW {
+      from {
+        transform: rotate(0deg);
       }
 
-      .gear-big { animation: spinCW 6s linear infinite; transform-origin: center; }
-      .gear-small { animation: spinCCW 4s linear infinite; transform-origin: center; }
+      to {
+        transform: rotate(-360deg);
+      }
+    }
 
-      @keyframes spinCW  { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      @keyframes spinCCW { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      border-radius: 100px;
+      padding: 0.35rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      animation: fadeInDown 0.6s ease;
+    }
 
-      /* Badge */
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: rgba(239,68,68,0.15);
-        border: 1px solid rgba(239,68,68,0.3);
-        color: #f87171;
-        border-radius: 100px;
-        padding: 0.35rem 1rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        margin-bottom: 1.5rem;
-        animation: fadeInDown 0.6s ease;
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #f87171;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
       }
 
-      .badge-dot {
-        width: 8px; height: 8px;
-        border-radius: 50%;
-        background: #f87171;
-        animation: blink 1.2s ease-in-out infinite;
+      50% {
+        opacity: 0.2;
+      }
+    }
+
+    /* Heading */
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: fadeInDown 0.7s ease 0.1s both;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 480px;
+      line-height: 1.7;
+      margin-bottom: 3rem;
+      animation: fadeInDown 0.7s ease 0.2s both;
+    }
+
+    /* Countdown */
+    .countdown-wrap {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+      animation: fadeInUp 0.7s ease 0.3s both;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .time-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .time-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #e0e7ff;
+      position: relative;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: box-shadow 0.3s;
+    }
+
+    .time-box::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, transparent 60%);
+    }
+
+    .time-box.tick {
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .time-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 3rem;
+      animation: fadeInUp 0.7s ease 0.4s both;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 1s linear;
+      box-shadow: 0 0 12px var(--glow);
+    }
+
+    /* Info cards */
+    .info-cards {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeInUp 0.7s ease 0.5s both;
+    }
+
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.9rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .info-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .info-card .icon {
+      font-size: 1.1rem;
+    }
+
+    .info-card strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Footer */
+    .footer {
+      font-size: 0.78rem;
+      color: rgba(148, 163, 184, 0.5);
+      animation: fadeInUp 0.7s ease 0.6s both;
+    }
+
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Animations */
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
       }
 
-      @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-      /* Heading */
-      h1 {
-        font-size: clamp(2rem, 5vw, 3.5rem);
-        font-weight: 800;
-        line-height: 1.1;
-        margin-bottom: 1rem;
-        background: linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 50%, #818cf8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        animation: fadeInDown 0.7s ease 0.1s both;
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
       }
 
-      .subtitle {
-        font-size: 1.1rem;
-        color: var(--muted);
-        max-width: 480px;
-        line-height: 1.7;
-        margin-bottom: 3rem;
-        animation: fadeInDown 0.7s ease 0.2s both;
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
+    }
 
-      /* Countdown */
-      .countdown-wrap {
-        display: flex;
-        gap: 1.5rem;
-        margin-bottom: 3rem;
-        animation: fadeInUp 0.7s ease 0.3s both;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-
-      .time-block {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
+    /* Responsive */
+    @media (max-width: 480px) {
       .time-box {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        width: 90px;
-        height: 90px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #e0e7ff;
-        position: relative;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 0 30px rgba(99,102,241,0.1), inset 0 1px 0 rgba(255,255,255,0.08);
-        transition: box-shadow 0.3s;
+        width: 72px;
+        height: 72px;
+        font-size: 1.8rem;
       }
 
-      .time-box::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 16px;
-        background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, transparent 60%);
-      }
-
-      .time-box.tick {
-        box-shadow: 0 0 30px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
-      }
-
-      .time-label {
-        font-size: 0.7rem;
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-
-      /* Progress bar */
-      .progress-wrap {
-        width: 100%;
-        max-width: 400px;
-        margin-bottom: 3rem;
-        animation: fadeInUp 0.7s ease 0.4s both;
-      }
-
-      .progress-label {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.75rem;
-        color: var(--muted);
-        margin-bottom: 0.5rem;
-      }
-
-      .progress-bar-bg {
-        width: 100%;
-        height: 6px;
-        background: rgba(255,255,255,0.06);
-        border-radius: 100px;
-        overflow: hidden;
-      }
-
-      .progress-bar-fill {
-        height: 100%;
-        border-radius: 100px;
-        background: linear-gradient(90deg, var(--accent), var(--accent2));
-        transition: width 1s linear;
-        box-shadow: 0 0 12px var(--glow);
-      }
-
-      /* Info cards */
-      .info-cards {
-        display: flex;
+      .countdown-wrap {
         gap: 1rem;
-        margin-bottom: 2.5rem;
-        flex-wrap: wrap;
-        justify-content: center;
-        animation: fadeInUp 0.7s ease 0.5s both;
       }
+    }
+  </style>
+</head>
 
-      .info-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 0.9rem 1.2rem;
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        font-size: 0.85rem;
-        color: var(--muted);
-        backdrop-filter: blur(8px);
-        transition: border-color 0.3s, transform 0.3s;
-      }
+<body>
 
-      .info-card:hover {
-        border-color: rgba(99,102,241,0.4);
-        transform: translateY(-2px);
-      }
+  <!-- Floating particles -->
+  <div class="particles" id="particles"></div>
 
-      .info-card .icon { font-size: 1.1rem; }
-      .info-card strong { color: var(--text); font-weight: 600; }
+  <div class="container">
 
-      /* Footer */
-      .footer {
-        font-size: 0.78rem;
-        color: rgba(148,163,184,0.5);
-        animation: fadeInUp 0.7s ease 0.6s both;
-      }
-
-      .footer a { color: var(--accent); text-decoration: none; }
-      .footer a:hover { text-decoration: underline; }
-
-      /* Animations */
-      @keyframes fadeInDown {
-        from { opacity: 0; transform: translateY(-20px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-
-      /* Responsive */
-      @media (max-width: 480px) {
-        .time-box { width: 72px; height: 72px; font-size: 1.8rem; }
-        .countdown-wrap { gap: 1rem; }
-      }
-    </style>
-  </head>
-  <body>
-
-    <!-- Floating particles -->
-    <div class="particles" id="particles"></div>
-
-    <div class="container">
-
-      <!-- Animated gear icon -->
-      <div class="gear-wrap">
-        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g class="gear-big">
-            <path d="M50 30a20 20 0 1 0 0 40 20 20 0 0 0 0-40z" fill="rgba(99,102,241,0.15)" stroke="#6366f1" stroke-width="2"/>
-            <path d="M50 20v-8M50 88v-8M30 26l-5.6-5.6M75.6 71.6l-5.6-5.6M20 50h-8M88 50h-8M26 70l-5.6 5.6M79.6 24.4l-5.6 5.6" stroke="#6366f1" stroke-width="3" stroke-linecap="round"/>
-          </g>
-          <circle cx="50" cy="50" r="8" fill="#6366f1" opacity="0.6"/>
-        </svg>
-      </div>
-
-      <!-- Status badge -->
-      <div class="badge">
-        <span class="badge-dot"></span>
-        Scheduled Maintenance
-      </div>
-
-      <!-- Heading -->
-      <h1>🎓 We'll Be Right Back</h1>
-      <p class="subtitle">
-        Due to <strong style="color:#e0e7ff;">high traffic</strong>, the Alumni Portal is temporarily under maintenance.
-        We're working hard to restore full service. Thank you for your patience!
-      </p>
-
-      <!-- Countdown timer -->
-      <div class="countdown-wrap">
-        <div class="time-block">
-          <div class="time-box" id="cd-hours">00</div>
-          <span class="time-label">Hours</span>
-        </div>
-        <div class="time-block" style="padding-top:28px; font-size:2rem; color:var(--accent); opacity:0.6;">:</div>
-        <div class="time-block">
-          <div class="time-box" id="cd-minutes">00</div>
-          <span class="time-label">Minutes</span>
-        </div>
-        <div class="time-block" style="padding-top:28px; font-size:2rem; color:var(--accent); opacity:0.6;">:</div>
-        <div class="time-block">
-          <div class="time-box" id="cd-seconds">00</div>
-          <span class="time-label">Seconds</span>
-        </div>
-      </div>
-
-      <!-- Progress bar -->
-      <div class="progress-wrap">
-        <div class="progress-label">
-          <span>Maintenance Progress</span>
-          <span id="pct-label">0%</span>
-        </div>
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
-        </div>
-      </div>
-
-      <!-- Info cards -->
-      <div class="info-cards">
-        <div class="info-card">
-          <span class="icon">⚡</span>
-          <span>Expected back by <strong id="eta-time">—</strong></span>
-        </div>
-        <div class="info-card">
-          <span class="icon">📧</span>
-          <span>Questions? <strong>Contact Admin</strong></span>
-        </div>
-        <div class="info-card">
-          <span class="icon">🔒</span>
-          <span><strong>Your data</strong> is safe & intact</span>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <p class="footer">
-        Alumni Portal &copy; 2026 &nbsp;·&nbsp; Maintenance started at 11:25 AM IST &nbsp;·&nbsp;
-        <a href="mailto:admin@alumniportal.com">admin@alumniportal.com</a>
-      </p>
-
+    <!-- Animated gear icon -->
+    <div class="gear-wrap">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g class="gear-big">
+          <path d="M50 30a20 20 0 1 0 0 40 20 20 0 0 0 0-40z" fill="rgba(99,102,241,0.15)" stroke="#6366f1"
+            stroke-width="2" />
+          <path
+            d="M50 20v-8M50 88v-8M30 26l-5.6-5.6M75.6 71.6l-5.6-5.6M20 50h-8M88 50h-8M26 70l-5.6 5.6M79.6 24.4l-5.6 5.6"
+            stroke="#6366f1" stroke-width="3" stroke-linecap="round" />
+        </g>
+        <circle cx="50" cy="50" r="8" fill="#6366f1" opacity="0.6" />
+      </svg>
     </div>
 
-    <script>
-      // ─── Config ─────────────────────────────────────────────────────────────
-      // Maintenance end time: 8 hours from April 29 2026 11:25 AM IST (UTC+5:30)
-      // 11:25 IST = 05:55 UTC → +8h = 13:55 UTC = 19:25 IST
-      const END_TIME = new Date('2026-04-29T13:55:00Z').getTime();
-      const TOTAL_DURATION = 8 * 60 * 60 * 1000; // 8 hours in ms
-      const START_TIME = END_TIME - TOTAL_DURATION;
+    <!-- Status badge -->
+    <div class="badge">
+      <span class="badge-dot"></span>
+      Scheduled Maintenance
+    </div>
 
-      // ─── Particles ──────────────────────────────────────────────────────────
-      const container = document.getElementById('particles');
-      for (let i = 0; i < 30; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        p.style.cssText = `
+    <!-- Heading -->
+    <h1>🎓 We'll Be Right Back</h1>
+    <p class="subtitle">
+      Due to <strong style="color:#e0e7ff;">high traffic</strong>, the Alumni Portal is temporarily under maintenance.
+      We're working hard to restore full service. Thank you for your patience!
+    </p>
+
+    <!-- Countdown timer -->
+    <div class="countdown-wrap">
+      <div class="time-block">
+        <div class="time-box" id="cd-hours">00</div>
+        <span class="time-label">Hours</span>
+      </div>
+      <div class="time-block" style="padding-top:28px; font-size:2rem; color:var(--accent); opacity:0.6;">:</div>
+      <div class="time-block">
+        <div class="time-box" id="cd-minutes">00</div>
+        <span class="time-label">Minutes</span>
+      </div>
+      <div class="time-block" style="padding-top:28px; font-size:2rem; color:var(--accent); opacity:0.6;">:</div>
+      <div class="time-block">
+        <div class="time-box" id="cd-seconds">00</div>
+        <span class="time-label">Seconds</span>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Maintenance Progress</span>
+        <span id="pct-label">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Info cards -->
+    <div class="info-cards">
+      <div class="info-card">
+        <span class="icon">⚡</span>
+        <span>Expected back by <strong id="eta-time">—</strong></span>
+      </div>
+      <div class="info-card">
+        <span class="icon">📧</span>
+        <span>Questions? <strong>Contact Admin</strong></span>
+      </div>
+      <div class="info-card">
+        <span class="icon">🔒</span>
+        <span><strong>Your data</strong> is safe & intact</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p class="footer">
+      Alumni Portal &copy; 2026 &nbsp;·&nbsp; Maintenance started at 11:25 AM IST &nbsp;·&nbsp;
+
+    </p>
+
+  </div>
+
+  <script>
+    // ─── Config ─────────────────────────────────────────────────────────────
+    // Maintenance end time: 8 hours from April 29 2026 11:25 AM IST (UTC+5:30)
+    // 11:25 IST = 05:55 UTC → +8h = 13:55 UTC = 19:25 IST
+    const END_TIME = new Date('2026-04-29T13:55:00Z').getTime();
+    const TOTAL_DURATION = 8 * 60 * 60 * 1000; // 8 hours in ms
+    const START_TIME = END_TIME - TOTAL_DURATION;
+
+    // ─── Particles ──────────────────────────────────────────────────────────
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.cssText = `
           left: ${Math.random() * 100}%;
           width: ${Math.random() * 3 + 1}px;
           height: ${Math.random() * 3 + 1}px;
@@ -408,58 +508,59 @@
           opacity: 0;
           background: ${Math.random() > 0.5 ? '#6366f1' : '#8b5cf6'};
         `;
-        container.appendChild(p);
+      container.appendChild(p);
+    }
+
+    // ─── ETA Label ──────────────────────────────────────────────────────────
+    const etaDate = new Date(END_TIME);
+    document.getElementById('eta-time').textContent = etaDate.toLocaleTimeString('en-IN', {
+      hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'
+    }) + ' IST';
+
+    // ─── Countdown ──────────────────────────────────────────────────────────
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function tick() {
+      const now = Date.now();
+      const remaining = END_TIME - now;
+
+      if (remaining <= 0) {
+        // Maintenance over — reload the actual app
+        document.getElementById('cd-hours').textContent = '00';
+        document.getElementById('cd-minutes').textContent = '00';
+        document.getElementById('cd-seconds').textContent = '00';
+        document.getElementById('progress-fill').style.width = '100%';
+        document.getElementById('pct-label').textContent = '100%';
+        // Reload so the React app loads
+        setTimeout(() => location.reload(), 2000);
+        return;
       }
 
-      // ─── ETA Label ──────────────────────────────────────────────────────────
-      const etaDate = new Date(END_TIME);
-      document.getElementById('eta-time').textContent = etaDate.toLocaleTimeString('en-IN', {
-        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'
-      }) + ' IST';
+      const h = Math.floor(remaining / 3_600_000);
+      const m = Math.floor((remaining % 3_600_000) / 60_000);
+      const s = Math.floor((remaining % 60_000) / 1_000);
 
-      // ─── Countdown ──────────────────────────────────────────────────────────
-      function pad(n) { return String(n).padStart(2, '0'); }
+      // Tick animation on seconds box
+      const secBox = document.getElementById('cd-seconds');
+      secBox.classList.remove('tick');
+      void secBox.offsetWidth; // reflow
+      secBox.classList.add('tick');
 
-      function tick() {
-        const now = Date.now();
-        const remaining = END_TIME - now;
+      document.getElementById('cd-hours').textContent = pad(h);
+      document.getElementById('cd-minutes').textContent = pad(m);
+      document.getElementById('cd-seconds').textContent = pad(s);
 
-        if (remaining <= 0) {
-          // Maintenance over — reload the actual app
-          document.getElementById('cd-hours').textContent   = '00';
-          document.getElementById('cd-minutes').textContent = '00';
-          document.getElementById('cd-seconds').textContent = '00';
-          document.getElementById('progress-fill').style.width = '100%';
-          document.getElementById('pct-label').textContent = '100%';
-          // Reload so the React app loads
-          setTimeout(() => location.reload(), 2000);
-          return;
-        }
+      // Progress bar — how much time has ELAPSED
+      const elapsed = now - START_TIME;
+      const pct = Math.min(100, Math.round((elapsed / TOTAL_DURATION) * 100));
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('pct-label').textContent = pct + '%';
+    }
 
-        const h = Math.floor(remaining / 3_600_000);
-        const m = Math.floor((remaining % 3_600_000) / 60_000);
-        const s = Math.floor((remaining % 60_000) / 1_000);
+    tick();
+    setInterval(tick, 1000);
+  </script>
 
-        // Tick animation on seconds box
-        const secBox = document.getElementById('cd-seconds');
-        secBox.classList.remove('tick');
-        void secBox.offsetWidth; // reflow
-        secBox.classList.add('tick');
+</body>
 
-        document.getElementById('cd-hours').textContent   = pad(h);
-        document.getElementById('cd-minutes').textContent = pad(m);
-        document.getElementById('cd-seconds').textContent = pad(s);
-
-        // Progress bar — how much time has ELAPSED
-        const elapsed = now - START_TIME;
-        const pct = Math.min(100, Math.round((elapsed / TOTAL_DURATION) * 100));
-        document.getElementById('progress-fill').style.width = pct + '%';
-        document.getElementById('pct-label').textContent = pct + '%';
-      }
-
-      tick();
-      setInterval(tick, 1000);
-    </script>
-
-  </body>
 </html>

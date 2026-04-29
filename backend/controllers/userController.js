@@ -246,7 +246,7 @@ export const getUser = catchAsyncError(async (req, res, next) => {
 
   // Fetch only the core identity fields — heavy fields (mentorshipSlots, mentorStats, googleTokens) excluded
   const user = await Model.findById(req.user._id).select(
-    "name email phone role department profilePhoto bio linkedIn github accountVerified adminVerified isBlocked enrollmentYear graduationYear year section skills currentCompany currentDesignation designation availableForMentorship"
+    "name email phone role department profilePhoto bio linkedIn github accountVerified adminVerified isBlocked enrollmentYear graduationYear year section skills currentCompany currentDesignation designation availableForMentorship cgpa portfolio enrollmentNumber employeeId joiningYear degree currentLocation industry"
   ).lean();
 
   res.status(200).json({

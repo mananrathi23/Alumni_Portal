@@ -39,7 +39,8 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
   }
 
   // ✅ Find user in the correct collection using role from token
-  req.user = await Model.findById(decoded.id).select("name email isBlocked adminVerified accountVerified role constructor");
+  // Fetch full document (no .select restriction) so updateProfile can read/write all fields
+  req.user = await Model.findById(decoded.id);
 
   if (!req.user) {
     return next(new ErrorHandler("User not found.", 404));

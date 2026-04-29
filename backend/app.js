@@ -71,7 +71,7 @@ const supportLimiter = rateLimit({
 app.use(globalLimiter);
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.use("/api/v1/user", authLimiter, userRouter);
+app.use("/api/v1/user", userRouter);  // route-level limiting inside userRouter.js
 app.use("/api/v1/connections", connectionRouter);
 app.use("/api/v1/connection", connectionRouter); // alias
 app.use("/api/v1/people", peopleRouter);

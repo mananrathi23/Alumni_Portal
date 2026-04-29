@@ -42,13 +42,16 @@ app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
 // ── Fix 3: Rate limiting ───────────────────────────────────────────────────────
 // Global: 1000 requests per 15 minutes per IP
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 1000,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many requests, please try again later." },
-});
+// Disabled in test environment
+const globalLimiter = process.env.NODE_ENV === "test"
+  ? (req, res, next) => next()
+  : rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 1000,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { success: false, message: "Too many requests, please try again later." },
+    });
 
 // Strict: 10 requests per 15 minutes for auth routes
 const authLimiter = rateLimit({

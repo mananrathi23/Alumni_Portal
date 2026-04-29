@@ -16,13 +16,16 @@ import rateLimit from "express-rate-limit";
 const router = express.Router();
 
 // Auth rate limiter: only on sensitive routes (login, register, OTP)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many attempts, please try again in 15 minutes." },
-});
+// Disable in test environment so test suites don't get blocked
+const authLimiter = process.env.NODE_ENV === "test" 
+  ? (req, res, next) => next() 
+  : rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 10,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { success: false, message: "Too many attempts, please try again in 15 minutes." },
+    });
 
 router.post("/register",            authLimiter, register);
 router.post("/otp-verification",    authLimiter, verifyOTP);

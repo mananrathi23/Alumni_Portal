@@ -16,6 +16,8 @@ import {
 const TeacherLayout = () => {
   const [teacher, setTeacher] = useState(null);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [pendingMentorship, setPendingMentorship] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
   const { setIsAuthenticated, setUser } = useContext(Context);
 
@@ -28,6 +30,22 @@ const TeacherLayout = () => {
         if (!isTeacherProfileComplete(res.data.user)) setShowIncompleteModal(true);
       })
       .catch(() => { setIsAuthenticated(false); navigate("/login"); });
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { withCredentials: true })
+      .then((res) => {
+        const pending = (res.data.requests || []).filter(r => r.status === "Pending").length;
+        setPendingMentorship(pending);
+      }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+      .then((res) => {
+        const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
+        setUnreadMessages(total);
+      }).catch(() => {});
   }, []);
 
   const { socketRef, isSocketReady } = useSocket();
@@ -48,11 +66,41 @@ const TeacherLayout = () => {
       setUser(prev => prev ? { ...prev, adminVerified } : prev);
     };
 
-    socket.on("mentorship:reminder", reminderHandler);
-    socket.on("user:verified", verifiedHandler);
+    // New mentorship request from student
+    const onNewMentorshipRequest = () => setPendingMentorship(prev => prev + 1);
+    // Mentorship request responded/cancelled — re-fetch accurate count
+    const onMentorshipUpdate = () => {
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { withCredentials: true })
+        .then((res) => {
+          const pending = (res.data.requests || []).filter(r => r.status === "Pending").length;
+          setPendingMentorship(pending);
+        }).catch(() => {});
+    };
+    // New chat message → bump Messages badge
+    const onNewChat = () => setUnreadMessages(prev => prev + 1);
+    const onChatRead = () => {
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+        .then((res) => {
+          const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
+          setUnreadMessages(total);
+        }).catch(() => {});
+    };
+
+    socket.on("mentorship:reminder",        reminderHandler);
+    socket.on("user:verified",              verifiedHandler);
+    socket.on("mentorship:new_request",     onNewMentorshipRequest);
+    socket.on("mentorship:request_cancelled", onMentorshipUpdate);
+    socket.on("mentorship:request_responded", onMentorshipUpdate);
+    socket.on("chat:new_message",           onNewChat);
+    socket.on("chat:read",                  onChatRead);
     return () => {
-      socket.off("mentorship:reminder", reminderHandler);
-      socket.off("user:verified", verifiedHandler);
+      socket.off("mentorship:reminder",        reminderHandler);
+      socket.off("user:verified",              verifiedHandler);
+      socket.off("mentorship:new_request",     onNewMentorshipRequest);
+      socket.off("mentorship:request_cancelled", onMentorshipUpdate);
+      socket.off("mentorship:request_responded", onMentorshipUpdate);
+      socket.off("chat:new_message",           onNewChat);
+      socket.off("chat:read",                  onChatRead);
     };
   }, [isSocketReady]);
 
@@ -77,7 +125,7 @@ const TeacherLayout = () => {
         { label: "Connections",  path: "/teacher/students",    icon: PiUsersThree },
         { label: "Our Students", path: "/teacher/batchmates",  icon: PiStudent },
         { label: "Forum",        path: "/teacher/forum",       icon: PiChatsCircle },
-        { label: "Messages",     path: "/teacher/messages",    icon: PiEnvelope },
+        { label: "Messages",     path: "/teacher/messages",    icon: PiEnvelope, badge: unreadMessages },
       ],
     },
     {
@@ -85,7 +133,7 @@ const TeacherLayout = () => {
       links: [
         { label: "Jobs",         path: "/teacher/jobs",        icon: PiBriefcase },
         { label: "Events",       path: "/teacher/events",      icon: PiCalendarCheck },
-        { label: "Mentorship",   path: "/teacher/mentorship",  icon: PiHandshake },
+        { label: "Mentorship",   path: "/teacher/mentorship",  icon: PiHandshake, badge: pendingMentorship },
         { label: "Incubation",   path: "/teacher/incubation",  icon: PiRocketLaunch },
       ],
     },

@@ -16,6 +16,7 @@ import {
 const StudentLayout = () => {
   const [student, setStudent] = useState(null);
   const [pendingCount, setPending] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
   const navigate = useNavigate();
   const { setIsAuthenticated, setUser } = useContext(Context);
@@ -33,7 +34,16 @@ const StudentLayout = () => {
 
   useEffect(() => {
     axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
-      .then((res) => setPending(res.data.incoming?.length ?? 0)) // Fix 10: backend returns incoming[], not requests[]
+      .then((res) => setPending(res.data.incoming?.length ?? 0))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+      .then((res) => {
+        const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
+        setUnreadMessages(total);
+      })
       .catch(() => {});
   }, []);
 
@@ -55,11 +65,41 @@ const StudentLayout = () => {
       setUser(prev => prev ? { ...prev, adminVerified } : prev);
     };
 
-    socket.on("mentorship:reminder", reminderHandler);
-    socket.on("user:verified", verifiedHandler);
+    // New connection request → bump Requests badge
+    const onNewRequest = () => setPending(prev => prev + 1);
+    // Connection accepted/rejected/withdrawn → refresh badge
+    const onConnectionUpdate = () => {
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
+        .then((res) => setPending(res.data.incoming?.length ?? 0)).catch(() => {});
+    };
+    // New chat message → bump Messages badge
+    const onNewChat = () => setUnreadMessages(prev => prev + 1);
+    // User opened Messages page → clear badge handled by the page itself, so re-fetch
+    const onChatRead = () => {
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+        .then((res) => {
+          const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
+          setUnreadMessages(total);
+        }).catch(() => {});
+    };
+
+    socket.on("mentorship:reminder",    reminderHandler);
+    socket.on("user:verified",          verifiedHandler);
+    socket.on("connection:new_request", onNewRequest);
+    socket.on("connection:accepted",    onConnectionUpdate);
+    socket.on("connection:rejected",    onConnectionUpdate);
+    socket.on("connection:withdrawn",   onConnectionUpdate);
+    socket.on("chat:new_message",       onNewChat);
+    socket.on("chat:read",              onChatRead);
     return () => {
-      socket.off("mentorship:reminder", reminderHandler);
-      socket.off("user:verified", verifiedHandler);
+      socket.off("mentorship:reminder",    reminderHandler);
+      socket.off("user:verified",          verifiedHandler);
+      socket.off("connection:new_request", onNewRequest);
+      socket.off("connection:accepted",    onConnectionUpdate);
+      socket.off("connection:rejected",    onConnectionUpdate);
+      socket.off("connection:withdrawn",   onConnectionUpdate);
+      socket.off("chat:new_message",       onNewChat);
+      socket.off("chat:read",              onChatRead);
     };
   }, [isSocketReady]);
 
@@ -85,7 +125,7 @@ const StudentLayout = () => {
         { label: "Batchmates",  path: "/student/batchmates", icon: PiStudent },
         { label: "Requests",    path: "/student/requests",   icon: PiHandshake, badge: pendingCount },
         { label: "Forum",       path: "/student/forum",      icon: PiChatsCircle },
-        { label: "Messages",    path: "/student/messages",   icon: PiEnvelope },
+        { label: "Messages",    path: "/student/messages",   icon: PiEnvelope,  badge: unreadMessages },
       ],
     },
     {

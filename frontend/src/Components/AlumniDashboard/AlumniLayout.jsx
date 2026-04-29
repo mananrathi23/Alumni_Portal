@@ -16,6 +16,8 @@ import {
 const AlumniLayout = () => {
   const [alumni, setAlumni] = useState(null);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [pendingMentorship, setPendingMentorship] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
   const { setIsAuthenticated, setUser } = useContext(Context);
 
@@ -28,6 +30,22 @@ const AlumniLayout = () => {
         if (!isAlumniProfileComplete(res.data.user)) setShowIncompleteModal(true);
       })
       .catch(() => { setIsAuthenticated(false); navigate("/login"); });
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { withCredentials: true })
+      .then((res) => {
+        const pending = (res.data.requests || []).filter(r => r.status === "Pending").length;
+        setPendingMentorship(pending);
+      }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+      .then((res) => {
+        const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
+        setUnreadMessages(total);
+      }).catch(() => {});
   }, []);
 
   // Re-fetch alumni data (called after settings save, etc.)
@@ -59,11 +77,40 @@ const AlumniLayout = () => {
       setUser(prev => prev ? { ...prev, adminVerified } : prev);
     };
 
-    socket.on("mentorship:reminder", reminderHandler);
-    socket.on("user:verified", verifiedHandler);
+    // New mentorship request from a student
+    const onNewMentorshipRequest = () => setPendingMentorship(prev => prev + 1);
+    const onMentorshipUpdate = () => {
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { withCredentials: true })
+        .then((res) => {
+          const pending = (res.data.requests || []).filter(r => r.status === "Pending").length;
+          setPendingMentorship(pending);
+        }).catch(() => {});
+    };
+    // New chat message → bump Messages badge
+    const onNewChat = () => setUnreadMessages(prev => prev + 1);
+    const onChatRead = () => {
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+        .then((res) => {
+          const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
+          setUnreadMessages(total);
+        }).catch(() => {});
+    };
+
+    socket.on("mentorship:reminder",          reminderHandler);
+    socket.on("user:verified",                verifiedHandler);
+    socket.on("mentorship:new_request",       onNewMentorshipRequest);
+    socket.on("mentorship:request_cancelled", onMentorshipUpdate);
+    socket.on("mentorship:request_responded", onMentorshipUpdate);
+    socket.on("chat:new_message",             onNewChat);
+    socket.on("chat:read",                    onChatRead);
     return () => {
-      socket.off("mentorship:reminder", reminderHandler);
-      socket.off("user:verified", verifiedHandler);
+      socket.off("mentorship:reminder",          reminderHandler);
+      socket.off("user:verified",                verifiedHandler);
+      socket.off("mentorship:new_request",       onNewMentorshipRequest);
+      socket.off("mentorship:request_cancelled", onMentorshipUpdate);
+      socket.off("mentorship:request_responded", onMentorshipUpdate);
+      socket.off("chat:new_message",             onNewChat);
+      socket.off("chat:read",                    onChatRead);
     };
   }, [isSocketReady]);
 
@@ -88,7 +135,7 @@ const AlumniLayout = () => {
         { label: "Connections", path: "/alumni/students",    icon: PiUsersThree },
         { label: "Batchmates",  path: "/alumni/batchmates",  icon: PiGraduationCap },
         { label: "Forum",       path: "/alumni/forum",       icon: PiChatsCircle },
-        { label: "Messages",    path: "/alumni/messages",    icon: PiEnvelope },
+        { label: "Messages",    path: "/alumni/messages",    icon: PiEnvelope, badge: unreadMessages },
       ],
     },
     {
@@ -96,7 +143,7 @@ const AlumniLayout = () => {
       links: [
         { label: "Jobs",        path: "/alumni/jobs",        icon: PiBriefcase },
         { label: "Events",      path: "/alumni/events",      icon: PiCalendarCheck },
-        { label: "Mentorship",  path: "/alumni/mentorship",  icon: PiHandshake },
+        { label: "Mentorship",  path: "/alumni/mentorship",  icon: PiHandshake, badge: pendingMentorship },
         { label: "Incubation",  path: "/alumni/incubation",  icon: PiRocketLaunch },
       ],
     },

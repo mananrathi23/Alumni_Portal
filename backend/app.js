@@ -3,6 +3,8 @@ config({ path: "./.env" });
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import compression from "compression";
+import rateLimit from "express-rate-limit";
 import { connection } from "./database/dbConnection.js";
 import { errorMiddleware } from "./middlewares/error.js";
 import userRouter       from "./routes/userRouter.js";
@@ -23,6 +25,9 @@ import { expireMentorshipRequests } from "./automation/expireMentorshipRequests.
 
 export const app = express();
 
+// ── Fix 2: Gzip compression for all responses (~70% size reduction) ────────────
+app.use(compression());
+
 app.use(cors({
   origin:      [process.env.FRONTEND_URL],
   methods:     ["GET", "POST", "PUT", "DELETE"],
@@ -30,11 +35,43 @@ app.use(cors({
 }));
 
 app.use(cookieParser());
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// ── Fix 2: Reduce body size limit from 50mb → 2mb ─────────────────────────────
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+
+// ── Fix 3: Rate limiting ───────────────────────────────────────────────────────
+// Global: 100 requests per 15 minutes per IP
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests, please try again later." },
+});
+
+// Strict: 10 requests per 15 minutes for auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many login attempts, please try again in 15 minutes." },
+});
+
+// Support chat: 20 requests per 5 minutes
+const supportLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many support messages, please slow down." },
+});
+
+app.use(globalLimiter);
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.use("/api/v1/user",        userRouter);
+app.use("/api/v1/user",        authLimiter, userRouter);
 app.use("/api/v1/connections", connectionRouter);
 app.use("/api/v1/connection",  connectionRouter); // alias
 app.use("/api/v1/people",      peopleRouter);
@@ -47,7 +84,7 @@ app.use("/api/v1/batchmates",  batchmatesRouter);
 app.use("/api/v1/incubation",  incubationRouter);
 app.use("/api/v1/oauth",       oauthRouter);
 app.use("/api/v1/admin/users", adminUserRouter);
-app.use("/api/v1/support",     supportRouter);
+app.use("/api/v1/support",     supportLimiter, supportRouter);
 // Alias matching what was registered in Google Console
 app.use("/auth",              oauthRouter);
 
@@ -56,5 +93,3 @@ expireMentorshipRequests();
 connection();
 
 app.use(errorMiddleware);
-
-// Trigger restart

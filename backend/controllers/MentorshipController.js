@@ -237,6 +237,10 @@ export const updateWeeklyLimit = catchAsyncError(async (req, res, next) => {
 
 export const getMentors = catchAsyncError(async (req, res) => {
   const { search, filterRole, department } = req.query;
+  const page  = Math.max(1, parseInt(req.query.page)  || 1);
+  const limit = Math.min(50, parseInt(req.query.limit) || 12);
+  const skip  = (page - 1) * limit;
+
   const roles = filterRole && filterRole !== "All" ? [filterRole] : ["Alumni", "Teacher"];
 
   const mentorQueries = roles.map(async (role) => {
@@ -265,23 +269,36 @@ export const getMentors = catchAsyncError(async (req, res) => {
       ? "name department graduationYear currentCompany currentDesignation industry skills bio linkedIn availableForMentorship mentorshipSlots weeklyLimit mentorStats"
       : "name department designation experience qualifications bio linkedIn availableForMentorship mentorshipSlots weeklyLimit mentorStats";
 
-    const docs = await model.find(filter).select(fields).lean();
-    return docs.map((d) => ({
-      ...d,
-      role,
-      // Only show FREE slots — booked slots are hidden from the booking UI
-      availableSlots: (d.mentorshipSlots || [])
-        .filter((s) => !s.booked)
-        .map((s) => ({
-          ...s,
-          id: s.id || `${s.day}-${s.time}`,
-        })),
-    }));
+    const [docs, total] = await Promise.all([
+      model.find(filter).select(fields).skip(skip).limit(limit).lean(),
+      model.countDocuments(filter),
+    ]);
+    return {
+      docs: docs.map((d) => ({
+        ...d,
+        role,
+        availableSlots: (d.mentorshipSlots || [])
+          .filter((s) => !s.booked)
+          .map((s) => ({ ...s, id: s.id || `${s.day}-${s.time}` })),
+      })),
+      total,
+    };
   });
 
-  const results = (await Promise.all(mentorQueries)).flat();
-  results.sort((a, b) => (b.mentorStats?.score || 0) - (a.mentorStats?.score || 0));
-  res.status(200).json({ success: true, count: results.length, mentors: results });
+  const results = await Promise.all(mentorQueries);
+  const mentors = results.flatMap((r) => r.docs);
+  const total   = results.reduce((sum, r) => sum + r.total, 0);
+  mentors.sort((a, b) => (b.mentorStats?.score || 0) - (a.mentorStats?.score || 0));
+
+  res.status(200).json({
+    success: true,
+    count: mentors.length,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+    hasMore: page * limit < total,
+    mentors,
+  });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════

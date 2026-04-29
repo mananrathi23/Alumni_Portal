@@ -25,6 +25,9 @@ const ProtectedRoute = ({ children, allowedRole }) => {
       .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true })
       .then((res) => {
         const role = res.data.user?.role;
+        // Fix 12: Populate global Context so child components don't re-fetch /me
+        setUser(res.data.user);
+        setIsAuthenticated(true);
         if (allowedRole && role !== allowedRole) {
           setStatus("forbidden");
         } else {

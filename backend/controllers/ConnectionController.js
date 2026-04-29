@@ -246,43 +246,54 @@ export const getMyConnections = catchAsyncError(async (req, res) => {
     ],
   }).sort({ updatedAt: -1 });
 
-  const normalized = (await Promise.all(connections.map(async (c) => {
+  // ── Fix 6: Batch lookup by role instead of N+1 per-connection queries ────
+  // Collect IDs bucketed by role
+  const idsByRole = { Student: [], Alumni: [], Teacher: [] };
+  const stubByIdStr = {};
+
+  for (const c of connections) {
     const isSender = c.sender.id.toString() === user._id.toString();
-    const otherStub = isSender ? c.receiver : c.sender; // {id,name,role}
+    const otherStub = isSender ? c.receiver : c.sender;
+    const idStr = otherStub.id.toString();
+    if (idsByRole[otherStub.role]) {
+      idsByRole[otherStub.role].push(otherStub.id);
+      stubByIdStr[idStr] = { stub: otherStub, connectionId: c._id, connectedAt: c.updatedAt };
+    }
+  }
 
-    const select =
-      otherStub.role === "Student"
-        ? "name department year linkedIn github portfolio profilePhoto isBlocked adminVerified"
-        : otherStub.role === "Alumni"
-          ? "name department linkedIn github profilePhoto currentCompany currentDesignation isBlocked adminVerified"
-          : otherStub.role === "Teacher"
-            ? "name department linkedIn profilePhoto designation isBlocked adminVerified"
-            : "";
+  // 3 batch queries instead of one per connection
+  const [students, alumni, teachers] = await Promise.all([
+    Student.find({ _id: { $in: idsByRole.Student } })
+      .select("name department year linkedIn github portfolio profilePhoto isBlocked adminVerified").lean(),
+    Alumni.find({ _id: { $in: idsByRole.Alumni } })
+      .select("name department linkedIn github profilePhoto currentCompany currentDesignation isBlocked adminVerified").lean(),
+    Teacher.find({ _id: { $in: idsByRole.Teacher } })
+      .select("name department linkedIn profilePhoto designation isBlocked adminVerified").lean(),
+  ]);
 
-    const full =
-      otherStub.role === "Student"
-        ? await Student.findById(otherStub.id).select(select).lean()
-        : otherStub.role === "Alumni"
-          ? await Alumni.findById(otherStub.id).select(select).lean()
-          : otherStub.role === "Teacher"
-            ? await Teacher.findById(otherStub.id).select(select).lean()
-            : null;
+  // Build lookup map
+  const fullById = {};
+  for (const u of [...students, ...alumni, ...teachers]) {
+    fullById[u._id.toString()] = u;
+  }
 
-    // Hide connections where the other user is blocked or not admin-verified
+  // Merge results
+  const normalized = connections.map((c) => {
+    const isSender = c.sender.id.toString() === user._id.toString();
+    const otherStub = isSender ? c.receiver : c.sender;
+    const idStr = otherStub.id.toString();
+    const full = fullById[idStr];
+
+    // Hide blocked or unverified connections
     if (!full || full.isBlocked || !full.adminVerified) return null;
 
-    // Strip internal admin fields before sending to client
     const { isBlocked: _b, adminVerified: _v, ...safeFields } = full;
-
     return {
       connectionId: c._id,
-      connectedWith: {
-        ...otherStub,
-        ...safeFields,
-      },
+      connectedWith: { ...otherStub, ...safeFields },
       connectedAt: c.updatedAt,
     };
-  }))).filter(Boolean);
+  }).filter(Boolean);
 
   res.status(200).json({
     success: true,

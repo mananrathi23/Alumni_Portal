@@ -15,6 +15,7 @@ const visibleRoles = {
   Admin:   ["Student", "Alumni", "Teacher"],
 };
 
+// ── Fix 5: Paginated getPeople — page=1, limit=20 by default ─────────────────
 // GET /api/v1/people
 export const getPeople = catchAsyncError(async (req, res) => {
   const user    = req.user;
@@ -22,6 +23,9 @@ export const getPeople = catchAsyncError(async (req, res) => {
   const allowed = visibleRoles[myRole] || [];
 
   const { search, filterRole, department } = req.query;
+  const page  = Math.max(1, parseInt(req.query.page)  || 1);
+  const limit = Math.min(50, parseInt(req.query.limit) || 20);
+  const skip  = (page - 1) * limit;
 
   const rolesToQuery = filterRole && filterRole !== "All"
     ? [filterRole]
@@ -53,19 +57,32 @@ export const getPeople = catchAsyncError(async (req, res) => {
     Teacher: "name email department designation experience qualifications bio linkedIn profilePhoto",
   };
 
+  // Run count + paginated find in parallel for each role
   const queries = rolesToQuery.map(async (role) => {
     let Model;
     if (role === "Student")      Model = Student;
     else if (role === "Alumni")  Model = Alumni;
     else if (role === "Teacher") Model = Teacher;
-    else return [];
+    else return { docs: [], total: 0 };
 
-    const docs = await Model.find(baseFilter).select(fields[role]);
-    return docs.map((d) => ({ ...d.toObject(), role }));
+    const [docs, total] = await Promise.all([
+      Model.find(baseFilter).select(fields[role]).skip(skip).limit(limit).lean(),
+      Model.countDocuments(baseFilter),
+    ]);
+    return { docs: docs.map((d) => ({ ...d, role })), total };
   });
 
   const results = await Promise.all(queries);
-  const people  = results.flat();
+  const people  = results.flatMap((r) => r.docs);
+  const total   = results.reduce((sum, r) => sum + r.total, 0);
 
-  res.status(200).json({ success: true, count: people.length, people });
+  res.status(200).json({
+    success: true,
+    count: people.length,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+    hasMore: page * limit < total,
+    people,
+  });
 });

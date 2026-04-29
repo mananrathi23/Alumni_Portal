@@ -159,33 +159,12 @@ const ChatbotWidget = () => {
     setMessages((prev) => [...prev, { sender: "User", text: userMessage }]);
     setLoading(true);
 
-    let screenshotBase64 = null;
-    try {
-      screenshotBase64 = await htmlToImage.toJpeg(document.body, {
-        quality: 0.6,
-        allowTaint: true,
-        useCORS: true,
-        logging: false,
-        filter: (node) => {
-          // Exclude chatbot widget and images that may cause tracking prevention issues
-          if (node.id === "chatbot-widget" || node.id === "chatbot-button") return false;
-          // Hide Cloudinary images to avoid tracking prevention blocks
-          if (node.tagName === "IMG" && node.src?.includes("cloudinary.com")) {
-            node.style.display = "none";
-            return true;
-          }
-          return true;
-        }
-      });
-    } catch (err) {
-      console.error("Screenshot failed (non-critical):", err);
-      // Screenshot failure should not block message sending
-    }
-
+    // Fix 1: No auto-screenshot — text messages send zero image data.
+    // Use the 📸 screenshot button (below) for explicit, rate-limited captures.
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/ask`,
-        { text: userMessage, image: screenshotBase64 },
+        { text: userMessage },
         { withCredentials: true }
       );
 
@@ -193,18 +172,12 @@ const ChatbotWidget = () => {
       setTicketId(res.data.ticket._id);
       setStartChoicePending(false);
 
-      // Only append AI reply if it exists (if Escalated, AI might not reply further)
       if (res.data.reply) {
         setMessages((prev) => [...prev, { sender: "AI", text: res.data.reply }]);
       }
 
-      // Check if escalation is offered
-      if (res.data.escalationOffered) {
-        setChoosingEscalation(true);
-      }
-      if (res.data.escalationPending) {
-        setChoosingEscalation(true);
-      }
+      if (res.data.escalationOffered) setChoosingEscalation(true);
+      if (res.data.escalationPending) setChoosingEscalation(true);
       if (res.data.ticket.status !== "Escalation_Offered" && !res.data.escalationPending) {
         setChoosingEscalation(false);
       }

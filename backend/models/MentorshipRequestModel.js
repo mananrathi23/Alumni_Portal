@@ -55,5 +55,9 @@ mentorshipRequestSchema.index(
   { unique: true, partialFilterExpression: { status: "Pending" } }
 );
 
+// Fix 8: Compound indexes for hot query paths
+mentorshipRequestSchema.index({ "student.id": 1, status: 1 }); // getMentorshipRequests (student)
+mentorshipRequestSchema.index({ "mentor.id": 1, status: 1 });  // getMentorshipRequests (mentor)
+
 export const MentorshipRequest = mongoose.model("MentorshipRequest", mentorshipRequestSchema);
 // Note: meetingLink field appended via patch

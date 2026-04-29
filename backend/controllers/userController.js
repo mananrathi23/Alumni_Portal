@@ -241,12 +241,17 @@ export const logout = catchAsyncError(async (req, res, next) => {
 
 //  GET LOGGED-IN USER 
 export const getUser = catchAsyncError(async (req, res, next) => {
-  const user = req.user;
-  // Attach role from the model name so frontend can use it for route protection
-  const role = user.constructor.modelName; // "Student" | "Teacher" | "Alumni" | "Admin"
+  const role = req.user.constructor.modelName; // "Student" | "Teacher" | "Alumni" | "Admin"
+  const Model = getModelByRole(role);
+
+  // Fetch only the core identity fields — heavy fields (mentorshipSlots, mentorStats, googleTokens) excluded
+  const user = await Model.findById(req.user._id).select(
+    "name email phone role department profilePhoto bio linkedIn github accountVerified adminVerified isBlocked enrollmentYear graduationYear year section skills currentCompany currentDesignation designation availableForMentorship"
+  ).lean();
+
   res.status(200).json({
     success: true,
-    user: { ...user.toObject(), role },
+    user: { ...user, role },
   });
 });
 

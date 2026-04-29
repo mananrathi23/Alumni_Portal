@@ -26,7 +26,7 @@ export const SocketProvider = ({ children }) => {
     const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL;
     const socket = io(`${socketUrl}`, {
       withCredentials: true,
-      transports: ["websocket", "polling"],
+      transports: ["websocket"], // Fix 7: websocket only — polling sends HTTP every 25s per user
     });
 
     socket.on("connect", () => {

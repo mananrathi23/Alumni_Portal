@@ -33,7 +33,7 @@ const StudentLayout = () => {
 
   useEffect(() => {
     axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
-      .then((res) => setPending(res.data.requests?.length ?? 0))
+      .then((res) => setPending(res.data.incoming?.length ?? 0)) // Fix 10: backend returns incoming[], not requests[]
       .catch(() => {});
   }, []);
 

@@ -49,5 +49,7 @@ const chatMessageSchema = new mongoose.Schema(
 // Compound index for fast chat history fetch
 chatMessageSchema.index({ mentorshipId: 1, createdAt: 1 });
 chatMessageSchema.index({ connectionId: 1, createdAt: 1 });
+// Fix 8: Index for unread count aggregation
+chatMessageSchema.index({ "sender.id": 1, readBy: 1 });
 
 export const ChatMessage = mongoose.model("ChatMessage", chatMessageSchema);

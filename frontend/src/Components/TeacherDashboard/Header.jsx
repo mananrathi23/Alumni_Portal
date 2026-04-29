@@ -38,7 +38,7 @@ const Header = ({ teacher }) => {
 
   const fetchPendingCount = () => {
     axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
-      .then((res) => setPendingCount(res.data.requests?.length ?? 0))
+      .then((res) => setPendingCount(res.data.incoming?.length ?? 0)) // Fix 10: backend returns incoming[], not requests[]
       .catch(() => setPendingCount(0));
   };
 

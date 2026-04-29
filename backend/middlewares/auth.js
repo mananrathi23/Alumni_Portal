@@ -39,7 +39,7 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
   }
 
   // ✅ Find user in the correct collection using role from token
-  req.user = await Model.findById(decoded.id);
+  req.user = await Model.findById(decoded.id).select("name email isBlocked adminVerified accountVerified role constructor");
 
   if (!req.user) {
     return next(new ErrorHandler("User not found.", 404));

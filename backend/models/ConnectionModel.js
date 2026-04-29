@@ -42,4 +42,9 @@ connectionSchema.index(
   { unique: true }
 );
 
+// Fix 8: Compound indexes for hot query paths
+connectionSchema.index({ "receiver.id": 1, status: 1 });          // getPendingRequests incoming
+connectionSchema.index({ "sender.id": 1, status: 1 });             // getPendingRequests outgoing
+connectionSchema.index({ "sender.id": 1, "receiver.id": 1, status: 1 }); // getConnectionStatus
+
 export const Connection = mongoose.model("Connection", connectionSchema);

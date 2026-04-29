@@ -1,6 +1,6 @@
 import './App.css'
 import MainPage from './Components/MainPage.jsx'
-import { useContext } from 'react'
+import { useContext, useMemo } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Auth from './Components/Authentication/Auth.jsx'
 import OtpVerification from './Components/Authentication/OtpVerification.jsx'
@@ -65,7 +65,7 @@ import OAuthSuccess from './Components/OAuthSuccess.jsx'
 
 function App() {
   const { theme } = useContext(Context);
-  const router = createBrowserRouter([
+  const router = useMemo(() => createBrowserRouter([
     { path: '/', element: <MainPage /> },
     { path: '/login', element: <Auth /> },
     { path: '/otp-verification/:email/:role', element: <OtpVerification /> },
@@ -142,7 +142,7 @@ function App() {
         { path: 'support',   element: <AdminSupportTickets /> },
       ],
     },
-  ]);
+  ]), []);
 
   return (
     <>

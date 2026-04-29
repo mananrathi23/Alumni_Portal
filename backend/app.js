@@ -24,6 +24,7 @@ import { removeUnverifiedAccounts } from "./automation/removeUnverifiedAccounts.
 import { expireMentorshipRequests } from "./automation/expireMentorshipRequests.js";
 
 export const app = express();
+app.set("trust proxy", 1); // Trust first proxy to fix express-rate-limit issues
 
 // ── Fix 2: Gzip compression for all responses (~70% size reduction) ────────────
 app.use(compression());

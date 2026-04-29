@@ -2,7 +2,7 @@ import { useOutletContext } from "react-router-dom";
 import { NavLink } from "react-router-dom";
 import {
   PiShieldCheck, PiNewspaper, PiCalendarCheck, PiBriefcase,
-  PiArrowRight,
+  PiArrowRight, PiUsersThree, PiGraduationCap, PiHeadset,
 } from "react-icons/pi";
 
 const CARDS = [
@@ -27,12 +27,36 @@ const CARDS = [
     color: "emerald",
     path:  "/admin/jobs",
   },
+  {
+    title: "Verify Users",
+    desc:  "Review and verify newly registered students, alumni and teachers.",
+    icon:  PiUsersThree,
+    color: "violet",
+    path:  "/admin/users",
+  },
+  {
+    title: "Student Profiles",
+    desc:  "Browse and manage all student profiles on the portal.",
+    icon:  PiGraduationCap,
+    color: "amber",
+    path:  "/admin/students",
+  },
+  {
+    title: "Support Tickets",
+    desc:  "View and respond to escalated support tickets from users.",
+    icon:  PiHeadset,
+    color: "indigo",
+    path:  "/admin/support",
+  },
 ];
 
 const COLOR = {
   rose:    { bg: "bg-rose-500/10",    border: "border-rose-500/20",    icon: "text-rose-400",    btn: "bg-rose-500 hover:bg-rose-400" },
   sky:     { bg: "bg-sky-500/10",     border: "border-sky-500/20",     icon: "text-sky-400",     btn: "bg-sky-500 hover:bg-sky-400" },
   emerald: { bg: "bg-emerald-500/10", border: "border-emerald-500/20", icon: "text-emerald-400", btn: "bg-emerald-500 hover:bg-emerald-400" },
+  violet:  { bg: "bg-violet-500/10",  border: "border-violet-500/20",  icon: "text-violet-400",  btn: "bg-violet-500 hover:bg-violet-400" },
+  amber:   { bg: "bg-amber-500/10",   border: "border-amber-500/20",   icon: "text-amber-400",   btn: "bg-amber-500 hover:bg-amber-400" },
+  indigo:  { bg: "bg-indigo-500/10",  border: "border-indigo-500/20",  icon: "text-indigo-400",  btn: "bg-indigo-500 hover:bg-indigo-400" },
 };
 
 const DashboardHome = () => {
@@ -61,7 +85,7 @@ const DashboardHome = () => {
       </div>
 
       {/* Quick-action cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {CARDS.map(({ title, desc, icon: Icon, color, path }) => {
           const c = COLOR[color];
           return (

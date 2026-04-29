@@ -60,7 +60,8 @@ const AdminLayout = () => {
     );
   }
 
-  const visibleNav = NAV.filter((n) => !n.perm || admin?.permissions?.[n.perm] === true);
+  // All nav items visible — backend enforces permissions per route
+  const visibleNav = NAV;
 
   const renderSidebar = (mobile = false) => (
     <aside className={`${mobile ? "flex" : "hidden md:flex"} flex-col h-full w-64 ${theme === "dark" ? "bg-slate-900 border-r border-white/[0.06]" : "bg-white border-r border-slate-200/70"} p-4`}>

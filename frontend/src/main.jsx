@@ -1,4 +1,4 @@
-import { createContext, StrictMode, useEffect, useState } from "react";
+import { createContext, StrictMode, useEffect, useState, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import './index.css';
@@ -58,8 +58,12 @@ const AppWrapper = () => {
 
   const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
+  const contextValue = useMemo(() => ({
+    isAuthenticated, setIsAuthenticated, user, setUser, theme, toggleTheme
+  }), [isAuthenticated, user, theme]);
+
   return (
-    <Context.Provider value={{ isAuthenticated, setIsAuthenticated, user, setUser, theme, toggleTheme }}>
+    <Context.Provider value={contextValue}>
       <SocketProvider>
         <App />
       </SocketProvider>

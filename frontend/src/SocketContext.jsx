@@ -1,5 +1,5 @@
 // frontend/src/SocketContext.jsx
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useMemo } from "react";
 import { io } from "socket.io-client";
 import { Context } from "./main";
 
@@ -47,8 +47,10 @@ export const SocketProvider = ({ children }) => {
     };
   }, [isAuthenticated, user?._id]);
 
+  const contextValue = useMemo(() => ({ socketRef, isSocketReady }), [isSocketReady]);
+
   return (
-    <SocketContext.Provider value={{ socketRef, isSocketReady }}>
+    <SocketContext.Provider value={contextValue}>
       {children}
     </SocketContext.Provider>
   );

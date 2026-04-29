@@ -106,9 +106,18 @@ export const isStaff = (req, res, next) => {
 
 // ── isVerifiedByAdmin: block unverified users from core features ──────────────
 export const isVerifiedByAdmin = (req, res, next) => {
-  const role = req.user?.constructor?.modelName;
-  if (role !== "Admin" && !req.user.adminVerified) {
-    return next(new ErrorHandler("Your account is pending admin verification. You cannot perform this action.", 403));
+  const user = req.user;
+  // Admins are always allowed through
+  const role = user?.constructor?.modelName || "";
+  if (role === "Admin") return next();
+
+  // For all other roles: must be admin-verified
+  // adminVerified could be true/false/undefined — treat undefined as not verified
+  if (!user?.adminVerified) {
+    return next(new ErrorHandler(
+      "Your account is pending admin verification. You cannot perform this action.",
+      403
+    ));
   }
   next();
 };

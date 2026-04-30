@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../../main";
-import { PiUserCircle, PiCheckCircle, PiWarningCircle, PiShieldSlash, PiShieldCheck } from "react-icons/pi";
+import { PiUserCircle, PiCheckCircle, PiWarningCircle, PiShieldSlash, PiWifiHigh } from "react-icons/pi";
 
 const Users = () => {
   const { theme } = useContext(Context);
@@ -98,6 +98,7 @@ const Users = () => {
               <tr className={`border-b text-xs uppercase tracking-wider ${theme === "dark" ? "border-white/10 bg-slate-800/50 text-slate-400" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
                 <th className="px-6 py-4 font-semibold">User</th>
                 <th className="px-6 py-4 font-semibold">Role</th>
+                <th className="px-6 py-4 font-semibold">Last Seen / IP</th>
                 <th className="px-6 py-4 font-semibold">Status</th>
                 <th className="px-6 py-4 font-semibold text-right">Actions</th>
               </tr>
@@ -105,7 +106,7 @@ const Users = () => {
             <tbody className={`divide-y ${theme === "dark" ? "divide-white/5" : "divide-slate-100"}`}>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-10 text-center text-slate-500">No users found.</td>
+                  <td colSpan="5" className="px-6 py-10 text-center text-slate-500">No users found.</td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => (
@@ -142,6 +143,25 @@ const Users = () => {
                       }`}>
                         {user.role}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        {user.lastSeenAt ? (
+                          <span className="text-xs font-medium text-emerald-400">
+                            🟢 {new Date(user.lastSeenAt).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-500">Never seen</span>
+                        )}
+                        {user.lastIP ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 font-mono">
+                            <PiWifiHigh size={11} className="text-slate-500" />
+                            {user.lastIP}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-600">No IP yet</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1.5">

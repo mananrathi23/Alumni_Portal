@@ -29,8 +29,13 @@ export const getAllUsers = catchAsyncError(async (req, res, next) => {
     ...alumni.map(u => ({ ...u, role: "Alumni" })),
   ];
 
-  // Sort by newest first
-  allUsers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // Sort by most recently seen first (active users at the top)
+  allUsers.sort((a, b) => {
+    if (a.lastSeenAt && b.lastSeenAt) return new Date(b.lastSeenAt) - new Date(a.lastSeenAt);
+    if (a.lastSeenAt) return -1;
+    if (b.lastSeenAt) return 1;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
 
   res.status(200).json({
     success: true,

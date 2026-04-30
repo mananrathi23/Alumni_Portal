@@ -85,6 +85,10 @@ const alumniSchema = new mongoose.Schema({
   // ── Admin Control Fields ─────────────────────────────────
   adminVerified:          { type: Boolean, default: false },
   isBlocked:              { type: Boolean, default: false },
+
+  // ── Activity Tracking ────────────────────────────────────
+  lastIP:       { type: String, default: null },
+  lastSeenAt:   { type: Date,   default: null },
 });
 
 // Hash password before saving

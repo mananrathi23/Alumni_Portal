@@ -50,6 +50,15 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Your account has been blocked by an administrator.", 403));
   }
 
+  // ── Fire-and-forget: log IP + last seen (adds zero latency) ──────────────
+  const ip =
+    (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
+    req.socket?.remoteAddress ||
+    null;
+  Model.findByIdAndUpdate(decoded.id, {
+    $set: { lastIP: ip, lastSeenAt: new Date() },
+  }).exec().catch(() => {});
+
   next();
 });
 

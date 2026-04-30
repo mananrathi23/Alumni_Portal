@@ -77,7 +77,7 @@ export default function SharedMessages({ role, accentColor }) {
     try {
       const [mRes, cRes] = await Promise.all([
         axios.get(`${MENTORSHIP_API}/chat/unread-counts`, { withCredentials: true }),
-        axios.get(`${CONNECTIONS_API}/chat/unread-counts`, { withCredentials: true })
+        axios.get(`${CONNECTIONS_API}/chat/unread-counts`, { withCredentials: true })  // /api/v1/connections/...
       ]);
       setMentorshipUnread(mRes.data.unread || {});
       setConnectionUnread(cRes.data.unread || {});

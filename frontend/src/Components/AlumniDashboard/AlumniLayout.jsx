@@ -41,7 +41,7 @@ const AlumniLayout = () => {
   }, []);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/chat/unread-counts`, { withCredentials: true })
       .then((res) => {
         const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
         setUnreadMessages(total);
@@ -86,22 +86,23 @@ const AlumniLayout = () => {
           setPendingMentorship(pending);
         }).catch(() => {});
     };
-    // New chat message → bump Messages badge
-    const onNewChat = () => setUnreadMessages(prev => prev + 1);
-    const onChatRead = () => {
-      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+    // New chat message → re-fetch actual count (avoids stale +1 bugs)
+    const refreshUnread = () => {
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/chat/unread-counts`, { withCredentials: true })
         .then((res) => {
           const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
           setUnreadMessages(total);
         }).catch(() => {});
     };
+    const onChatRead = refreshUnread;
 
     socket.on("mentorship:reminder",          reminderHandler);
     socket.on("user:verified",                verifiedHandler);
     socket.on("mentorship:new_request",       onNewMentorshipRequest);
     socket.on("mentorship:request_cancelled", onMentorshipUpdate);
     socket.on("mentorship:request_responded", onMentorshipUpdate);
-    socket.on("chat:new_message",             onNewChat);
+    socket.on("chat:new_message",             refreshUnread); // mentorship chat
+    socket.on("connection:chat_message",      refreshUnread); // connection chat
     socket.on("chat:read",                    onChatRead);
     return () => {
       socket.off("mentorship:reminder",          reminderHandler);
@@ -109,7 +110,8 @@ const AlumniLayout = () => {
       socket.off("mentorship:new_request",       onNewMentorshipRequest);
       socket.off("mentorship:request_cancelled", onMentorshipUpdate);
       socket.off("mentorship:request_responded", onMentorshipUpdate);
-      socket.off("chat:new_message",             onNewChat);
+      socket.off("chat:new_message",             refreshUnread);
+      socket.off("connection:chat_message",      refreshUnread);
       socket.off("chat:read",                    onChatRead);
     };
   }, [isSocketReady]);

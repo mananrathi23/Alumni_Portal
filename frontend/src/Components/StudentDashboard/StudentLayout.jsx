@@ -39,7 +39,7 @@ const StudentLayout = () => {
   }, []);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/chat/unread-counts`, { withCredentials: true })
       .then((res) => {
         const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
         setUnreadMessages(total);
@@ -72,16 +72,15 @@ const StudentLayout = () => {
       axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
         .then((res) => setPending(res.data.incoming?.length ?? 0)).catch(() => {});
     };
-    // New chat message → bump Messages badge
-    const onNewChat = () => setUnreadMessages(prev => prev + 1);
-    // User opened Messages page → clear badge handled by the page itself, so re-fetch
-    const onChatRead = () => {
-      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+    // New chat message → re-fetch actual count (avoids stale +1 bugs)
+    const refreshUnread = () => {
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/chat/unread-counts`, { withCredentials: true })
         .then((res) => {
           const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
           setUnreadMessages(total);
         }).catch(() => {});
     };
+    const onChatRead = refreshUnread;
 
     socket.on("mentorship:reminder",    reminderHandler);
     socket.on("user:verified",          verifiedHandler);
@@ -89,8 +88,9 @@ const StudentLayout = () => {
     socket.on("connection:accepted",    onConnectionUpdate);
     socket.on("connection:rejected",    onConnectionUpdate);
     socket.on("connection:withdrawn",   onConnectionUpdate);
-    socket.on("chat:new_message",       onNewChat);
-    socket.on("chat:read",              onChatRead);
+    socket.on("chat:new_message",          refreshUnread);  // mentorship chat
+    socket.on("connection:chat_message",   refreshUnread);  // connection chat
+    socket.on("chat:read",                 onChatRead);
     return () => {
       socket.off("mentorship:reminder",    reminderHandler);
       socket.off("user:verified",          verifiedHandler);
@@ -98,8 +98,9 @@ const StudentLayout = () => {
       socket.off("connection:accepted",    onConnectionUpdate);
       socket.off("connection:rejected",    onConnectionUpdate);
       socket.off("connection:withdrawn",   onConnectionUpdate);
-      socket.off("chat:new_message",       onNewChat);
-      socket.off("chat:read",              onChatRead);
+      socket.off("chat:new_message",         refreshUnread);
+      socket.off("connection:chat_message",  refreshUnread);
+      socket.off("chat:read",                onChatRead);
     };
   }, [isSocketReady]);
 

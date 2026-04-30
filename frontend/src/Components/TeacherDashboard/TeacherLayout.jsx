@@ -41,7 +41,7 @@ const TeacherLayout = () => {
   }, []);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/chat/unread-counts`, { withCredentials: true })
       .then((res) => {
         const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
         setUnreadMessages(total);
@@ -79,7 +79,7 @@ const TeacherLayout = () => {
     // New chat message → bump Messages badge
     const onNewChat = () => setUnreadMessages(prev => prev + 1);
     const onChatRead = () => {
-      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/chat/unread-counts`, { withCredentials: true })
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/chat/unread-counts`, { withCredentials: true })
         .then((res) => {
           const total = Object.values(res.data.unread || {}).reduce((s, n) => s + n, 0);
           setUnreadMessages(total);

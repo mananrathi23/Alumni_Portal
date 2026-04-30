@@ -603,12 +603,7 @@ const Mentorship = () => {
                     <PiStar size={13}/> Rate this session
                   </button>
                 )}
-                {h.rating && (
-                  <div className="flex items-center gap-1">
-                    {[1,2,3,4,5].map(s => s<=h.rating ? <PiStarFill key={s} size={13} className="text-amber-400"/> : <PiStar key={s} size={13} className="text-slate-600"/>)}
-                    <span className="text-slate-500 text-xs ml-1">Your rating</span>
-                  </div>
-                )}
+
               </div>
             ))
           )}

@@ -367,7 +367,7 @@ const Mentorship = () => {
 
       {/* Mentor Score & Badge */}
       {weeklyStats !== null && (
-        <MentorScoreBadge score={user?.mentorStats?.score || 0} stats={user?.mentorStats} />
+        <MentorScoreBadge score={alumni?.mentorStats?.score || 0} stats={alumni?.mentorStats || {}} />
       )}
 
       {/* Tabs */}

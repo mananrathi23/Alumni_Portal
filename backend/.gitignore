@@ -1,2 +1,6 @@
 /.env
 node_modules
+
+# Seed scripts contain hardcoded credentials — never commit these
+seedAdmin.js
+seedPlacementAdmin.js

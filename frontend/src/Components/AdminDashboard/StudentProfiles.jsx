@@ -22,15 +22,19 @@ export default function StudentProfiles() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    const params = {};
-    if (search) params.search = search;
     setLoading(true);
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users/students`, { params, withCredentials: true })
-      .then((res) => setStudents(res.data.students || []))
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users`, { withCredentials: true })
+      .then((res) => {
+        // Filter: only admin-verified, non-blocked students
+        const allStudents = (res.data.users || []).filter(
+          (u) => u.role === "Student" && u.adminVerified === true && !u.isBlocked
+        );
+        setStudents(allStudents);
+      })
       .catch(() => toast.error("Failed to load student profiles."))
       .finally(() => setLoading(false));
-  }, [search]);
+  }, []); // load once on mount — search/filters are client-side
 
   const classOptions = Array.from(
     new Set(
@@ -57,6 +61,12 @@ export default function StudentProfiles() {
   ).sort();
 
   const filtered = students.filter((s) => {
+    if (search) {
+      const q = search.toLowerCase();
+      const matchName = s.name?.toLowerCase().includes(q);
+      const matchDept = s.department?.toLowerCase().includes(q);
+      if (!matchName && !matchDept) return false;
+    }
     if (classOf !== "All" && String(s.enrollmentYear) !== String(classOf)) return false;
     if (department !== "All" && s.department !== department) return false;
     if (year !== "All" && s.year !== year) return false;

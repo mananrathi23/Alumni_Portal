@@ -22,7 +22,7 @@ export default function StudentProfiles() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    const params = { filterRole: "Student", limit: -1 };
+    const params = { filterRole: "Student", limit: 10000 };
     if (search) params.search = search;
     setLoading(true);
     axios

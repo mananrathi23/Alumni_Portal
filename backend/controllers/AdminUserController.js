@@ -43,6 +43,41 @@ export const getAllUsers = catchAsyncError(async (req, res, next) => {
   });
 });
 
+// ── GET ALL ADMIN-VERIFIED STUDENTS (for Placement Cell) ───────────────────
+// GET /api/v1/admin/students
+export const getAllStudents = catchAsyncError(async (req, res, next) => {
+  const { search, department, year, enrollmentYear } = req.query;
+
+  const filter = {
+    accountVerified: true,
+    adminVerified: true,
+    isBlocked: false,
+  };
+
+  // Optional filters
+  if (search) {
+    filter.$or = [
+      { name:       { $regex: search, $options: "i" } },
+      { department: { $regex: search, $options: "i" } },
+      { email:      { $regex: search, $options: "i" } },
+    ];
+  }
+  if (department && department !== "All") filter.department = department;
+  if (year       && year !== "All")       filter.year = year;
+  if (enrollmentYear && enrollmentYear !== "All") filter.enrollmentYear = Number(enrollmentYear);
+
+  const students = await Student.find(filter)
+    .select("name email department year enrollmentYear enrollmentNumber skills bio linkedIn github portfolio profilePhoto createdAt")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  res.status(200).json({
+    success: true,
+    count: students.length,
+    students,
+  });
+});
+
 // ── TOGGLE VERIFY ──────────────────────────────────────────────────────────
 export const toggleVerifyUser = catchAsyncError(async (req, res, next) => {
   const { role, id } = req.params;

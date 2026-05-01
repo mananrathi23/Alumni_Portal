@@ -22,12 +22,12 @@ export default function StudentProfiles() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    const params = { filterRole: "Student", limit: 10000 };
+    const params = {};
     if (search) params.search = search;
     setLoading(true);
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/people`, { params, withCredentials: true })
-      .then((res) => setStudents(res.data.people || []))
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users/students`, { params, withCredentials: true })
+      .then((res) => setStudents(res.data.students || []))
       .catch(() => toast.error("Failed to load student profiles."))
       .finally(() => setLoading(false));
   }, [search]);

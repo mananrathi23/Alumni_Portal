@@ -2,6 +2,7 @@ import express from "express";
 import { isAdmin, isAuthenticated } from "../middlewares/auth.js";
 import {
   getAllUsers,
+  getAllStudents,
   toggleVerifyUser,
   toggleBlockUser,
   unblockConnection,
@@ -14,6 +15,7 @@ const router = express.Router();
 router.use(isAuthenticated, isAdmin);
 
 router.get("/", getAllUsers);
+router.get("/students", getAllStudents);   // Placement Cell: all admin-verified students
 router.put("/:role/:id/verify", toggleVerifyUser);
 router.put("/:role/:id/block", toggleBlockUser);
 

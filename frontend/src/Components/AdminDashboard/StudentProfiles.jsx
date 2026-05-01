@@ -20,7 +20,7 @@ export default function StudentProfiles() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    const params = { filterRole: "Student" };
+    const params = { filterRole: "Student", limit: -1 };
     if (search) params.search = search;
     setLoading(true);
     axios
@@ -98,49 +98,68 @@ export default function StudentProfiles() {
           <p className="text-slate-500 text-sm mt-1">Try adjusting your search</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((s) => (
-            <button
-              key={s._id}
-              onClick={() => setSelected(s)}
-              className={`text-left rounded-xl border p-4 space-y-3 transition-all hover:shadow-lg ${
-                theme === "dark"
-                  ? "bg-slate-900 border-white/[0.07] hover:border-rose-500/30"
-                  : "bg-white border-slate-200 hover:border-rose-400"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0">
-                  {s.name?.charAt(0)?.toUpperCase() || "S"}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className={`${theme === "dark" ? "text-white" : "text-slate-900"} font-semibold text-sm truncate`}>
-                    {s.name}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {s.department || "—"}{s.year ? ` · ${s.year}` : ""}{s.enrollmentYear ? ` · Class of ${s.enrollmentYear}` : ""}
-                  </p>
-                </div>
-              </div>
-
-              {s.skills?.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {s.skills.slice(0, 4).map((sk) => (
-                    <span key={sk} className="text-xs bg-slate-800/60 text-slate-300 px-2 py-0.5 rounded-full border border-white/[0.06]">
-                      {sk}
-                    </span>
-                  ))}
-                  {s.skills.length > 4 && <span className="text-xs text-slate-500">+{s.skills.length - 4}</span>}
-                </div>
-              )}
-
-              <div className="flex items-center gap-3 pt-1 border-t border-white/[0.06]">
-                {s.linkedIn && <FaLinkedin className="text-slate-500" size={14} />}
-                {s.github && <FaGithub className="text-slate-500" size={14} />}
-                {s.portfolio && <FaGlobe className="text-slate-500" size={14} />}
-              </div>
-            </button>
-          ))}
+        <div className={`overflow-hidden rounded-xl border ${theme === "dark" ? "bg-slate-900 border-white/[0.07]" : "bg-white border-slate-200"}`}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className={`border-b ${theme === "dark" ? "border-white/[0.06] bg-slate-800/50" : "border-slate-200 bg-slate-50"}`}>
+                  <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>Student</th>
+                  <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>Department & Year</th>
+                  <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>Skills</th>
+                  <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>Links</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-white/[0.06]">
+                {filtered.map((s) => (
+                  <tr 
+                    key={s._id}
+                    onClick={() => setSelected(s)}
+                    className={`group cursor-pointer transition-colors ${theme === "dark" ? "hover:bg-slate-800/50" : "hover:bg-slate-50"}`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                          {s.name?.charAt(0)?.toUpperCase() || "S"}
+                        </div>
+                        <div>
+                          <p className={`font-medium text-sm ${theme === "dark" ? "text-white" : "text-slate-900"}`}>{s.name}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className={`text-sm ${theme === "dark" ? "text-slate-300" : "text-slate-600"}`}>
+                        {s.department || "—"}
+                      </p>
+                      <p className={`text-xs ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+                        {s.year ? `${s.year}` : ""}{s.enrollmentYear ? ` · Class of ${s.enrollmentYear}` : ""}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.skills?.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {s.skills.slice(0, 3).map((sk) => (
+                            <span key={sk} className="text-[10px] uppercase tracking-wider bg-slate-800/60 text-slate-300 px-1.5 py-0.5 rounded border border-white/[0.06]">
+                              {sk}
+                            </span>
+                          ))}
+                          {s.skills.length > 3 && <span className="text-xs text-slate-500">+{s.skills.length - 3}</span>}
+                        </div>
+                      ) : (
+                        <span className={`text-xs ${theme === "dark" ? "text-slate-600" : "text-slate-400"}`}>—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {s.linkedIn && <FaLinkedin className={`text-slate-400 group-hover:text-sky-500 transition-colors`} size={16} />}
+                        {s.github && <FaGithub className={`text-slate-400 group-hover:text-slate-200 transition-colors`} size={16} />}
+                        {s.portfolio && <FaGlobe className={`text-slate-400 group-hover:text-emerald-500 transition-colors`} size={16} />}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

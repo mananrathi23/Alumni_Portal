@@ -60,8 +60,18 @@ const AdminLayout = () => {
     );
   }
 
-  // All nav items visible — backend enforces permissions per route
-  const visibleNav = NAV;
+  // All nav items visible by default, but restrict Placement Cell to specific routes
+  const visibleNav = NAV.filter((item) => {
+    const isPlacementCell = admin.adminLevel === "placement_admin" || (admin.name && admin.name.toLowerCase().includes("placement cell"));
+    if (isPlacementCell) {
+      return ["/admin/dashboard", "/admin/students", "/admin/jobs", "/admin/events", "/admin/news"].includes(item.path);
+    }
+    // Also respect backend permissions if defined
+    if (item.perm && admin.permissions && admin.permissions[item.perm] === false) {
+      return false;
+    }
+    return true;
+  });
 
   const renderSidebar = (mobile = false) => (
     <aside className={`${mobile ? "flex" : "hidden md:flex"} flex-col h-full w-64 ${theme === "dark" ? "bg-slate-900 border-r border-white/[0.06]" : "bg-white border-r border-slate-200/70"} p-4`}>

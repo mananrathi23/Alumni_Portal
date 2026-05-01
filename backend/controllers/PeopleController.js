@@ -24,7 +24,9 @@ export const getPeople = catchAsyncError(async (req, res) => {
 
   const { search, filterRole, department } = req.query;
   const page  = Math.max(1, parseInt(req.query.page)  || 1);
-  const limit = Math.min(50, parseInt(req.query.limit) || 20);
+  let limit = parseInt(req.query.limit) || 20;
+  if (limit === -1) limit = 10000; // Large limit to get all entries
+  else limit = Math.min(50, limit);
   const skip  = (page - 1) * limit;
 
   const rolesToQuery = filterRole && filterRole !== "All"

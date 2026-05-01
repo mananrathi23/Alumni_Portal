@@ -17,6 +17,8 @@ export default function StudentProfiles() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [classOf, setClassOf] = useState("All");
+  const [department, setDepartment] = useState("All");
+  const [year, setYear] = useState("All");
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
@@ -38,9 +40,37 @@ export default function StudentProfiles() {
     )
   ).sort((a, b) => b - a);
 
-  const filtered = classOf === "All"
-    ? students
-    : students.filter((s) => String(s.enrollmentYear) === String(classOf));
+  const deptOptions = Array.from(
+    new Set(
+      (students || [])
+        .map((s) => s.department)
+        .filter(Boolean)
+    )
+  ).sort();
+
+  const yearOptions = Array.from(
+    new Set(
+      (students || [])
+        .map((s) => s.year)
+        .filter(Boolean)
+    )
+  ).sort();
+
+  const filtered = students.filter((s) => {
+    if (classOf !== "All" && String(s.enrollmentYear) !== String(classOf)) return false;
+    if (department !== "All" && s.department !== department) return false;
+    if (year !== "All" && s.year !== year) return false;
+    return true;
+  });
+
+  const activeFilters = [classOf, department, year].filter(v => v !== "All").length;
+  const clearFilters = () => { setClassOf("All"); setDepartment("All"); setYear("All"); setSearch(""); };
+
+  const selectCls = `px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 ${
+    theme === "dark"
+      ? "bg-slate-800 border-white/[0.07] text-slate-200"
+      : "bg-slate-50 border-slate-200 text-slate-900"
+  }`;
 
   return (
     <div className="max-w-6xl mx-auto space-y-5">
@@ -50,9 +80,17 @@ export default function StudentProfiles() {
             Student Profiles
           </h2>
           <p className={`${theme === "dark" ? "text-slate-400" : "text-slate-500"} text-sm mt-1`}>
-            {loading ? "Loading…" : `${students.length} students found`}
+            {loading ? "Loading…" : `${filtered.length} of ${students.length} students`}
           </p>
         </div>
+        {(activeFilters > 0 || search) && (
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:border-rose-500/60 px-3 py-1.5 rounded-lg transition-all"
+          >
+            <PiX size={12} /> Clear filters {activeFilters > 0 && `(${activeFilters})`}
+          </button>
+        )}
       </div>
 
       <div className={`rounded-xl border p-4 ${theme === "dark" ? "bg-slate-900 border-white/[0.07]" : "bg-white border-slate-200"}`}>
@@ -63,21 +101,31 @@ export default function StudentProfiles() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search students by name or department…"
-              className={`w-full pl-9 pr-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 ${
-                theme === "dark"
+              className={`w-full pl-9 pr-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 ${theme === "dark"
                   ? "bg-slate-800 border-white/[0.07] text-slate-200 placeholder-slate-500"
                   : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400"
-              }`}
+                }`}
             />
           </div>
+          {/* Department */}
+          <select value={department} onChange={(e) => setDepartment(e.target.value)} className={selectCls}>
+            <option value="All">All Departments</option>
+            {deptOptions.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+          {/* Study Year */}
+          <select value={year} onChange={(e) => setYear(e.target.value)} className={selectCls}>
+            <option value="All">All Years</option>
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          {/* Class of (enrollment year) */}
           <select
             value={classOf}
             onChange={(e) => setClassOf(e.target.value)}
-            className={`px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 ${
-              theme === "dark"
-                ? "bg-slate-800 border-white/[0.07] text-slate-200"
-                : "bg-slate-50 border-slate-200 text-slate-900"
-            }`}
+            className={selectCls}
           >
             <option value="All">All Classes</option>
             {classOptions.map((y) => (
@@ -111,7 +159,7 @@ export default function StudentProfiles() {
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-white/[0.06]">
                 {filtered.map((s) => (
-                  <tr 
+                  <tr
                     key={s._id}
                     onClick={() => setSelected(s)}
                     className={`group cursor-pointer transition-colors ${theme === "dark" ? "hover:bg-slate-800/50" : "hover:bg-slate-50"}`}

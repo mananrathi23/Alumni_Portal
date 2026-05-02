@@ -244,9 +244,9 @@ export const getUser = catchAsyncError(async (req, res, next) => {
   const role = req.user.constructor.modelName; // "Student" | "Teacher" | "Alumni" | "Admin"
   const Model = getModelByRole(role);
 
-  // Fetch only the core identity fields — heavy fields (mentorshipSlots, mentorStats, googleTokens) excluded
+  // Fetch core identity fields + mentorStats/slots so the mentor score dashboard works correctly
   const user = await Model.findById(req.user._id).select(
-    "name email phone role department profilePhoto bio linkedIn github accountVerified adminVerified isBlocked enrollmentYear graduationYear year section skills currentCompany currentDesignation designation availableForMentorship cgpa portfolio enrollmentNumber employeeId joiningYear degree currentLocation industry"
+    "name email phone role department profilePhoto bio linkedIn github accountVerified adminVerified isBlocked enrollmentYear graduationYear year section skills currentCompany currentDesignation designation availableForMentorship cgpa portfolio enrollmentNumber employeeId joiningYear degree currentLocation industry mentorStats weeklyLimit mentorshipSlots lastIP lastSeenAt"
   ).lean();
 
   res.status(200).json({

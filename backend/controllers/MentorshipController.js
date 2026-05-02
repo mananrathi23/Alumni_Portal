@@ -46,13 +46,13 @@ async function findMentorById(id) {
 //   - Jobs posted (5%)          — community contribution, capped at 10
 //   - Events organized (5%)     — community contribution, capped at 10
 function computeMentorScore(stats) {
-  const rating       = Math.min((stats.averageRating || 0), 5) / 5 * 4;          // max 4
-  const sessions     = Math.min((stats.totalSessions || 0) / 20, 1) * 2.5;        // max 2.5
-  const acceptRate   = ((stats.acceptedRequests || 0) / Math.max(stats.totalRequests || 1, 1)) * 1.5; // max 1.5
-  const maxMs        = 24 * 60 * 60 * 1000;
+  const rating = Math.min((stats.averageRating || 0), 5) / 5 * 4;          // max 4
+  const sessions = Math.min((stats.totalSessions || 0) / 20, 1) * 2.5;        // max 2.5
+  const acceptRate = ((stats.acceptedRequests || 0) / Math.max(stats.totalRequests || 1, 1)) * 1.5; // max 1.5
+  const maxMs = 24 * 60 * 60 * 1000;
   const responseSpeed = Math.max(0, (1 - Math.min((stats.avgResponseMs || 0) / maxMs, 1))) * 1.0; // max 1.0
-  const jobsBonus    = Math.min((stats.jobsPosted || 0) / 10, 1) * 0.5;           // max 0.5
-  const eventsBonus  = Math.min((stats.eventsOrganized || 0) / 10, 1) * 0.5;      // max 0.5
+  const jobsBonus = Math.min((stats.jobsPosted || 0) / 10, 1) * 0.5;           // max 0.5
+  const eventsBonus = Math.min((stats.eventsOrganized || 0) / 10, 1) * 0.5;      // max 0.5
   const score = rating + sessions + acceptRate + responseSpeed + jobsBonus + eventsBonus;
   return Math.min(Math.round(score * 100) / 100, 10); // cap at 10
 }
@@ -60,11 +60,11 @@ function computeMentorScore(stats) {
 // ── Badge from score ──────────────────────────────────────────────────────────
 // Returns { badge, color } based on computed score out of 10
 export function getMentorBadge(score) {
-  if (score >= 8.5) return { badge: "🏆 Elite Mentor",    tier: "elite"   };
-  if (score >= 6.5) return { badge: "⭐ Expert Mentor",   tier: "expert"  };
-  if (score >= 4.5) return { badge: "🌟 Rising Mentor",   tier: "rising"  };
-  if (score >= 2.0) return { badge: "🌱 New Mentor",      tier: "new"     };
-  return                   { badge: "Mentor",              tier: "default" };
+  if (score >= 8.5) return { badge: "🏆 Elite Mentor", tier: "elite" };
+  if (score >= 6.5) return { badge: "⭐ Expert Mentor", tier: "expert" };
+  if (score >= 4.5) return { badge: "🌟 Rising Mentor", tier: "rising" };
+  if (score >= 2.0) return { badge: "🌱 New Mentor", tier: "new" };
+  return { badge: "Mentor", tier: "default" };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -142,8 +142,8 @@ export const getGoogleLinkStatus = catchAsyncError(async (req, res, next) => {
   }
   const Model = getMentorModel(role);
   const mentor = await Model.findById(req.user._id)
-  .select("+googleTokens.refresh_token")
-  .lean();
+    .select("+googleTokens.refresh_token")
+    .lean();
   const linked = !!(mentor?.googleTokens?.refresh_token);
   res.status(200).json({ success: true, linked });
 });
@@ -237,9 +237,9 @@ export const updateWeeklyLimit = catchAsyncError(async (req, res, next) => {
 
 export const getMentors = catchAsyncError(async (req, res) => {
   const { search, filterRole, department } = req.query;
-  const page  = Math.max(1, parseInt(req.query.page)  || 1);
+  const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 12);
-  const skip  = (page - 1) * limit;
+  const skip = (page - 1) * limit;
 
   const roles = filterRole && filterRole !== "All" ? [filterRole] : ["Alumni", "Teacher"];
 
@@ -287,7 +287,7 @@ export const getMentors = catchAsyncError(async (req, res) => {
 
   const results = await Promise.all(mentorQueries);
   const mentors = results.flatMap((r) => r.docs);
-  const total   = results.reduce((sum, r) => sum + r.total, 0);
+  const total = results.reduce((sum, r) => sum + r.total, 0);
   mentors.sort((a, b) => (b.mentorStats?.score || 0) - (a.mentorStats?.score || 0));
 
   res.status(200).json({
@@ -344,7 +344,7 @@ export const createMentorshipRequest = catchAsyncError(async (req, res, next) =>
 
   const weeklyBookingWithSameMentor = await MentorshipRequest.findOne({
     "student.id": user._id,
-    "mentor.id":  mentor._id,
+    "mentor.id": mentor._id,
     status: { $in: ["Accepted", "Pending"] },
     requestedAt: { $gte: weekStart },
   });
@@ -1025,18 +1025,18 @@ export const getMyMentorStats = catchAsyncError(async (req, res, next) => {
 // Total max ≈ 100 pts, returned sorted descending.
 
 const GOAL_INDUSTRY_MAP = {
-  career:    ["Technology","Finance","Consulting","Manufacturing","Healthcare"],
-  resume:    [],   // any industry helps — will give partial bonus to all
-  interview: ["Technology","Finance","Consulting"],
-  technical: ["Technology","Electronics","Manufacturing"],
-  general:   [],   // any
+  career: ["Technology", "Finance", "Consulting", "Manufacturing", "Healthcare"],
+  resume: [],   // any industry helps — will give partial bonus to all
+  interview: ["Technology", "Finance", "Consulting"],
+  technical: ["Technology", "Electronics", "Manufacturing"],
+  general: [],   // any
 };
 
 // Department cross-match groups (partial credit if in same group)
 const DEPT_GROUPS = [
-  ["Computer Science","Information Technology","Computer Engineering"],
-  ["Electronics","Electrical","Electronics and Communication"],
-  ["Mechanical","Civil","Production Engineering"],
+  ["Computer Science", "Information Technology", "Computer Engineering"],
+  ["Electronics", "Electrical", "Electronics and Communication"],
+  ["Mechanical", "Civil", "Production Engineering"],
 ];
 
 function deptGroupOf(dept) {
@@ -1058,9 +1058,9 @@ export const smartMatchMentors = catchAsyncError(async (req, res) => {
   }
 
   const { goal = "general" } = req.query;
-  const studentDept   = user.department || "";
+  const studentDept = user.department || "";
   const studentSkills = user.skills || [];
-  const studentGroup  = deptGroupOf(studentDept);
+  const studentGroup = deptGroupOf(studentDept);
 
   // Fetch all available mentors
   const [alumniDocs, teacherDocs] = await Promise.all([
@@ -1084,14 +1084,14 @@ export const smartMatchMentors = catchAsyncError(async (req, res) => {
     const breakdown = [];
 
     // 1. Department match (30 pts max)
-    const mentorDept  = mentor.department || "";
+    const mentorDept = mentor.department || "";
     const mentorGroup = deptGroupOf(mentorDept);
     if (mentorDept && studentDept &&
-        mentorDept.toLowerCase() === studentDept.toLowerCase()) {
+      mentorDept.toLowerCase() === studentDept.toLowerCase()) {
       pts += 30;
       breakdown.push("Same department (+30)");
     } else if (studentGroup && mentorGroup &&
-               studentGroup.some(d => mentorGroup.includes(d))) {
+      studentGroup.some(d => mentorGroup.includes(d))) {
       pts += 15;
       breakdown.push("Related department (+15)");
     }
@@ -1107,7 +1107,7 @@ export const smartMatchMentors = catchAsyncError(async (req, res) => {
     if (preferredIndustries.length > 0) {
       const mentorIndustry = mentor.industry || mentor.designation || "";
       if (preferredIndustries.some(ind =>
-          mentorIndustry.toLowerCase().includes(ind.toLowerCase()))) {
+        mentorIndustry.toLowerCase().includes(ind.toLowerCase()))) {
         pts += 20;
         breakdown.push(`Goal-relevant industry (+20)`);
       } else {

@@ -1005,12 +1005,17 @@ export const getMyMentorStats = catchAsyncError(async (req, res, next) => {
     "rating.value": { $ne: null, $exists: true },
   }).select("student goal slot rating completedAt").sort({ completedAt: -1 }).lean();
 
-  const stats = user.mentorStats || {};
+  // ── Always re-fetch from DB so we get the latest $set values, not the stale req.user snapshot ──
+  const freshMentor = await getMentorModel(role).findById(user._id)
+    .select("mentorStats weeklyLimit")
+    .lean();
+  const stats = freshMentor?.mentorStats || {};
+
 
   res.status(200).json({
     success: true,
     weeklyCount,
-    weeklyLimit: user.weeklyLimit || 5,
+    weeklyLimit: freshMentor?.weeklyLimit || user.weeklyLimit || 5,
     stats: {
       totalSessions: stats.totalSessions || 0,
       averageRating: stats.averageRating || 0,

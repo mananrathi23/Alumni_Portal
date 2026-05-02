@@ -714,12 +714,19 @@ export const completeMentorshipSession = catchAsyncError(async (req, res, next) 
   mentorship.completedAt = new Date();
   await mentorship.save();
 
-  const mentor_ = await getMentorModel(role).findById(user._id);
+  // ── Atomic update: increment totalSessions and recompute score ──────────────
+  const mentor_ = await getMentorModel(role).findById(user._id).lean();
   if (mentor_) {
     const s = mentor_.mentorStats || {};
-    mentor_.mentorStats = { ...s, totalSessions: (s.totalSessions || 0) + 1 };
-    mentor_.mentorStats.score = computeMentorScore(mentor_.mentorStats);
-    await mentor_.save({ validateModifiedOnly: true });
+    const newTotalSessions = (s.totalSessions || 0) + 1;
+    const updatedStats = { ...s, totalSessions: newTotalSessions };
+    const newScore = computeMentorScore(updatedStats);
+    await getMentorModel(role).findByIdAndUpdate(user._id, {
+      $set: {
+        "mentorStats.totalSessions": newTotalSessions,
+        "mentorStats.score": newScore,
+      },
+    });
   }
 
   await getMentorModel(role).findOneAndUpdate(
@@ -940,22 +947,25 @@ export const rateSession = catchAsyncError(async (req, res, next) => {
   mentorship.rating = { value, feedback: feedback?.trim() || "", ratedAt: new Date() };
   await mentorship.save();
 
+  // ── Atomic update: recompute and persist mentor rating stats ────────────────
   const MentorModel = getMentorModel(mentorship.mentor.role);
-  const mentor = await MentorModel.findById(mentorship.mentor.id);
-  if (mentor) {
-    const stats = mentor.mentorStats || {};
+  const mentorDoc = await MentorModel.findById(mentorship.mentor.id).lean();
+  if (mentorDoc) {
+    const stats = mentorDoc.mentorStats || {};
     const newTotalRatings = (stats.totalRatings || 0) + 1;
-    const newSumRatings = (stats.sumRatings || 0) + value;
-    const newAvg = newSumRatings / newTotalRatings;
+    const newSumRatings   = (stats.sumRatings   || 0) + value;
+    const newAvg          = newSumRatings / newTotalRatings;
+    const newAverageRating = Math.round(newAvg * 10) / 10;
+    const newScore = computeMentorScore({ ...stats, totalRatings: newTotalRatings, sumRatings: newSumRatings, averageRating: newAverageRating });
 
-    mentor.mentorStats = {
-      ...stats,
-      totalRatings: newTotalRatings,
-      sumRatings: newSumRatings,
-      averageRating: Math.round(newAvg * 10) / 10,
-    };
-    mentor.mentorStats.score = computeMentorScore(mentor.mentorStats);
-    await mentor.save({ validateModifiedOnly: true });
+    await MentorModel.findByIdAndUpdate(mentorship.mentor.id, {
+      $set: {
+        "mentorStats.totalRatings":  newTotalRatings,
+        "mentorStats.sumRatings":    newSumRatings,
+        "mentorStats.averageRating": newAverageRating,
+        "mentorStats.score":         newScore,
+      },
+    });
   }
 
   // Notify mentor in real time (so stats/history refresh immediately)

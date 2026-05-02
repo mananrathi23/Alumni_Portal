@@ -20,87 +20,77 @@ function getModelByRole(role) {
   }
 }
 
-// REGISTER 
+// REGISTER
 export const register = catchAsyncError(async (req, res, next) => {
-  try {
-    const { name, password, role, enrollmentYear } = req.body;
-    const email = req.body.email?.toLowerCase().trim();
+  const { name, password, role, enrollmentYear } = req.body;
+  const email = req.body.email?.toLowerCase().trim();
 
-    if (!name || !email || !password || !role) {
-      return next(new ErrorHandler("All fields are required.", 400));
-    }
-
-    const validRoles = ["Student", "Teacher", "Alumni", "Admin"];
-    if (!validRoles.includes(role)) {
-      return next(new ErrorHandler("Invalid role selected.", 400));
-    }
-
-    if (role === "Admin") {
-      return next(
-        new ErrorHandler(
-          "Admin accounts cannot be self-registered. Please contact the system administrator.",
-          403
-        )
-      );
-    }
-
-    const Model = getModelByRole(role);
-
-    const allModels = [Student, Teacher, Alumni, Admin];
-    
-    for (const m of allModels) {
-      const existingUser = await m.findOne({ email, accountVerified: true });
-      if (existingUser) {
-        return next(new ErrorHandler("Email is already registered.", 400));
-      }
-    }
-
-    let totalAttempts = 0;
-    for (const m of allModels) {
-      const attempts = await m.find({ email, accountVerified: false });
-      totalAttempts += attempts.length;
-    }
-
-    if (totalAttempts > 3) {
-      return next(
-        new ErrorHandler(
-          "You have exceeded the maximum number of attempts (3). Please try again after an hour.",
-          400
-        )
-      );
-    }
-
-    const userData = { name, email, password };
-    // Save enrollmentYear at signup for Student and Alumni — used for "Class of YEAR" grouping
-    if (enrollmentYear && (role === "Student" || role === "Alumni")) {
-      userData.enrollmentYear = Number(enrollmentYear);
-    }
-    const user = await Model.create(userData);
-    const verificationCode = user.generateVerificationCode();
-    await user.save();
-
-    sendVerificationCode(verificationCode, name, email, res);
-  } catch (error) {
-    next(error);
+  if (!name || !email || !password || !role) {
+    return next(new ErrorHandler("All fields are required.", 400));
   }
+
+  const validRoles = ["Student", "Teacher", "Alumni", "Admin"];
+  if (!validRoles.includes(role)) {
+    return next(new ErrorHandler("Invalid role selected.", 400));
+  }
+
+  if (role === "Admin") {
+    return next(
+      new ErrorHandler(
+        "Admin accounts cannot be self-registered. Please contact the system administrator.",
+        403
+      )
+    );
+  }
+
+  const Model = getModelByRole(role);
+  const allModels = [Student, Teacher, Alumni, Admin];
+
+  for (const m of allModels) {
+    const existingUser = await m.findOne({ email, accountVerified: true });
+    if (existingUser) {
+      return next(new ErrorHandler("Email is already registered.", 400));
+    }
+  }
+
+  let totalAttempts = 0;
+  for (const m of allModels) {
+    const attempts = await m.find({ email, accountVerified: false });
+    totalAttempts += attempts.length;
+  }
+
+  if (totalAttempts > 3) {
+    return next(
+      new ErrorHandler(
+        "You have exceeded the maximum number of attempts (3). Please try again after an hour.",
+        400
+      )
+    );
+  }
+
+  const userData = { name, email, password };
+  if (enrollmentYear && (role === "Student" || role === "Alumni")) {
+    userData.enrollmentYear = Number(enrollmentYear);
+  }
+
+  const user = await Model.create(userData);
+  const verificationCode = user.generateVerificationCode();
+  await user.save();
+
+  // Send OTP — any throw here is caught cleanly by catchAsyncError → errorMiddleware
+  const message = generateEmailTemplate(verificationCode);
+  await sendEmail({ email, subject: "Your Verification Code", message });
+
+  return res.status(200).json({
+    success: true,
+    message: `Verification email successfully sent to ${name}`,
+  });
 });
 
-// SEND VERIFICATION CODE
+// SEND VERIFICATION CODE (kept for legacy compatibility — no longer sends res directly)
 async function sendVerificationCode(verificationCode, name, email, res) {
-  try {
-    const message = generateEmailTemplate(verificationCode);
-    await sendEmail({ email, subject: "Your Verification Code", message });
-    return res.status(200).json({
-      success: true,
-      message: `Verification email successfully sent to ${name}`,
-    });
-  } catch (error) {
-    console.error("OTP Send Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Verification code failed to send: " + (error.message || "Unknown error"),
-    });
-  }
+  // Deprecated: logic is now inlined in register() to avoid double-response crashes.
+  // This function is no longer called.
 }
 
 // VERIFY OTP 

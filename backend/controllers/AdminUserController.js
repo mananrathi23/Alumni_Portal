@@ -151,3 +151,60 @@ export const unblockMentorship = catchAsyncError(async (req, res, next) => {
     mentorship,
   });
 });
+
+// ── ONE-TIME BACKFILL: recompute mentorStats from actual session data ────────
+function computeScore(stats) {
+  const rating        = Math.min((stats.averageRating || 0), 5) / 5 * 4;
+  const sessions      = Math.min((stats.totalSessions || 0) / 20, 1) * 2.5;
+  const acceptRate    = ((stats.acceptedRequests || 0) / Math.max(stats.totalRequests || 1, 1)) * 1.5;
+  const maxMs         = 24 * 60 * 60 * 1000;
+  const speed         = Math.max(0, (1 - Math.min((stats.avgResponseMs || 0) / maxMs, 1))) * 1.0;
+  const jobsBonus     = Math.min((stats.jobsPosted || 0) / 10, 1) * 0.5;
+  const eventsBonus   = Math.min((stats.eventsOrganized || 0) / 10, 1) * 0.5;
+  return Math.min(Math.round((rating + sessions + acceptRate + speed + jobsBonus + eventsBonus) * 100) / 100, 10);
+}
+
+export const backfillMentorStats = catchAsyncError(async (req, res) => {
+  const results = [];
+
+  for (const [Model, roleName] of [[Alumni, "Alumni"], [Teacher, "Teacher"]]) {
+    const mentors = await Model.find({}).select("_id name mentorStats").lean();
+
+    for (const mentor of mentors) {
+      const id = mentor._id;
+
+      const [totalRequests, acceptedRequests, totalSessions, ratedSessions] = await Promise.all([
+        MentorshipRequest.countDocuments({ "mentor.id": id }),
+        MentorshipRequest.countDocuments({ "mentor.id": id, status: { $in: ["Accepted", "Completed"] } }),
+        MentorshipRequest.countDocuments({ "mentor.id": id, status: "Completed" }),
+        MentorshipRequest.find({ "mentor.id": id, status: "Completed", "rating.value": { $exists: true, $ne: null } })
+          .select("rating").lean(),
+      ]);
+
+      const totalRatings   = ratedSessions.length;
+      const sumRatings     = ratedSessions.reduce((acc, s) => acc + (s.rating?.value || 0), 0);
+      const averageRating  = totalRatings > 0 ? Math.round((sumRatings / totalRatings) * 10) / 10 : 0;
+      const existing       = mentor.mentorStats || {};
+      const newStats       = { totalSessions, totalRatings, sumRatings, averageRating, totalRequests, acceptedRequests, avgResponseMs: existing.avgResponseMs || 0, jobsPosted: existing.jobsPosted || 0, eventsOrganized: existing.eventsOrganized || 0 };
+      const score          = computeScore(newStats);
+
+      await Model.findByIdAndUpdate(id, {
+        $set: {
+          "mentorStats.totalSessions":    totalSessions,
+          "mentorStats.totalRatings":     totalRatings,
+          "mentorStats.sumRatings":       sumRatings,
+          "mentorStats.averageRating":    averageRating,
+          "mentorStats.totalRequests":    totalRequests,
+          "mentorStats.acceptedRequests": acceptedRequests,
+          "mentorStats.score":            score,
+        },
+      });
+
+      if (totalRequests > 0 || totalRatings > 0) {
+        results.push({ role: roleName, name: mentor.name, totalSessions, totalRatings, averageRating, score });
+      }
+    }
+  }
+
+  res.status(200).json({ success: true, message: "Backfill complete.", updated: results });
+});

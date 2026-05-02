@@ -7,6 +7,7 @@ import {
   toggleBlockUser,
   unblockConnection,
   unblockMentorship,
+  backfillMentorStats,
 } from "../controllers/AdminUserController.js";
 
 const router = express.Router();
@@ -21,5 +22,8 @@ router.put("/:role/:id/block", toggleBlockUser);
 
 router.put("/connection/:id/unblock", unblockConnection);
 router.put("/mentorship/:id/unblock", unblockMentorship);
+
+// ONE-TIME: recalculate mentorStats from existing session data
+router.post("/backfill-mentor-stats", backfillMentorStats);
 
 export default router;

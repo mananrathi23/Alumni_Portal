@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import { useState, useContext } from "react";
 import { useOutletContext } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -9,9 +9,11 @@ import {
   PiGithubLogo, PiBriefcase, PiGraduationCap, PiStar, PiUser,
   PiEnvelope, PiMapPin, PiBuildings,
 } from "react-icons/pi";
-import { isAlumniProfileComplete } from "../../utils/profileCompletion";
+import { isProfileComplete } from "../../utils/profileCompletion";
+import { safeUrl } from "../../utils/safeUrl";
+import { DEPARTMENTS } from "../../utils/departments";
+import { API } from "../../utils/api";
 
-const DEPARTMENTS = ["Computer Science","Information Technology","Electronics","Mechanical","Civil","Other"];
 const INDUSTRIES  = ["Technology","Finance","Healthcare","Education","Manufacturing","Consulting","Other"];
 
 const inp = "w-full px-3 py-2.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all";
@@ -58,7 +60,7 @@ const Profile = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/update-profile`, form,
+      const res = await axios.put(`${API}/user/update-profile`, form,
         { withCredentials: true, headers: { "Content-Type": "application/json" } });
       toast.success("Profile updated!");
       setUser(res.data.user);
@@ -68,7 +70,7 @@ const Profile = () => {
     finally { setLoading(false); }
   };
 
-  const complete = isAlumniProfileComplete(alumni);
+  const complete = isProfileComplete("Alumni", alumni);
 
   return (
     <div className="max-w-5xl mx-auto space-y-5">
@@ -136,8 +138,8 @@ const Profile = () => {
             {alumni?.enrollmentYear && <div className="flex items-center gap-2"><PiStar size={14} className="text-slate-500"/><p className="text-slate-500 text-xs">Class of {alumni.enrollmentYear}</p></div>}
             {(alumni?.linkedIn || alumni?.github) && (
               <div className="flex gap-2 pt-1">
-                {alumni.linkedIn && <a href={alumni.linkedIn} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300"><PiLinkedinLogo size={13}/> LinkedIn</a>}
-                {alumni.github && <a href={alumni.github} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white"><PiGithubLogo size={13}/> GitHub</a>}
+                {alumni.linkedIn && <a href={safeUrl(alumni.linkedIn)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300"><PiLinkedinLogo size={13}/> LinkedIn</a>}
+                {alumni.github && <a href={safeUrl(alumni.github)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white"><PiGithubLogo size={13}/> GitHub</a>}
               </div>
             )}
           </div>
@@ -225,7 +227,7 @@ const Profile = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[{label:"LinkedIn",key:"linkedIn",placeholder:"https://linkedin.com/in/…"},{label:"GitHub",key:"github",placeholder:"https://github.com/…"}].map(({label,key,placeholder}) => (
                 <Field key={key} label={label} value={alumni?.[key]}>
-                  {alumni?.[key] && !editing && <a href={alumni[key]} target="_blank" rel="noreferrer" className="text-sky-400 text-sm hover:underline truncate block">{alumni[key]}</a>}
+                  {alumni?.[key] && !editing && <a href={safeUrl(alumni[key])} target="_blank" rel="noreferrer" className="text-sky-400 text-sm hover:underline truncate block">{alumni[key]}</a>}
                   {editing && <input type="url" placeholder={placeholder} value={form[key]} onChange={e => set(key, e.target.value)} className={inp}/>}
                 </Field>
               ))}

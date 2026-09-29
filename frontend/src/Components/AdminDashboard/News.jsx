@@ -5,8 +5,9 @@ import {
   PiNewspaper, PiPlus, PiTrash, PiPencilSimple,
   PiCheck, PiX, PiCalendar,
 } from "react-icons/pi";
+import { API } from "../../utils/api";
 
-const BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1/news`;
+const BASE = `${API}/news`;
 
 const EMPTY = { title: "", description: "", date: "" };
 

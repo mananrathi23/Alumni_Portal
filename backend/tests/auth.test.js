@@ -134,7 +134,7 @@ describe('POST /api/v1/user/login', () => {
   it('should login successfully and return a JWT token for a verified student', async () => {
     // Seed a verified student directly into the in-memory DB
     const { Student } = await import('../models/StudentModel.js');
-    const student = await Student.create({
+    await Student.create({
       name: 'Test Student',
       email: 'student@test.com',
       password: 'MyPassword@123',
@@ -282,12 +282,12 @@ describe('POST /api/v1/user/password/forgot', () => {
     expect(res.body.message).toMatch(/invalid role/i);
   });
 
-  it('should return 404 if user not found', async () => {
+  it('gives the same reply for unknown emails (no account discovery)', async () => {
     const res = await request(testApp)
       .post('/api/v1/user/password/forgot')
       .send({ email: 'ghost@test.com', role: 'Student' });
 
-    expect(res.status).toBe(404);
-    expect(res.body.message).toMatch(/user not found/i);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toMatch(/if an account exists/i);
   });
 });

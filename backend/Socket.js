@@ -1,49 +1,48 @@
 // Backend/Socket.js
+import jwt from "jsonwebtoken";
+import { isTokenBlacklisted } from "./utils/tokenBlacklist.js";
+
 let ioInstance = null;
-const onlineUsers = new Map(); // userId → socketId
+
+// The login JWT: sent by the client in the handshake `auth`, or as the auth cookie
+const tokenFrom = (socket) => {
+  if (socket.handshake.auth?.token) return socket.handshake.auth.token;
+  const match = (socket.handshake.headers.cookie || "").match(/(?:^|;\s*)token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
 
 export const initSocket = (io) => {
   ioInstance = io;
 
+  // Every socket must prove who it is. Each user's private events (chat messages,
+  // notifications) go to the room user:<id>, so the room is chosen from the
+  // verified token — never from an id the client claims.
+  io.use(async (socket, next) => {
+    try {
+      const token = tokenFrom(socket);
+      if (!token) return next(new Error("unauthorized"));
+      const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+      if (decoded.jti && await isTokenBlacklisted(decoded.jti)) return next(new Error("unauthorized"));
+      socket.data.userId = decoded.id.toString();
+      next();
+    } catch {
+      next(new Error("unauthorized"));
+    }
+  });
+
   io.on("connection", (socket) => {
-    // ── Register user (called right after connect from frontend) ──────────────
-    socket.on("register", (userId) => {
-      if (userId) {
-        const userIdStr = userId.toString();
-        socket.join(`user:${userIdStr}`);
-        onlineUsers.set(userIdStr, socket.id);
-      }
-    });
+    const userId = socket.data.userId;
+    socket.join(`user:${userId}`);
 
-    // ── Join a mentorship chat room ───────────────────────────────────────────
-    // Called when user opens a chat window for a specific mentorship session
-    socket.on("chat:join", (mentorshipId) => {
-      socket.join(`chat:${mentorshipId}`);
-    });
+    // Older clients announce themselves after connecting; the room is already joined
+    socket.on("register", () => {});
 
-    // ── Leave a mentorship chat room ──────────────────────────────────────────
-    socket.on("chat:leave", (mentorshipId) => {
-      socket.leave(`chat:${mentorshipId}`);
+    // ── Typing indicator for a 1:1 conversation, relayed to the other person ──
+    socket.on("chat:typing", ({ toUserId } = {}) => {
+      if (toUserId) socket.to(`user:${toUserId}`).emit("chat:typing", { fromUserId: userId });
     });
-
-    // ── Typing indicator ──────────────────────────────────────────────────────
-    socket.on("chat:typing", ({ mentorshipId, userName }) => {
-      // Broadcast to everyone in the room except sender
-      socket.to(`chat:${mentorshipId}`).emit("chat:typing", { userName });
-    });
-
-    socket.on("chat:stop_typing", ({ mentorshipId }) => {
-      socket.to(`chat:${mentorshipId}`).emit("chat:stop_typing");
-    });
-
-    // ── Disconnect cleanup ────────────────────────────────────────────────────
-    socket.on("disconnect", () => {
-      for (const [userId, socketId] of onlineUsers.entries()) {
-        if (socketId === socket.id) {
-          onlineUsers.delete(userId);
-          break;
-        }
-      }
+    socket.on("chat:stop_typing", ({ toUserId } = {}) => {
+      if (toUserId) socket.to(`user:${toUserId}`).emit("chat:stop_typing", { fromUserId: userId });
     });
   });
 };
@@ -53,13 +52,6 @@ export const initSocket = (io) => {
 export const emitToUser = (userId, event, data) => {
   if (!ioInstance || !userId) return;
   ioInstance.to(`user:${userId.toString()}`).emit(event, data);
-};
-
-// ── Broadcast to all members of a chat room ───────────────────────────────────
-// Used for real-time message delivery to the chat room (both participants)
-export const emitToRoom = (mentorshipId, event, data) => {
-  if (!ioInstance) return;
-  ioInstance.to(`chat:${mentorshipId}`).emit(event, data);
 };
 
 // ── Broadcast to ALL connected clients ───────────────────────────────────────

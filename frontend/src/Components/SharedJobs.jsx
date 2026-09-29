@@ -14,8 +14,10 @@ import { useNavigate } from "react-router-dom";
 
 import RestrictedAccess from "./RestrictedAccess";
 import { useFeedRefresh } from "../utils/useFeedRefresh";
+import { safeUrl } from "../utils/safeUrl";
+import { API as API_ROOT } from "../utils/api";
 
-const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/jobs`;
+const API = `${API_ROOT}/jobs`;
 const POSTER_ROLES = ["Admin", "Alumni", "Teacher"];
 const JOB_TYPES = ["full-time","part-time","internship","contract","remote"];
 const TYPE_COLORS = {
@@ -179,7 +181,7 @@ function JobCard({ job, currentUser, connections, onEdit, onDelete }) {
           <div className="flex items-center gap-1"><PiCalendarBlank size={12}/>{new Date(job.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</div>
         </div>
         {job.link && !isPoster ? (
-          <a href={job.link} target="_blank" rel="noreferrer"
+          <a href={safeUrl(job.link)} target="_blank" rel="noreferrer"
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-bold hover:bg-sky-500/20 transition-all">
             <PiLink size={13}/> {currentUser?.role === "Teacher" ? "See Now" : "Apply Now"}
           </a>
@@ -218,7 +220,7 @@ export default function SharedJobs({ role, accentColor = "sky" }) {
   const [connections, setConnections] = useState([]);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections`, { withCredentials: true })
+    axios.get(`${API_ROOT}/connections`, { withCredentials: true })
       .then(res => setConnections(res.data.connections || []))
       .catch(() => {});
   }, []);

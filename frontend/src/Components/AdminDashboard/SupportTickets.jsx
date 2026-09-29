@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../../context";
 import { PiCheckCircle, PiPaperPlaneRight, PiRobot, PiUser, PiWarningCircle } from "react-icons/pi";
+import { API } from "../../utils/api";
 
 const SupportTickets = () => {
   const { theme } = useContext(Context);
@@ -14,7 +15,7 @@ const SupportTickets = () => {
 
   const fetchTickets = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/support/admin/tickets`, {
+      const res = await axios.get(`${API}/support/admin/tickets`, {
         withCredentials: true,
       });
       setTickets(res.data.tickets || []);
@@ -39,7 +40,7 @@ const SupportTickets = () => {
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/support/admin/tickets/${selectedTicket._id}/reply`,
+        `${API}/support/admin/tickets/${selectedTicket._id}/reply`,
         { text: replyText.trim(), resolve },
         { withCredentials: true }
       );

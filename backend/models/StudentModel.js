@@ -80,11 +80,7 @@ studentSchema.methods.comparePassword = async function (enteredPassword) {
 
 // Generate 5-digit OTP
 studentSchema.methods.generateVerificationCode = function () {
-  const firstDigit = Math.floor(Math.random() * 9) + 1;
-  const remainingDigits = Math.floor(Math.random() * 10000)
-    .toString()
-    .padStart(4, "0");
-  const verificationCode = parseInt(firstDigit + remainingDigits);
+  const verificationCode = crypto.randomInt(10000, 100000); // 5 digits, secure random
   this.verificationCode = verificationCode;
   this.verificationCodeExpire = Date.now() + 10 * 60 * 1000;
   return verificationCode;

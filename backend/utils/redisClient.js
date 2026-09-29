@@ -28,7 +28,7 @@ function attachRedisHandlers(client, label = "Redis") {
   client.on("reconnecting", () => console.log(`[${label}] Reconnecting...`));
 }
 
-export function createRedisClient(label = "Redis") {
+function createRedisClient(label = "Redis") {
   if (!REDIS_ENABLED) {
     console.warn(`[${label}] Disabled by configuration; continuing without Redis.`);
     return null;
@@ -81,8 +81,3 @@ export const safeRedisSet = async (key, value, ttl) => {
   } catch { return null; }
 };
 
-export const safeRedisDel = async (...keys) => {
-  if (!redis) return null;
-  try { return await redis.del(...keys); }
-  catch { return null; }
-};

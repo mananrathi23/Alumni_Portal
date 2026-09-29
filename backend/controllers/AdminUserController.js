@@ -8,17 +8,11 @@ import { MentorshipRequest } from "../models/MentorshipRequestModel.js";
 import { emitToUser } from "../Socket.js";
 import { invalidateUserListings } from "../middlewares/cache.js";
 import { searchRegex } from "../utils/escapeRegex.js";
+import { Conversation } from "../models/ConversationModel.js";
+import { conversationKey } from "../utils/conversations.js";
+import { getMemberModel as getModelByRole } from "../utils/userModels.js";
 
 // Helper to get model
-function getModelByRole(role) {
-  switch (role) {
-    case "Student": return Student;
-    case "Teacher": return Teacher;
-    case "Alumni":  return Alumni;
-    default:        return null;
-  }
-}
-
 // ── GET ALL USERS ──────────────────────────────────────────────────────────
 // GET /api/v1/admin/users?role=All|Student|Teacher|Alumni&search=&page=1&limit=50
 // Paginated across the three user collections, most recently seen first.
@@ -165,6 +159,13 @@ export const toggleBlockUser = catchAsyncError(async (req, res, next) => {
   });
 });
 
+// Chat blocking lives on the pair's conversation (connection + mentorship chats are merged)
+const unblockConversation = (a, b) =>
+  Conversation.updateOne(
+    { key: conversationKey(a, b) },
+    { $set: { isBlocked: false, violationCount: 0 } }
+  );
+
 // ── UNBLOCK CONNECTION ─────────────────────────────────────────────────────
 export const unblockConnection = catchAsyncError(async (req, res, next) => {
   const connection = await Connection.findById(req.params.id);
@@ -172,6 +173,7 @@ export const unblockConnection = catchAsyncError(async (req, res, next) => {
 
   connection.isBlocked = false;
   await connection.save();
+  await unblockConversation(connection.sender.id, connection.receiver.id);
 
   res.status(200).json({
     success: true,
@@ -187,6 +189,7 @@ export const unblockMentorship = catchAsyncError(async (req, res, next) => {
 
   mentorship.isBlocked = false;
   await mentorship.save();
+  await unblockConversation(mentorship.student.id, mentorship.mentor.id);
 
   res.status(200).json({
     success: true,

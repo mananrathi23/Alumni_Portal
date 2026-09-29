@@ -1,4 +1,3 @@
-import React from "react";
 import { PiGraduationCap } from "react-icons/pi";
 import { FaUserGraduate } from "react-icons/fa";
 import { GiTeacher } from "react-icons/gi";

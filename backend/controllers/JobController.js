@@ -5,14 +5,16 @@ import { Alumni }          from "../models/AlumniModel.js";
 import { Teacher }         from "../models/TeacherModel.js";
 import { invalidateCache } from "../middlewares/cache.js";
 import { emitFeedUpdated } from "../Socket.js";
+import { findInvalidUrlField } from "../utils/validateUrl.js";
+import { pageParams } from "../utils/pagination.js";
 
 const POSTER_ROLES = ["Admin", "Alumni", "Teacher"];
 
 // ── GET /api/v1/jobs ──────────────────────────────────────────────────────────
 // Query: search, type, mine, page, limit
 export const getJobs = catchAsyncError(async (req, res) => {
-  const { search, type, mine, page = 1, limit = 20 } = req.query;
-  const skip = (Number(page) - 1) * Number(limit);
+  const { search, type, mine } = req.query;
+  const { limit, skip } = pageParams(req.query, { defaultLimit: 20, maxLimit: 50 });
 
   const filter = { isActive: true };
 
@@ -36,7 +38,7 @@ export const getJobs = catchAsyncError(async (req, res) => {
   }
 
   const [jobs, total] = await Promise.all([
-    Job.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
+    Job.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     Job.countDocuments(filter),
   ]);
 
@@ -63,6 +65,8 @@ export const createJob = catchAsyncError(async (req, res, next) => {
   if (!company?.trim())     return next(new ErrorHandler("Company name is required.", 400));
   if (!jobRole?.trim())     return next(new ErrorHandler("Role/position is required.", 400));
   if (!description?.trim()) return next(new ErrorHandler("Description is required.", 400));
+  const badLink = findInvalidUrlField(req.body, ["link"]);
+  if (badLink) return next(new ErrorHandler(`${badLink} must be a full http(s) link, e.g. https://…`, 400));
 
   // Deadline must be in the future if provided
   let parsedDeadline = null;
@@ -113,6 +117,12 @@ export const updateJob = catchAsyncError(async (req, res, next) => {
   const isPoster = job.postedBy.id.equals(req.user._id);
   if (!isPoster && role !== "Admin") {
     return next(new ErrorHandler("Not authorized to edit this job.", 403));
+  }
+
+  const badLink = findInvalidUrlField(req.body, ["link"]);
+  if (badLink) return next(new ErrorHandler(`${badLink} must be a full http(s) link, e.g. https://…`, 400));
+  if (req.body.deadline && new Date(req.body.deadline) <= new Date()) {
+    return next(new ErrorHandler("Application deadline must be a future date.", 400));
   }
 
   const allowed = ["company","role","description","eligibility","link","type","skills","deadline"];

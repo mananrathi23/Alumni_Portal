@@ -10,6 +10,8 @@ import {
   PiStudent,
   PiBriefcase,
 } from "react-icons/pi";
+import { safeUrl } from "../../utils/safeUrl";
+import { API } from "../../utils/api";
 
 const PAGE_SIZE = 50;
 
@@ -36,7 +38,7 @@ export default function StudentProfiles() {
     if (department !== "All") params.department = department;
     if (year !== "All") params.year = year;
     if (classOf !== "All") params.enrollmentYear = classOf;
-    const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users/students`, {
+    const res = await axios.get(`${API}/admin/users/students`, {
       params,
       withCredentials: true,
     });
@@ -273,17 +275,17 @@ export default function StudentProfiles() {
 
               <div className="mt-4 flex flex-wrap gap-2">
                 {selected.linkedIn && (
-                  <a href={selected.linkedIn} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 transition-all">
+                  <a href={safeUrl(selected.linkedIn)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 transition-all">
                     <FaLinkedin size={14} /> LinkedIn
                   </a>
                 )}
                 {selected.github && (
-                  <a href={selected.github} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-slate-700/40 border border-white/[0.07] text-slate-200 hover:bg-slate-700/60 transition-all">
+                  <a href={safeUrl(selected.github)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-slate-700/40 border border-white/[0.07] text-slate-200 hover:bg-slate-700/60 transition-all">
                     <FaGithub size={14} /> GitHub
                   </a>
                 )}
                 {selected.portfolio && (
-                  <a href={selected.portfolio} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all">
+                  <a href={safeUrl(selected.portfolio)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all">
                     <FaGlobe size={14} /> Portfolio
                   </a>
                 )}

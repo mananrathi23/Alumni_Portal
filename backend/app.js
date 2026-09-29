@@ -8,6 +8,7 @@ import { connection } from "./database/dbConnection.js";
 import { errorMiddleware } from "./middlewares/error.js";
 import userRouter from "./routes/userRouter.js";
 import connectionRouter from "./routes/ConnectionRouter.js";
+import conversationRouter from "./routes/ConversationRouter.js";
 import peopleRouter from "./routes/PeopleRouter.js";
 import mentorshipRouter from "./routes/MentorshipRouter.js";
 import forumRouter from "./routes/ForumRouter.js";
@@ -22,9 +23,10 @@ import supportRouter from "./routes/SupportRouter.js";
 import healthRouter from "./routes/healthRouter.js";
 import { removeUnverifiedAccounts } from "./automation/removeUnverifiedAccounts.js";
 import { expireMentorshipRequests } from "./automation/expireMentorshipRequests.js";
+import { backfillConversationKeys } from "./utils/conversations.js";
+import { runExclusive } from "./utils/cronLock.js";
 import helmet from "helmet";
 import mongoSanitize from "express-mongo-sanitize";
-import { xssMiddleware } from "./middlewares/xss.js";
 import { createLimiter, userOrIpKey } from "./utils/rateLimiter.js";
 
 export const app = express();
@@ -45,7 +47,9 @@ if (!jwtSecret || jwtSecret.length < 32) {
 // ── Security Hardening ───────────────────────────────────────────────────────
 app.use(helmet());
 app.use(mongoSanitize());
-app.use(xssMiddleware());
+// No HTML-escaping of input: text is stored as typed (React escapes it on screen,
+// email templates escape it with utils/escapeHtml.js). Escaping on input turned
+// "a < b" into "a &lt; b" everywhere it was shown.
 
 // ── Fix 2: Gzip compression for all responses (~70% size reduction) ────────────
 app.use(compression());
@@ -96,6 +100,7 @@ app.use(globalLimiter);
 app.use("/api/v1/user", userRouter);  // route-level limiting inside userRouter.js
 app.use("/api/v1/connections", connectionRouter);
 app.use("/api/v1/connection", connectionRouter); // alias
+app.use("/api/v1/conversations", conversationRouter);
 app.use("/api/v1/people", peopleRouter);
 app.use("/api/v1/mentorship", mentorshipRouter);
 app.use("/api/v1/forum", forumRouter);
@@ -114,6 +119,16 @@ app.use("/api/v1/health", healthRouter);
 
 removeUnverifiedAccounts();
 expireMentorshipRequests();
-connection();
+connection().then(async (connected) => {
+  if (!connected) return;
+  // Move chat messages from before connection and mentorship chats were merged into
+  // per-person conversations. Idempotent; the lock keeps replicas from racing.
+  try {
+    const migrated = await runExclusive("backfill-conversations", 600, backfillConversationKeys)();
+    if (migrated) console.log(`[Chat] Moved ${migrated} older messages into conversations.`);
+  } catch (err) {
+    console.error("[Chat] Conversation backfill failed:", err.message);
+  }
+});
 
 app.use(errorMiddleware);

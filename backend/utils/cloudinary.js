@@ -32,8 +32,7 @@ export const uploadToCloudinary = async (base64DataUri, folder = "alumni_portal/
       { width: 400, height: 400, crop: "fill", gravity: "face" },
       { quality: "auto", fetch_format: "auto" },
     ],
-    // Ensure CORS headers are set
-    resource_type: "auto",
+    resource_type: "image", // profile photos only — never HTML/SVG/PDF uploads
   });
   // Return both secure_url (for CORS compliance) and ensure proper headers
   return { 
@@ -52,5 +51,3 @@ export const deleteFromCloudinary = async (public_id) => {
   const cl = getConfigured();
   await cl.uploader.destroy(public_id);
 };
-
-export default cloudinary;

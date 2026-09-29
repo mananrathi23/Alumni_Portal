@@ -15,10 +15,6 @@ import {
   cancelMentorshipRequest,
   completeMentorshipSession,
   setMeetingLink,
-  getChatMessages,
-  sendChatMessage,
-  getUnreadCounts,
-  markChatAsRead,
   rateSession,
   getMyMentorStats,
 } from "../controllers/MentorshipController.js";
@@ -56,11 +52,6 @@ router.put("/requests/:requestId/complete",     completeMentorshipSession);
 router.put("/requests/:requestId/meeting-link", setMeetingLink);
 router.post("/requests/:requestId/rate",        rateSession);
 
-// ── Chat ───────────────────────────────────────────────────────────────────
-router.get("/chat/unread-counts",       getUnreadCounts);
-router.put("/:mentorshipId/chat/read",  markChatAsRead);
-router.get("/:mentorshipId/chat",       getChatMessages);
-router.post("/:mentorshipId/chat",      sendChatMessage);
 
 // ── Stats ──────────────────────────────────────────────────────────────────
 router.get("/my-stats", getMyMentorStats);

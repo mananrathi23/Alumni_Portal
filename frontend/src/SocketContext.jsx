@@ -18,9 +18,12 @@ export const SocketProvider = ({ children }) => {
     }
 
     const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL;
+    let token = null;
+    try { token = localStorage.getItem("alumniToken"); } catch { /* storage blocked: the cookie still authenticates */ }
     const socket = io(`${socketUrl}`, {
       withCredentials: true,
       transports: ["websocket"], // Fix 7: websocket only — polling sends HTTP every 25s per user
+      auth: token ? { token } : {}, // the server verifies this before joining the user's room
     });
 
     socket.on("connect", () => {

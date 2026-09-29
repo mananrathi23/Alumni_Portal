@@ -32,6 +32,8 @@ const teacherSchema = new mongoose.Schema({
   bio:            { type: String, maxLength: [500, "Bio cannot exceed 500 characters."] },
   profilePhoto:   { public_id: String, url: String },
   linkedIn:       String,
+  github:         String,
+  skills:         [String],
   researchPapers: [{ title: String, url: String }],
 
   // ── Mentorship ───────────────────────────────────────────────────────────
@@ -110,9 +112,7 @@ teacherSchema.methods.comparePassword = async function (enteredPassword) {
 
 // Generate 5-digit OTP
 teacherSchema.methods.generateVerificationCode = function () {
-  const firstDigit      = Math.floor(Math.random() * 9) + 1;
-  const remainingDigits = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
-  const verificationCode = parseInt(firstDigit + remainingDigits);
+  const verificationCode = crypto.randomInt(10000, 100000); // 5 digits, secure random
   this.verificationCode       = verificationCode;
   this.verificationCodeExpire = Date.now() + 10 * 60 * 1000;
   return verificationCode;

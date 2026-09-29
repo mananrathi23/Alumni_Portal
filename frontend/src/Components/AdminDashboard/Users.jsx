@@ -2,7 +2,8 @@ import { useState, useEffect, useContext, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../../context";
-import { PiUserCircle, PiCheckCircle, PiWarningCircle, PiShieldSlash, PiWifiHigh } from "react-icons/pi";
+import { PiCheckCircle, PiWarningCircle, PiShieldSlash, PiWifiHigh } from "react-icons/pi";
+import { API } from "../../utils/api";
 
 const PAGE_SIZE = 50;
 
@@ -22,7 +23,7 @@ const Users = () => {
     const params = { page: pageToLoad, limit: PAGE_SIZE };
     if (filterRole !== "All") params.role = filterRole;
     if (search.trim()) params.search = search.trim();
-    const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users`, {
+    const res = await axios.get(`${API}/admin/users`, {
       params,
       withCredentials: true,
     });
@@ -66,7 +67,7 @@ const Users = () => {
   const toggleVerify = async (userId, role) => {
     try {
       const res = await axios.put(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users/${role}/${userId}/verify`,
+        `${API}/admin/users/${role}/${userId}/verify`,
         {},
         { withCredentials: true }
       );
@@ -82,7 +83,7 @@ const Users = () => {
   const toggleBlock = async (userId, role) => {
     try {
       const res = await axios.put(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users/${role}/${userId}/block`,
+        `${API}/admin/users/${role}/${userId}/block`,
         {},
         { withCredentials: true }
       );

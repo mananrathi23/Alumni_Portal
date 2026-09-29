@@ -2,14 +2,19 @@ import mongoose from "mongoose";
 
 const chatMessageSchema = new mongoose.Schema(
   {
-    // The mentorship session this chat belongs to
+    // Every message between two people shares one key ("<idA>_<idB>", sorted),
+    // whether it came from a connection chat or a mentorship session
+    conversationKey: { type: String },
+    recipientId: { type: mongoose.Schema.Types.ObjectId },
+
+    // Optional context: the mentorship session a message is about (e.g. its meeting link)
     mentorshipId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "MentorshipRequest",
       required: false,
     },
 
-    // The connection this chat belongs to (for generic connections)
+    // Legacy: the connection chat a message was sent in before conversations were merged
     connectionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Connection",
@@ -46,11 +51,10 @@ const chatMessageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Compound index for fast chat history fetch; _id breaks createdAt ties so
-// "load earlier messages" pages never skip or repeat a message
-chatMessageSchema.index({ mentorshipId: 1, createdAt: 1, _id: 1 });
-chatMessageSchema.index({ connectionId: 1, createdAt: 1, _id: 1 });
-// Fix 8: Index for unread count aggregation
-chatMessageSchema.index({ "sender.id": 1, readBy: 1 });
+// Conversation history; _id breaks createdAt ties so "load earlier messages"
+// pages never skip or repeat a message
+chatMessageSchema.index({ conversationKey: 1, createdAt: 1, _id: 1 });
+// Unread counts and mark-as-read
+chatMessageSchema.index({ recipientId: 1, readBy: 1 });
 
 export const ChatMessage = mongoose.model("ChatMessage", chatMessageSchema);

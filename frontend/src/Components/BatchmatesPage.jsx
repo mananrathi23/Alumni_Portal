@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import {
   PiUsersThree, PiMagnifyingGlass, PiGraduationCap,
-  PiBriefcase, PiX, PiStudent, PiLinkedinLogo, PiGithubLogo, PiLink,
+  PiBriefcase, PiX, PiLinkedinLogo, PiGithubLogo, PiLink,
 } from "react-icons/pi";
+import { safeUrl } from "../utils/safeUrl";
+import { API } from "../utils/api";
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 const Avatar = ({ name, role, profilePhotoUrl }) => {
@@ -62,7 +64,7 @@ const UserCard = ({ user }) => (
       {/* Bottom-left social icons */}
       <div className="flex items-center gap-2 pt-2">
         <a
-          href={user.linkedIn || undefined}
+          href={safeUrl(user.linkedIn)}
           target={user.linkedIn ? "_blank" : undefined}
           rel={user.linkedIn ? "noreferrer" : undefined}
           className={`${user.linkedIn ? "text-slate-500 hover:text-sky-400" : "text-slate-700 opacity-60 pointer-events-none"} transition-colors`}
@@ -71,7 +73,7 @@ const UserCard = ({ user }) => (
           <PiLinkedinLogo size={14} />
         </a>
         <a
-          href={user.github || undefined}
+          href={safeUrl(user.github)}
           target={user.github ? "_blank" : undefined}
           rel={user.github ? "noreferrer" : undefined}
           className={`${user.github ? "text-slate-500 hover:text-white" : "text-slate-700 opacity-60 pointer-events-none"} transition-colors`}
@@ -80,7 +82,7 @@ const UserCard = ({ user }) => (
           <PiGithubLogo size={14} />
         </a>
         <a
-          href={user.portfolio || undefined}
+          href={safeUrl(user.portfolio)}
           target={user.portfolio ? "_blank" : undefined}
           rel={user.portfolio ? "noreferrer" : undefined}
           className={`${user.portfolio ? "text-slate-500 hover:text-emerald-400" : "text-slate-700 opacity-60 pointer-events-none"} transition-colors`}
@@ -119,7 +121,7 @@ const BatchCard = ({ batch, accentColor, search }) => {
       const params = { page: page + 1, limit: MEMBERS_PAGE_SIZE };
       if (search.trim()) params.search = search.trim();
       const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/batchmates/${batch.year ?? "unset"}`,
+        `${API}/batchmates/${batch.year ?? "unset"}`,
         { params, withCredentials: true }
       );
       setMembers((prev) => {
@@ -240,7 +242,7 @@ const BatchmatesPage = ({
       const params = { viewerRole };
       if (search.trim()) params.search = search.trim();
 
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/batchmates`, {
+      const res = await axios.get(`${API}/batchmates`, {
         params,
         withCredentials: true,
       });

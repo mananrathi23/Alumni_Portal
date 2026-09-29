@@ -1,8 +1,9 @@
 // frontend/src/Components/ConnectButton.jsx
-import React, { useState, useEffect, useRef, useContext } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import axios from "axios";
 import { Context } from "../context";
 import { useSocket } from "../useSocket";
+import { API } from "../utils/api";
 
 const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => {
   const { user } = useContext(Context);
@@ -24,7 +25,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
   useEffect(() => {
     if (!targetId) return;
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/status/${targetId}`, {
+      .get(`${API}/connections/status/${targetId}`, {
         withCredentials: true,
       })
       .then((res) => {
@@ -112,7 +113,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     setActionLoading(true);
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/send`,
+        `${API}/connections/send`,
         { receiverId: targetId, receiverRole: targetRole, receiverName: targetName },
         { withCredentials: true }
       );
@@ -128,7 +129,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     setActionLoading(true);
     try {
       await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/${connectionId}/withdraw`,
+        `${API}/connections/${connectionId}/withdraw`,
         { withCredentials: true }
       );
       updateStatus("None", null, false);
@@ -143,7 +144,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     setActionLoading(true);
     try {
       await axios.put(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/${connectionId}/respond`,
+        `${API}/connections/${connectionId}/respond`,
         { status: action },
         { withCredentials: true }
       );
@@ -159,7 +160,7 @@ const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => 
     setActionLoading(true);
     try {
       await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/connections/${connectionId}/remove`,
+        `${API}/connections/${connectionId}/remove`,
         { withCredentials: true }
       );
       updateStatus("None", null, false);

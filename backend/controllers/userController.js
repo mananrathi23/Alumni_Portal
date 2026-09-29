@@ -10,18 +10,11 @@ import { sendToken } from "../utils/sendToken.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { blacklistToken } from "../utils/tokenBlacklist.js";
 import { invalidateUserListings } from "../middlewares/cache.js";
+import { safeUser } from "../utils/safeUser.js";
+import { findInvalidUrlField } from "../utils/validateUrl.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-
-function getModelByRole(role) {
-  switch (role) {
-    case "Student": return Student;
-    case "Teacher": return Teacher;
-    case "Alumni":  return Alumni;
-    case "Admin":   return Admin;
-    default:        return null;
-  }
-}
+import { getModelByRole } from "../utils/userModels.js";
 
 // REGISTER
 export const register = catchAsyncError(async (req, res, next) => {
@@ -62,7 +55,7 @@ export const register = catchAsyncError(async (req, res, next) => {
     totalAttempts += attempts.length;
   }
 
-  if (totalAttempts > 3) {
+  if (totalAttempts >= 3) {
     return next(
       new ErrorHandler(
         "You have exceeded the maximum number of attempts (3). Please try again after an hour.",
@@ -89,12 +82,6 @@ export const register = catchAsyncError(async (req, res, next) => {
     message: `Verification email successfully sent to ${name}`,
   });
 });
-
-// SEND VERIFICATION CODE (kept for legacy compatibility — no longer sends res directly)
-async function sendVerificationCode(verificationCode, name, email, res) {
-  // Deprecated: logic is now inlined in register() to avoid double-response crashes.
-  // This function is no longer called.
-}
 
 // VERIFY OTP 
 export const verifyOTP = catchAsyncError(async (req, res, next) => {
@@ -279,27 +266,34 @@ export const forgotPassword = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Invalid role.", 400));
   }
 
+  // Same reply whether or not the account exists, so this can't be used to
+  // discover which emails are registered
+  const genericReply = {
+    success: true,
+    message: "If an account exists for that email, a password reset link has been sent.",
+  };
+
   const user = await Model.findOne({ email, accountVerified: true });
   if (!user) {
-    return next(new ErrorHandler("User not found.", 404));
+    return res.status(200).json(genericReply);
   }
 
   const resetToken = user.generateResetPasswordToken();
   await user.save({ validateBeforeSave: false });
 
   const resetPasswordUrl = `${process.env.FRONTEND_URL}/password/reset/${resetToken}`;
-  const message = `Your Reset Password Token is:- \n\n ${resetPasswordUrl} \n\n If you have not requested this email then please ignore it.`;
+  const message = `<p>We received a request to reset your Alumni Portal password.</p>
+<p><a href="${resetPasswordUrl}">Reset your password</a> (link valid for 15 minutes)</p>
+<p>If you did not request this, you can ignore this email.</p>`;
 
   try {
-    sendEmail({
+    // Awaited: an unawaited failure here would be an unhandled rejection
+    await sendEmail({
       email: user.email,
       subject: "Alumni Portal Reset Password",
       message,
     });
-    res.status(200).json({
-      success: true,
-      message: `Email sent to ${user.email} successfully.`,
-    });
+    res.status(200).json(genericReply);
   } catch (error) {
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
@@ -333,6 +327,9 @@ export const resetPassword = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Reset password token is invalid or has been expired.", 400));
   }
 
+  if (!req.body.password || !req.body.confirmPassword) {
+    return next(new ErrorHandler("Please enter and confirm your new password.", 400));
+  }
   if (req.body.password !== req.body.confirmPassword) {
     return next(new ErrorHandler("Password & confirm password do not match.", 400));
   }
@@ -352,7 +349,7 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
 
   const allowedFields = {
     Student: ["department", "year", "section", "cgpa", "skills", "bio", "linkedIn", "github", "portfolio", "enrollmentNumber", "enrollmentYear"],
-    Teacher: ["department", "designation", "subjectsTaught", "qualifications", "experience", "bio", "linkedIn", "employeeId", "joiningYear"],
+    Teacher: ["department", "designation", "subjectsTaught", "qualifications", "experience", "skills", "bio", "linkedIn", "github", "employeeId", "joiningYear"],
     Alumni:  ["department", "degree", "enrollmentYear", "graduationYear", "currentCompany", "currentDesignation", "currentLocation", "industry", "skills", "bio", "linkedIn", "github", "availableForMentorship"],
     Admin:   ["department"],
   };
@@ -360,6 +357,11 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
   const fields = allowedFields[role];
   if (!fields) {
     return next(new ErrorHandler("Invalid role.", 400));
+  }
+
+  const badLink = findInvalidUrlField(req.body, ["linkedIn", "github", "portfolio"]);
+  if (badLink) {
+    return next(new ErrorHandler(`${badLink} must be a full http(s) link, e.g. https://…`, 400));
   }
 
   fields.forEach((field) => {
@@ -379,7 +381,7 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: "Profile updated successfully.",
-    user,
+    user: { ...safeUser(user), role },
   });
 });
 
@@ -387,6 +389,9 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
 export const uploadProfilePhoto = catchAsyncError(async (req, res, next) => {
   const { photo } = req.body;
   if (!photo) return next(new ErrorHandler("No photo provided.", 400));
+  if (typeof photo !== "string" || !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(photo)) {
+    return next(new ErrorHandler("Profile photo must be a PNG, JPEG, WebP or GIF image.", 400));
+  }
 
   const user = req.user;
 

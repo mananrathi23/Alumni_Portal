@@ -2,6 +2,7 @@ import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import ErrorHandler        from "../middlewares/error.js";
 import { Question }        from "../models/ForumModel.js";
 import { emitFeedUpdated } from "../Socket.js";
+import { pageParams } from "../utils/pagination.js";
 
 // ── Helper: build author object from req.user ─────────────────────────────────
 function makeAuthor(user) {
@@ -15,55 +16,53 @@ function makeAuthor(user) {
 // ── GET /api/v1/forum/questions ───────────────────────────────────────────────
 // Query params: search, tag, sort (newest|top|unanswered), page, limit
 export const getQuestions = catchAsyncError(async (req, res) => {
-  const { search, tag, sort = "newest", page = 1, limit = 15 } = req.query;
-  const skip = (Number(page) - 1) * Number(limit);
+  const { search, tag, sort = "newest" } = req.query;
+  const { page, limit, skip } = pageParams(req.query, { defaultLimit: 15, maxLimit: 50 });
 
   const filter = {};
-
-  if (search) {
-    filter.$text = { $search: search };
-  }
-  if (tag && tag !== "all") {
-    filter.tags = tag;
-  }
-
-  let sortObj = { createdAt: -1 }; // newest
-  if (sort === "top") sortObj = { "answers.0": -1, createdAt: -1 }; // most answers
+  if (search) filter.$text = { $search: String(search) };
+  if (tag && tag !== "all") filter.tags = String(tag);
   if (sort === "unanswered") filter["answers.0"] = { $exists: false };
 
+  // "top" = most answers; counts are computed in MongoDB so answers aren't shipped
+  const sortStage = sort === "top" ? { answerCount: -1, createdAt: -1 } : { createdAt: -1 };
+
   const [questions, total] = await Promise.all([
-    Question.find(filter)
-      .sort(sortObj)
-      .skip(skip)
-      .limit(Number(limit))
-      .select("title tags author answers views createdAt isClosed")
-      .lean(),
+    Question.aggregate([
+      { $match: filter },
+      {
+        $addFields: {
+          answerCount: { $size: { $ifNull: ["$answers", []] } },
+          topVotes: {
+            $ifNull: [
+              { $max: { $map: { input: { $ifNull: ["$answers", []] }, as: "a", in: { $size: { $ifNull: ["$$a.upvotes", []] } } } } },
+              0,
+            ],
+          },
+        },
+      },
+      { $sort: { ...sortStage, _id: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      { $project: { title: 1, tags: 1, author: 1, views: 1, createdAt: 1, isClosed: 1, answerCount: 1, topVotes: 1 } },
+    ]),
     Question.countDocuments(filter),
   ]);
 
-  // Enrich with answer count + top upvote count
-  const enriched = questions.map(q => ({
-    ...q,
-    answerCount:  q.answers?.length || 0,
-    topVotes:     q.answers?.length
-      ? Math.max(...q.answers.map(a => a.upvotes?.length || 0))
-      : 0,
-    answers: undefined, // don't send full answers in list view
-  }));
-
   res.status(200).json({
     success: true,
-    questions: enriched,
+    questions,
     total,
-    page:  Number(page),
-    pages: Math.ceil(total / Number(limit)),
+    page,
+    pages: Math.ceil(total / limit),
   });
 });
 
 // ── GET /api/v1/forum/questions/:questionId ───────────────────────────────────
 // Full question with all answers sorted by upvotes desc
 export const getQuestion = catchAsyncError(async (req, res, next) => {
-  const question = await Question.findById(req.params.questionId).lean();
+  // viewedBy (every viewer's id) is internal — never sent to clients
+  const question = await Question.findById(req.params.questionId).select("-viewedBy").lean();
   if (!question) return next(new ErrorHandler("Question not found.", 404));
 
   // Sort answers by upvote count descending
@@ -71,15 +70,11 @@ export const getQuestion = catchAsyncError(async (req, res, next) => {
     (a, b) => (b.upvotes?.length || 0) - (a.upvotes?.length || 0)
   );
 
-  // Increment view count only if user hasn't viewed yet (fire-and-forget)
-  const userId = req.user._id;
-  const hasViewed = question.viewedBy && question.viewedBy.some(id => id.equals(userId));
-  if (!hasViewed) {
-    Question.findByIdAndUpdate(
-      req.params.questionId,
-      { $inc: { views: 1 }, $addToSet: { viewedBy: userId } }
-    ).exec();
-  }
+  // Count one view per user, atomically (fire-and-forget)
+  Question.updateOne(
+    { _id: question._id, viewedBy: { $ne: req.user._id } },
+    { $inc: { views: 1 }, $addToSet: { viewedBy: req.user._id } }
+  ).catch((err) => console.error("[Forum] view count update failed:", err.message));
 
   res.status(200).json({
     success: true,

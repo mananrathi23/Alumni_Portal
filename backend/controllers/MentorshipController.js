@@ -4,7 +4,6 @@ import { Alumni } from "../models/AlumniModel.js";
 import { Teacher } from "../models/TeacherModel.js";
 import { Student } from "../models/StudentModel.js";
 import { MentorshipRequest } from "../models/MentorshipRequestModel.js";
-import { ChatMessage } from "../models/ChatMessageModel.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import {
   mentorshipAcceptedStudentEmail,
@@ -20,18 +19,13 @@ import {
   createGoogleMeetLink,
   getNextSlotISO,
 } from "../utils/googleCalendar.js";
-import { containsProfanity } from "../utils/ProfanityFilter.js";
+import { postChatMessage } from "../utils/conversations.js";
+import { isSafeUrl } from "../utils/validateUrl.js";
 import { searchRegex } from "../utils/escapeRegex.js";
 import { invalidateCache, invalidateUserListings } from "../middlewares/cache.js";
-import { fetchChatPage } from "../utils/chatHistory.js";
+import { getMentorModel } from "../utils/userModels.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function getMentorModel(role) {
-  if (role === "Alumni") return Alumni;
-  if (role === "Teacher") return Teacher;
-  return null;
-}
-
 async function findMentorById(id) {
   const alumni = await Alumni.findById(id);
   if (alumni) return { mentor: alumni, mentorRole: "Alumni" };
@@ -39,6 +33,9 @@ async function findMentorById(id) {
   if (teacher) return { mentor: teacher, mentorRole: "Teacher" };
   return { mentor: null, mentorRole: null };
 }
+
+// Mentors students may see and book: verified by email and by an admin, not blocked
+const BOOKABLE_MENTOR = { accountVerified: true, adminVerified: true, isBlocked: { $ne: true }, availableForMentorship: true };
 
 // ── Ranking score computation ─────────────────────────────────────────────────
 // Score is out of 10, based on:
@@ -62,7 +59,7 @@ function computeMentorScore(stats) {
 
 // ── Badge from score ──────────────────────────────────────────────────────────
 // Returns { badge, color } based on computed score out of 10
-export function getMentorBadge(score) {
+function getMentorBadge(score) {
   if (score >= 8.5) return { badge: "🏆 Elite Mentor", tier: "elite" };
   if (score >= 6.5) return { badge: "⭐ Expert Mentor", tier: "expert" };
   if (score >= 4.5) return { badge: "🌟 Rising Mentor", tier: "rising" };
@@ -116,25 +113,8 @@ export const handleGoogleCallback = catchAsyncError(async (req, res, next) => {
   const Model = getMentorModel(mentorRole);
   await Model.findByIdAndUpdate(mentorId, { googleTokens: tokens });
 
-  // Redirect to a frontend page that closes itself
+  // The /google-linked page signals the opener and closes itself
   res.redirect(`${process.env.FRONTEND_URL}/google-linked`);
-
-  // Close the popup and tell the opener the link succeeded
-  res.send(`
-    <html>
-      <body style="font-family:sans-serif;text-align:center;padding:40px;background:#0f172a;color:#94a3b8;">
-        <h2 style="color:#4ade80">✅ Google Calendar Linked!</h2>
-        <p>Meet links will now be auto-generated when you accept requests.</p>
-        <p style="font-size:12px;margin-top:8px;">You can close this tab.</p>
-        <script>
-          if (window.opener) {
-            window.opener.postMessage("google-linked", "*");
-            window.close();
-          }
-        <\/script>
-      </body>
-    </html>
-  `);
 });
 
 // ── GET /api/v1/mentorship/auth/status ───────────────────────────────────────
@@ -250,11 +230,7 @@ export const getMentors = catchAsyncError(async (req, res) => {
 
   const mentorQueries = roles.map(async (role) => {
     const model = getMentorModel(role);
-    const filter = {
-      accountVerified: true,
-      availableForMentorship: true,
-      _id: { $ne: req.user._id },
-    };
+    const filter = { ...BOOKABLE_MENTOR, _id: { $ne: req.user._id } };
 
     if (department && department !== "All") filter.department = department;
 
@@ -322,7 +298,7 @@ export const createMentorshipRequest = catchAsyncError(async (req, res, next) =>
   }
 
   const { mentor, mentorRole } = await findMentorById(mentorId);
-  if (!mentor || !mentor.accountVerified || !mentor.availableForMentorship) {
+  if (!mentor || !mentor.accountVerified || !mentor.adminVerified || mentor.isBlocked || !mentor.availableForMentorship) {
     return next(new ErrorHandler("Mentor not found or unavailable for mentorship.", 404));
   }
 
@@ -476,10 +452,13 @@ export const respondToMentorshipRequest = catchAsyncError(async (req, res, next)
     const weekStart = new Date();
     weekStart.setHours(0, 0, 0, 0);
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    // Sessions accepted this week count toward the limit even once completed
+    // (counting only "Accepted" let a mentor accept, complete, and accept again)
     const weeklyAccepted = await MentorshipRequest.countDocuments({
       "mentor.id": user._id,
-      status: "Accepted",
+      status: { $in: ["Accepted", "Completed"] },
       respondedAt: { $gte: weekStart },
+      _id: { $ne: mentorship._id },
     });
     if (weeklyAccepted >= (updatedMentor.weeklyLimit || 5)) {
       await mentorModel.findOneAndUpdate(
@@ -606,31 +585,20 @@ export const respondToMentorshipRequest = catchAsyncError(async (req, res, next)
       status: "Accepted",
     });
 
-    // ── Fix 5: Auto-post meeting link to chat ─────────────────────────────
-    if (generatedMeetLink) {
-      const linkMsg = await ChatMessage.create({
-        mentorshipId: mentorship._id,
-        sender: { id: user._id, name: user.name, role: user.constructor.modelName },
-        text: `🎉 Session confirmed! Here is your meeting link:\n${generatedMeetLink}`,
-        meetingLink: generatedMeetLink,
-      });
-      // Notify student via socket
-      emitToUser(mentorship.student.id, "chat:new_message", {
-        mentorshipId: mentorship._id,
-        message: linkMsg,
-      });
-    } else {
-      // No Google Calendar linked — mentor will share link manually via chat
-      const infoMsg = await ChatMessage.create({
-        mentorshipId: mentorship._id,
-        sender: { id: user._id, name: user.name, role: user.constructor.modelName },
-        text: `✅ Your session request has been accepted! Use this chat to coordinate meeting details.`,
-      });
-      emitToUser(mentorship.student.id, "chat:new_message", {
-        mentorshipId: mentorship._id,
-        message: infoMsg,
-      });
-    }
+    // ── Fix 5: Auto-post meeting link to the student–mentor conversation ──
+    // (postChatMessage also pushes it to both users over the socket)
+    await postChatMessage({
+      sender: { id: user._id, name: user.name, role: user.constructor.modelName },
+      recipientId: mentorship.student.id,
+      mentorshipId: mentorship._id,
+      ...(generatedMeetLink
+        ? {
+          text: `🎉 Session confirmed! Here is your meeting link:\n${generatedMeetLink}`,
+          meetingLink: generatedMeetLink,
+        }
+        // No Google Calendar linked — mentor will share link manually via chat
+        : { text: `✅ Your session request has been accepted! Use this chat to coordinate meeting details.` }),
+    });
 
     // Emails to both parties (fire-and-forget)
     const acceptedStudent = await Student.findById(mentorship.student.id).select("email").lean();
@@ -732,23 +700,28 @@ export const completeMentorshipSession = catchAsyncError(async (req, res, next) 
     return next(new ErrorHandler("Only accepted sessions can be marked complete.", 400));
   }
 
-  mentorship.status = "Completed";
-  mentorship.completedAt = new Date();
-  await mentorship.save();
+  // Atomic: two clicks (or two tabs) can't complete — and count — a session twice
+  const completed = await MentorshipRequest.findOneAndUpdate(
+    { _id: mentorship._id, status: "Accepted" },
+    { $set: { status: "Completed", completedAt: new Date() } },
+    { new: true }
+  );
+  if (!completed) return next(new ErrorHandler("Only accepted sessions can be marked complete.", 400));
+  mentorship.status = completed.status;
+  mentorship.completedAt = completed.completedAt;
 
-  // ── Atomic update: increment totalSessions and recompute score ──────────────
-  const mentor_ = await getMentorModel(role).findById(user._id).lean();
-  if (mentor_) {
-    const s = mentor_.mentorStats || {};
-    const newTotalSessions = (s.totalSessions || 0) + 1;
-    const updatedStats = { ...s, totalSessions: newTotalSessions };
-    const newScore = computeMentorScore(updatedStats);
-    await getMentorModel(role).findByIdAndUpdate(user._id, {
-      $set: {
-        "mentorStats.totalSessions": newTotalSessions,
-        "mentorStats.score": newScore,
-      },
-    });
+  // $inc can't lose concurrent updates; the score is then recomputed from fresh stats
+  const MentorModel = getMentorModel(role);
+  const updatedMentor = await MentorModel.findByIdAndUpdate(
+    user._id,
+    { $inc: { "mentorStats.totalSessions": 1 } },
+    { new: true, projection: { mentorStats: 1 } }
+  ).lean();
+  if (updatedMentor) {
+    await MentorModel.updateOne(
+      { _id: user._id },
+      { $set: { "mentorStats.score": computeMentorScore(updatedMentor.mentorStats || {}) } }
+    );
   }
 
   await getMentorModel(role).findOneAndUpdate(
@@ -784,163 +757,20 @@ export const setMeetingLink = catchAsyncError(async (req, res, next) => {
   if (!mentorship.mentor.id.equals(user._id)) return next(new ErrorHandler("Not authorized.", 403));
   if (mentorship.status !== "Accepted") return next(new ErrorHandler("Can only set link on active sessions.", 400));
   if (!link) return next(new ErrorHandler("Meeting link is required.", 400));
+  if (!isSafeUrl(link)) return next(new ErrorHandler("Meeting link must be a full http(s) link, e.g. https://meet.google.com/…", 400));
 
   mentorship.meetingLink = link;
   await mentorship.save();
 
-  const msg = await ChatMessage.create({
-    mentorshipId: mentorship._id,
+  await postChatMessage({
     sender: { id: user._id, name: user.name, role: user.constructor.modelName },
+    recipientId: mentorship.student.id,
+    mentorshipId: mentorship._id,
     text: `📎 Meeting Link: ${link}`,
     meetingLink: link,
   });
 
-  emitToUser(mentorship.student.id, "chat:new_message", {
-    mentorshipId: mentorship._id,
-    message: msg,
-  });
-
   res.status(200).json({ success: true, meetingLink: link });
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
-// CHAT
-// ═════════════════════════════════════════════════════════════════════════════
-
-export const getChatMessages = catchAsyncError(async (req, res, next) => {
-  const user = req.user;
-  const mentorshipId = req.params.mentorshipId;
-
-  const mentorship = await MentorshipRequest.findById(mentorshipId);
-  if (!mentorship) return next(new ErrorHandler("Session not found.", 404));
-
-  const isStudent = mentorship.student.id.equals(user._id);
-  const isMentor = mentorship.mentor.id.equals(user._id);
-  if (!isStudent && !isMentor) {
-    return next(new ErrorHandler("You are not part of this mentorship session.", 403));
-  }
-
-  if (mentorship.status !== "Accepted" && mentorship.status !== "Completed") {
-    return next(new ErrorHandler("Chat is only available for accepted or completed sessions.", 403));
-  }
-
-  const { messages, hasMore } = await fetchChatPage({ mentorshipId }, req.query);
-
-  // Opening the chat (first page) marks everything as read; older pages don't need to
-  if (!req.query.before) {
-    await ChatMessage.updateMany(
-      { mentorshipId, "sender.id": { $ne: user._id }, readBy: { $ne: user._id } },
-      { $addToSet: { readBy: user._id } }
-    );
-  }
-
-  res.status(200).json({ success: true, messages, hasMore });
-});
-
-export const sendChatMessage = catchAsyncError(async (req, res, next) => {
-  const user = req.user;
-  const role = user.constructor.modelName;
-  const mentorshipId = req.params.mentorshipId;
-  const { text } = req.body;
-
-  if (!text?.trim()) return next(new ErrorHandler("Message text is required.", 400));
-
-  const mentorship = await MentorshipRequest.findById(mentorshipId);
-  if (!mentorship) return next(new ErrorHandler("Session not found.", 404));
-
-  const isStudent = mentorship.student.id.equals(user._id);
-  const isMentor = mentorship.mentor.id.equals(user._id);
-  if (!isStudent && !isMentor) {
-    return next(new ErrorHandler("You are not part of this mentorship session.", 403));
-  }
-
-  if (mentorship.status !== "Accepted") {
-    // Fix 4: Chat is read-only after session completes or slot is refreshed
-    if (mentorship.status === "Completed") {
-      return next(new ErrorHandler("This session has ended. The chat is now read-only.", 403));
-    }
-    return next(new ErrorHandler("Chat is only available for active (accepted) sessions.", 403));
-  }
-
-  // ── Block check ──────────────────────────────────────────────────────────
-  if (mentorship.isBlocked) {
-    return next(new ErrorHandler(
-      "This chat has been blocked due to a policy violation. Please contact an administrator to restore access.",
-      403
-    ));
-  }
-
-  // ── Profanity check ───────────────────────────────────────────────────────
-  if (await containsProfanity(text.trim())) {
-    mentorship.violationCount = (mentorship.violationCount || 0) + 1;
-    if (mentorship.violationCount >= 3) {
-      mentorship.isBlocked = true;
-      await mentorship.save();
-      const recipientId = isStudent ? mentorship.mentor.id : mentorship.student.id;
-      emitToUser(recipientId, "chat:blocked", { mentorshipId, blockedBy: user.name });
-      emitToUser(user._id, "chat:blocked", { mentorshipId });
-      return next(new ErrorHandler(
-        "Your chat has been blocked due to repeated use of inappropriate language. Please contact an administrator.",
-        403
-      ));
-    }
-    await mentorship.save();
-    return next(new ErrorHandler(
-      "Your message contains inappropriate language and was not sent. Please keep the conversation professional.",
-      400
-    ));
-  }
-
-  const message = await ChatMessage.create({
-    mentorshipId,
-    sender: { id: user._id, name: user.name, role },
-    text: text.trim(),
-  });
-
-  const recipientId = isStudent ? mentorship.mentor.id : mentorship.student.id;
-  emitToUser(recipientId, "chat:new_message", { mentorshipId, message });
-
-  res.status(201).json({ success: true, message });
-});
-
-export const getUnreadCounts = catchAsyncError(async (req, res) => {
-  const user = req.user;
-  const role = user.constructor.modelName;
-
-  const query = role === "Student"
-    ? { "student.id": user._id, status: { $in: ["Accepted", "Completed"] } }
-    : { "mentor.id": user._id, status: { $in: ["Accepted", "Completed"] } };
-
-  const sessions = await MentorshipRequest.find(query).select("_id").lean();
-  const sessionIds = sessions.map(s => s._id);
-
-  const counts = await ChatMessage.aggregate([
-    {
-      $match: {
-        mentorshipId: { $in: sessionIds },
-        "sender.id": { $ne: user._id },
-        readBy: { $ne: user._id },
-      },
-    },
-    { $group: { _id: "$mentorshipId", count: { $sum: 1 } } },
-  ]);
-
-  const unread = {};
-  counts.forEach(c => { unread[c._id.toString()] = c.count; });
-
-  res.status(200).json({ success: true, unread });
-});
-
-export const markChatAsRead = catchAsyncError(async (req, res) => {
-  const user = req.user;
-  const mentorshipId = req.params.mentorshipId;
-
-  await ChatMessage.updateMany(
-    { mentorshipId, "sender.id": { $ne: user._id }, readBy: { $ne: user._id } },
-    { $addToSet: { readBy: user._id } }
-  );
-
-  res.status(200).json({ success: true });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -953,9 +783,10 @@ export const rateSession = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Only students can rate sessions.", 403));
   }
 
-  const { value, feedback } = req.body;
-  if (!value || value < 1 || value > 5) {
-    return next(new ErrorHandler("Rating value must be between 1 and 5.", 400));
+  const value = Number(req.body.value);
+  const feedback = req.body.feedback;
+  if (!Number.isInteger(value) || value < 1 || value > 5) {
+    return next(new ErrorHandler("Rating value must be a whole number from 1 to 5.", 400));
   }
 
   const mentorship = await MentorshipRequest.findById(req.params.requestId);
@@ -966,32 +797,31 @@ export const rateSession = catchAsyncError(async (req, res, next) => {
   if (mentorship.status !== "Completed") {
     return next(new ErrorHandler("You can only rate completed sessions.", 400));
   }
-  if (mentorship.rating?.value) {
-    return next(new ErrorHandler("You have already rated this session.", 409));
-  }
 
-  mentorship.rating = { value, feedback: feedback?.trim() || "", ratedAt: new Date() };
-  await mentorship.save();
+  // Atomic: only succeeds if the session has no rating yet, so a double submit
+  // can't count twice toward the mentor's average
+  const rating = { value, feedback: String(feedback ?? "").trim().slice(0, 500), ratedAt: new Date() };
+  const rated = await MentorshipRequest.findOneAndUpdate(
+    { _id: mentorship._id, $or: [{ "rating.value": null }, { "rating.value": { $exists: false } }] },
+    { $set: { rating } },
+    { new: true }
+  );
+  if (!rated) return next(new ErrorHandler("You have already rated this session.", 409));
+  mentorship.rating = rated.rating;
 
-  // ── Atomic update: recompute and persist mentor rating stats ────────────────
   const MentorModel = getMentorModel(mentorship.mentor.role);
-  const mentorDoc = await MentorModel.findById(mentorship.mentor.id).lean();
+  const mentorDoc = await MentorModel.findByIdAndUpdate(
+    mentorship.mentor.id,
+    { $inc: { "mentorStats.totalRatings": 1, "mentorStats.sumRatings": value } },
+    { new: true, projection: { mentorStats: 1 } }
+  ).lean();
   if (mentorDoc) {
     const stats = mentorDoc.mentorStats || {};
-    const newTotalRatings = (stats.totalRatings || 0) + 1;
-    const newSumRatings   = (stats.sumRatings   || 0) + value;
-    const newAvg          = newSumRatings / newTotalRatings;
-    const newAverageRating = Math.round(newAvg * 10) / 10;
-    const newScore = computeMentorScore({ ...stats, totalRatings: newTotalRatings, sumRatings: newSumRatings, averageRating: newAverageRating });
-
-    await MentorModel.findByIdAndUpdate(mentorship.mentor.id, {
-      $set: {
-        "mentorStats.totalRatings":  newTotalRatings,
-        "mentorStats.sumRatings":    newSumRatings,
-        "mentorStats.averageRating": newAverageRating,
-        "mentorStats.score":         newScore,
-      },
-    });
+    const averageRating = Math.round(((stats.sumRatings || 0) / Math.max(stats.totalRatings || 1, 1)) * 10) / 10;
+    await MentorModel.updateOne(
+      { _id: mentorship.mentor.id },
+      { $set: { "mentorStats.averageRating": averageRating, "mentorStats.score": computeMentorScore({ ...stats, averageRating }) } }
+    );
   }
 
   // Notify mentor in real time (so stats/history refresh immediately)
@@ -1021,7 +851,7 @@ export const getMyMentorStats = catchAsyncError(async (req, res, next) => {
 
   const weeklyCount = await MentorshipRequest.countDocuments({
     "mentor.id": user._id,
-    status: "Accepted",
+    status: { $in: ["Accepted", "Completed"] },
     respondedAt: { $gte: weekStart },
   });
 
@@ -1105,10 +935,10 @@ export const smartMatchMentors = catchAsyncError(async (req, res) => {
 
   // Fetch all available mentors
   const [alumniDocs, teacherDocs] = await Promise.all([
-    Alumni.find({ accountVerified: true, availableForMentorship: true, _id: { $ne: user._id } })
+    Alumni.find({ ...BOOKABLE_MENTOR, _id: { $ne: user._id } })
       .select("name department industry currentDesignation skills bio linkedIn mentorshipSlots mentorStats graduationYear currentCompany")
       .lean(),
-    Teacher.find({ accountVerified: true, availableForMentorship: true })
+    Teacher.find(BOOKABLE_MENTOR)
       .select("name department designation experience qualifications skills bio linkedIn mentorshipSlots mentorStats")
       .lean(),
   ]);

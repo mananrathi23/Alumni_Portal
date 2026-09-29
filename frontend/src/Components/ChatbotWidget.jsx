@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   PiChatTeardropText, PiX, PiPaperPlaneRight,
   PiRobot, PiUser, PiHeadset, PiShieldCheck,
-  PiCheckCircle, PiCircleNotch
+  PiCircleNotch
 } from "react-icons/pi";
 import { Context } from "../context";
 import { useSocket } from "../useSocket";
+import { API } from "../utils/api";
 
 const ChatbotWidget = () => {
   const { user } = useContext(Context);
@@ -57,7 +58,7 @@ const ChatbotWidget = () => {
 
   const fetchTicket = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/my-ticket`, {
+      const res = await axios.get(`${API}/support/my-ticket`, {
         withCredentials: true,
       });
       if (res.data.ticket) {
@@ -84,7 +85,7 @@ const ChatbotWidget = () => {
     setStartChoicePending(false);
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/ask`,
+        `${API}/support/ask`,
         { text: "I want to talk to support admin." },
         { withCredentials: true }
       );
@@ -96,7 +97,7 @@ const ChatbotWidget = () => {
 
       if (res.data.ticket.status === "Escalation_Offered" || res.data.escalationOffered || res.data.escalationPending) {
         const choiceRes = await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/escalation-choice`,
+          `${API}/support/escalation-choice`,
           { choice: "escalate_to_admin" },
           { withCredentials: true }
         );
@@ -117,7 +118,7 @@ const ChatbotWidget = () => {
     setLoading(true);
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/escalation-choice`,
+        `${API}/support/escalation-choice`,
         { choice },
         { withCredentials: true }
       );
@@ -159,7 +160,7 @@ const ChatbotWidget = () => {
     // Use the 📸 screenshot button (below) for explicit, rate-limited captures.
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/support/ask`,
+        `${API}/support/ask`,
         { text: userMessage },
         { withCredentials: true }
       );

@@ -13,8 +13,9 @@ import {
 
 import RestrictedAccess from "./RestrictedAccess";
 import { useFeedRefresh } from "../utils/useFeedRefresh";
+import { API as API_ROOT } from "../utils/api";
 
-const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/forum`;
+const API = `${API_ROOT}/forum`;
 
 const TAGS = ["all","career","technical","campus","internship","higher-studies","general","placement","skills"];
 const TAG_COLORS = {

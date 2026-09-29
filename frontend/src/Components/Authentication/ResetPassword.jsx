@@ -1,13 +1,15 @@
-import React, { useContext, useState } from "react";
+import { useContext, useState } from "react";
 import axios from "axios";
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Context } from "../../context";
 import { PiGraduationCap } from "react-icons/pi";
+import { API } from "../../utils/api";
 
 const ResetPassword = () => {
   const { isAuthenticated, setIsAuthenticated, setUser } = useContext(Context);
   const { token } = useParams();
+  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -15,14 +17,19 @@ const ResetPassword = () => {
     e.preventDefault();
     await axios
       .put(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/password/reset/${token}`,
+        `${API}/user/password/reset/${token}`,
         { password, confirmPassword },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       )
       .then((res) => {
         toast.success(res.data.message);
+        // Store the token like Login does: the cross-site cookie alone is blocked
+        // by browsers such as Safari, which left the user "logged in" but getting 401s
+        if (res.data.token) localStorage.setItem("alumniToken", res.data.token);
         setIsAuthenticated(true);
         setUser(res.data.user);
+        const role = res.data.user?.role;
+        navigate(role ? `/${role.toLowerCase()}/dashboard` : "/", { replace: true });
       })
       .catch((error) => {
         toast.error(error.response?.data?.message || "Something went wrong");

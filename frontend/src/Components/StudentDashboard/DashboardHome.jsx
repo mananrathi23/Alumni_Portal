@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import axios from "axios";
 import { Context } from "../../context";
 import {
-  PiUsersThree, PiBriefcase, PiChatsCircle,
+  PiBriefcase, PiChatsCircle,
   PiCalendarCheck, PiHandshake, PiArrowRight,
-  PiEnvelope, PiRocketLaunch, PiSparkle,
 } from "react-icons/pi";
+import { API } from "../../utils/api";
 
-const BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1`;
 
 const colorMap = {
   sky:    { bg:"bg-sky-50 dark:bg-sky-900/20",     border:"border-sky-200 dark:border-sky-500/20",     icon:"text-sky-500",     val:"text-sky-600",     feedBg:"bg-sky-50 dark:bg-sky-900/20",     feedBorder:"border-sky-200 dark:border-sky-500/20"     },
@@ -54,10 +53,10 @@ const DashboardHome = () => {
     (async () => {
       try {
         const [jR, fR, eR, mR] = await Promise.allSettled([
-          axios.get(`${BASE}/jobs`,       { withCredentials:true }),
-          axios.get(`${BASE}/forum/questions`,      { withCredentials:true }),
-          axios.get(`${BASE}/events`,     { params:{view:"upcoming"}, withCredentials:true }),
-          axios.get(`${BASE}/mentorship/available`, { withCredentials:true }),
+          axios.get(`${API}/jobs`,       { withCredentials:true }),
+          axios.get(`${API}/forum/questions`,      { withCredentials:true }),
+          axios.get(`${API}/events`,     { params:{view:"upcoming"}, withCredentials:true }),
+          axios.get(`${API}/mentorship/available`, { withCredentials:true }),
         ]);
         const j = jR.status==="fulfilled" ? jR.value.data.jobs||[]  : [];
         const f = fR.status==="fulfilled" ? fR.value.data.questions||fR.value.data.posts||fR.value.data.forums||[] : [];

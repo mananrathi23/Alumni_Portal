@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 
+// Resolves true once connected, false if the connection failed
 export const connection = () => {
-  mongoose
+  return mongoose
     .connect(process.env.MONGO_URI, {
       dbName: "Alumni-Portal",
       // Per-instance pool. Total connections = pool size × number of instances,
@@ -11,8 +12,10 @@ export const connection = () => {
     })
     .then(() => {
       console.log("Connected to database.");
+      return true;
     })
     .catch((err) => {
       console.log(`Some error occurred while connecting to database: ${err}`);
+      return false;
     });
 };

@@ -1,3 +1,5 @@
+import { safeUser } from "./safeUser.js";
+
 // For Login
 export const sendToken = (user, statusCode, message, res, keepSignedIn = false) => {
   const token = user.generateToken();
@@ -20,7 +22,7 @@ export const sendToken = (user, statusCode, message, res, keepSignedIn = false) 
     })
     .json({
       success: true,
-      user: { ...user.toObject(), role },
+      user: { ...safeUser(user), role },
       message,
       token,
       keepSignedIn,

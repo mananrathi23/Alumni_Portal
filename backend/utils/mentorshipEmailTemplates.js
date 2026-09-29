@@ -1,3 +1,5 @@
+import { escapeFields } from "./escapeHtml.js";
+
 // ── Mentorship Email Templates ────────────────────────────────────────────────
 // Consistent, production-quality HTML emails for all mentorship lifecycle events
 
@@ -26,6 +28,8 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f7; }
 export function mentorshipAcceptedStudentEmail({
   studentName, mentorName, mentorRole, goal, slotDay, slotTime, meetingLink,
 }) {
+  // Names, slots and links are user-supplied: escape before building HTML
+  ({ studentName, mentorName, mentorRole, goal, slotDay, slotTime, meetingLink } = escapeFields({ studentName, mentorName, mentorRole, goal, slotDay, slotTime, meetingLink }));
   const goalLabel = {
     career:    "Career Guidance",
     resume:    "Resume Review",
@@ -67,6 +71,8 @@ export function mentorshipAcceptedStudentEmail({
 export function mentorshipAcceptedMentorEmail({
   mentorName, studentName, studentDept, studentYear, goal, slotDay, slotTime, meetingLink,
 }) {
+  // Names, slots and links are user-supplied: escape before building HTML
+  ({ mentorName, studentName, studentDept, studentYear, goal, slotDay, slotTime, meetingLink } = escapeFields({ mentorName, studentName, studentDept, studentYear, goal, slotDay, slotTime, meetingLink }));
   const goalLabel = {
     career:    "Career Guidance",
     resume:    "Resume Review",
@@ -106,6 +112,8 @@ export function mentorshipAcceptedMentorEmail({
 
 // ── Rejected — to student ─────────────────────────────────────────────────────
 export function mentorshipRejectedStudentEmail({ studentName, mentorName, slotDay, slotTime }) {
+  // Names, slots and links are user-supplied: escape before building HTML
+  ({ studentName, mentorName, slotDay, slotTime } = escapeFields({ studentName, mentorName, slotDay, slotTime }));
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>${BASE_STYLES}</style></head><body>
 <div class="wrap"><div class="card">
   <div class="header" style="background:linear-gradient(135deg,#742a2a,#c53030)">
@@ -124,6 +132,8 @@ export function mentorshipRejectedStudentEmail({ studentName, mentorName, slotDa
 
 // ── Auto-rejected (slot taken by another student) — to student ────────────────
 export function mentorshipSlotTakenEmail({ studentName, mentorName, slotDay, slotTime }) {
+  // Names, slots and links are user-supplied: escape before building HTML
+  ({ studentName, mentorName, slotDay, slotTime } = escapeFields({ studentName, mentorName, slotDay, slotTime }));
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>${BASE_STYLES}</style></head><body>
 <div class="wrap"><div class="card">
   <div class="header" style="background:linear-gradient(135deg,#744210,#d69e2e)">
@@ -144,6 +154,8 @@ export function mentorshipSlotTakenEmail({ studentName, mentorName, slotDay, slo
 export function sessionReminderEmail({
   recipientName, otherPersonName, otherPersonRole, slotDay, slotTime, meetingLink,
 }) {
+  // Names, slots and links are user-supplied: escape before building HTML
+  ({ recipientName, otherPersonName, otherPersonRole, slotDay, slotTime, meetingLink } = escapeFields({ recipientName, otherPersonName, otherPersonRole, slotDay, slotTime, meetingLink }));
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>${BASE_STYLES}</style></head><body>
 <div class="wrap"><div class="card">
   <div class="header" style="background:linear-gradient(135deg,#2d3748,#4a5568)">

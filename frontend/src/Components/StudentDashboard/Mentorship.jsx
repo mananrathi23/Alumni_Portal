@@ -7,13 +7,15 @@ import { Context } from "../../context";
 import {
   PiHandshake, PiMagnifyingGlass, PiStar, PiStarFill,
   PiClock, PiX, PiChatCircleText, PiClockCountdown,
-  PiBookOpen, PiCalendarBlank, PiArrowRight, PiInfo,
+  PiCalendarBlank, PiArrowRight, PiInfo,
   PiWarningCircle, PiCircleNotch,
 } from "react-icons/pi";
 
 import RestrictedAccess from "../RestrictedAccess";
+import GoalBadge from "../GoalBadge";
+import { API as API_ROOT } from "../../utils/api";
 
-const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship`;
+const API = `${API_ROOT}/mentorship`;
 
 const GOAL_OPTIONS = [
   { value: "career", label: "Career Guidance", desc: "Explore paths, industries, and long-term direction" },
@@ -22,7 +24,6 @@ const GOAL_OPTIONS = [
   { value: "technical", label: "Technical Help", desc: "Concepts, projects, and subject clarity" },
   { value: "general", label: "General Advice", desc: "Open-ended guidance and life decisions" },
 ];
-const GOAL_LABELS = { career: "Career Guidance", resume: "Resume Review", interview: "Interview Prep", technical: "Technical Help", general: "General Advice" };
 
 const getMentorBadge = (score) => {
   if (score >= 8.5) return { badge: "🏆 Elite Mentor", tier: "elite" };
@@ -32,10 +33,6 @@ const getMentorBadge = (score) => {
   return { badge: "Mentor", tier: "default" };
 };
 
-const GoalBadge = ({ goal }) => {
-  const c = { career: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25", resume: "bg-sky-500/15 text-sky-400 border-sky-500/25", interview: "bg-amber-500/15 text-amber-400 border-amber-500/25", technical: "bg-violet-500/15 text-violet-400 border-violet-500/25", general: "bg-slate-500/15 text-slate-400 border-slate-500/25" };
-  return <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${c[goal] || c.general}`}><PiBookOpen size={10} />{GOAL_LABELS[goal] || goal}</span>;
-};
 
 const StarRatingInput = ({ value, onChange }) => (
   <div className="flex gap-1">
@@ -654,7 +651,7 @@ const Mentorship = () => {
                 onClick={async () => {
                   try {
                     await axios.post(
-                      `${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests/${rateTarget._id}/rate`,
+                      `${API_ROOT}/mentorship/requests/${rateTarget._id}/rate`,
                       { value: rateTarget.pendingRating, feedback: rateTarget.feedback || "" },
                       { withCredentials: true }
                     );

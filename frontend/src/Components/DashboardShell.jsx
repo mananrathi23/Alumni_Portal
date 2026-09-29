@@ -6,15 +6,15 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FaSignOutAlt, FaBars, FaTimes } from "react-icons/fa";
-import { PiGraduationCap, PiUserCircle, PiCaretDown, PiSpeakerHigh, PiWarningCircle, PiBell } from "react-icons/pi";
+import { PiGraduationCap, PiUserCircle, PiCaretDown, PiWarningCircle, PiBell } from "react-icons/pi";
 import axios from "axios";
 import ChatbotWidget from "./ChatbotWidget";
 import ThemeToggle from "./ThemeToggle.jsx";
 import { Context } from "../context";
 import { useSocket } from "../useSocket";
 import { toast } from "react-toastify";
+import { API } from "../utils/api";
 
-const BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1`;
 
 const ACCENT = {
   sky:    { logo:"bg-sky-500",     avatar:"from-sky-400 to-sky-600",    active:"bg-sky-500/15 text-sky-400 ring-sky-500/20",    text:"text-sky-400",    dot:"bg-sky-500"    },
@@ -37,9 +37,9 @@ const InlineTicker = ({ collapsed }) => {
   useEffect(() => {
     (async () => {
       const [fR, eR, jR] = await Promise.allSettled([
-        axios.get(`${BASE}/forum/questions`,  { withCredentials: true }),
-        axios.get(`${BASE}/events`, { params:{ view:"upcoming" }, withCredentials: true }),
-        axios.get(`${BASE}/jobs`,   { withCredentials: true }),
+        axios.get(`${API}/forum/questions`,  { withCredentials: true }),
+        axios.get(`${API}/events`, { params:{ view:"upcoming" }, withCredentials: true }),
+        axios.get(`${API}/jobs`,   { withCredentials: true }),
       ]);
       const c = [];
       (fR.status==="fulfilled" ? fR.value.data.questions||fR.value.data.posts||fR.value.data.forums||[] : []).slice(0,3)
@@ -149,7 +149,7 @@ const DashboardShell = ({
   const { socketRef, isSocketReady } = useSocket();
 
   const fetchPendingCount = () => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
+    axios.get(`${API}/connection/pending`, { withCredentials: true })
       .then((res) => {
         const inc = res.data.incoming || [];
         setIncomingRequests(inc);
@@ -186,7 +186,7 @@ const DashboardShell = ({
 
   const handleRequestResponse = async (requestId, status) => {
     try {
-      await axios.put(`${BASE}/connection/${requestId}/respond`, { status }, { withCredentials: true });
+      await axios.put(`${API}/connection/${requestId}/respond`, { status }, { withCredentials: true });
       fetchPendingCount(); // Refresh the counts and the list
       toast.success(`Request ${status}`);
     } catch (err) {

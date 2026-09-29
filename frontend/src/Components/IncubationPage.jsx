@@ -7,12 +7,13 @@ import {
   PiRocketLaunch, PiPlus, PiX, PiArrowUp, PiChatCircle,
   PiHandshake, PiMagnifyingGlass, PiTrash, PiTag,
   PiLightbulb, PiFlask, PiChartLineUp, PiSparkle,
-  PiUser, PiCheck,
-} from "react-icons/pi";
+  PiUser, } from "react-icons/pi";
 import { useNavigate } from "react-router-dom";
 import { useFeedRefresh } from "../utils/useFeedRefresh";
+import { safeUrl } from "../utils/safeUrl";
+import { API as API_ROOT } from "../utils/api";
 
-const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/incubation`;
+const API = `${API_ROOT}/incubation`;
 const PAGE_SIZE = 20;
 
 const STAGES = [
@@ -183,13 +184,13 @@ const IdeaCard = ({ idea, currentUserId, currentUserRole, connections, onRefresh
         {(idea.projectLink || idea.repoLink) && (
           <div className="flex flex-wrap gap-2 mt-2">
             {idea.projectLink && (
-              <a href={idea.projectLink} target="_blank" rel="noreferrer"
+              <a href={safeUrl(idea.projectLink)} target="_blank" rel="noreferrer"
                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all">
                 🌐 Live Demo
               </a>
             )}
             {idea.repoLink && (
-              <a href={idea.repoLink} target="_blank" rel="noreferrer"
+              <a href={safeUrl(idea.repoLink)} target="_blank" rel="noreferrer"
                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 border border-white/[0.06] hover:bg-slate-600 transition-all">
                 ⚙ GitHub Repo
               </a>
@@ -502,7 +503,7 @@ const IncubationPage = ({ accentColor = "sky" }) => {
   ideasCountRef.current = ideas.length;
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections`, { withCredentials: true })
+    axios.get(`${API_ROOT}/connections`, { withCredentials: true })
       .then(res => setConnections(res.data.connections || []))
       .catch(() => {});
   }, []);

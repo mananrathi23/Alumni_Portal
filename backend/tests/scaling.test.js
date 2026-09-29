@@ -19,6 +19,7 @@ const { default: userRouter } = await import('../routes/userRouter.js');
 const { default: batchmatesRouter } = await import('../routes/BatchmatesRouter.js');
 const { default: peopleRouter } = await import('../routes/PeopleRouter.js');
 const { default: connectionRouter } = await import('../routes/ConnectionRouter.js');
+const { default: conversationRouter } = await import('../routes/ConversationRouter.js');
 const { default: mentorshipRouter } = await import('../routes/MentorshipRouter.js');
 const { default: incubationRouter } = await import('../routes/IncubationRouter.js');
 const { default: adminRouter } = await import('../routes/AdminUserRouter.js');
@@ -27,6 +28,7 @@ const { Student } = await import('../models/StudentModel.js');
 const { Alumni } = await import('../models/AlumniModel.js');
 const { Connection } = await import('../models/ConnectionModel.js');
 const { ChatMessage } = await import('../models/ChatMessageModel.js');
+const { conversationKey } = await import('../utils/conversations.js');
 const { MentorshipRequest } = await import('../models/MentorshipRequestModel.js');
 const { Incubation } = await import('../models/IncubationModel.js');
 
@@ -37,6 +39,7 @@ testApp.use('/api/v1/user', userRouter);
 testApp.use('/api/v1/batchmates', batchmatesRouter);
 testApp.use('/api/v1/people', peopleRouter);
 testApp.use('/api/v1/connections', connectionRouter);
+testApp.use('/api/v1/conversations', conversationRouter);
 testApp.use('/api/v1/mentorship', mentorshipRouter);
 testApp.use('/api/v1/incubation', incubationRouter);
 testApp.use('/api/v1/admin/users', adminRouter);
@@ -160,19 +163,20 @@ describe('Chat history pagination', () => {
   async function seedChat(count, { sameTimestamp = false } = {}) {
     const a = await loginAs('a@test.com', 'Student');
     const b = await loginAs('b@test.com', 'Student');
-    const connection = await Connection.create({
+    await Connection.create({
       sender:   { id: a.user._id, name: 'A', role: 'Student' },
       receiver: { id: b.user._id, name: 'B', role: 'Student' },
       status: 'Accepted',
     });
     const base = Date.now() - count * 1000;
     await ChatMessage.insertMany(Array.from({ length: count }, (_, i) => ({
-      connectionId: connection._id,
+      conversationKey: conversationKey(a.user._id, b.user._id),
+      recipientId: a.user._id,
       sender: { id: b.user._id, name: 'B', role: 'Student' },
       text: `msg ${i}`,
       createdAt: new Date(sameTimestamp ? base : base + i * 1000),
     })));
-    return { token: a.token, url: `/api/v1/connections/${connection._id}/chat` };
+    return { token: a.token, url: `/api/v1/conversations/${b.user._id}/messages` };
   }
 
   it('returns the newest 50 oldest-first, then older pages via ?before', async () => {
@@ -295,5 +299,24 @@ describe('Admin user lists', () => {
     expect(res.body).toMatchObject({ total: 3, hasMore: true, count: 2 });
     expect(res.body.filters.departments).toEqual(['CSE', 'ECE']);
     expect(res.body.filters.classes).toEqual([2022, 2021]);
+  });
+});
+
+describe('People directory', () => {
+  it('filters to available mentors on the server and reports hasMore per role', async () => {
+    const { token } = await loginAs('viewer@test.com', 'Student');
+    await makeMembers(Student, 3, { prefix: 'Stu' });
+    await makeMembers(Alumni, 25, { prefix: 'Mentor', extra: { availableForMentorship: true } });
+    await makeMembers(Alumni, 2, { prefix: 'Busy', extra: { availableForMentorship: false } });
+
+    const mentors = await request(testApp).get('/api/v1/people').query({ mentorOnly: 'true', limit: 20 }).set(auth(token));
+    expect(mentors.body.total).toBe(25);
+    expect(mentors.body.people.every((p) => p.role === 'Alumni' && p.availableForMentorship)).toBe(true);
+    expect(mentors.body.hasMore).toBe(true);
+
+    // 3 students + 27 alumni with limit 20: page 2 has 7 alumni left, then nothing
+    const p2 = await request(testApp).get('/api/v1/people').query({ page: 2, limit: 20 }).set(auth(token));
+    expect(p2.body.people).toHaveLength(7);
+    expect(p2.body.hasMore).toBe(false);
   });
 });

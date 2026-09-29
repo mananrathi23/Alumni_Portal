@@ -15,25 +15,15 @@ config();
 
 import axios   from "axios";
 import crypto  from "crypto";
-import bcrypt  from "bcryptjs";
 import { Student } from "../models/StudentModel.js";
 import { Alumni  } from "../models/AlumniModel.js";
 import { Teacher } from "../models/TeacherModel.js";
 import { Admin } from "../models/AdminModel.js";
-import { sendToken } from "../utils/sendToken.js";
 import ErrorHandler from "../middlewares/error.js";
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
+import { getMemberModel as getModelByRole } from "../utils/userModels.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function getModelByRole(role) {
-  switch (role) {
-    case "Student": return Student;
-    case "Alumni":  return Alumni;
-    case "Teacher": return Teacher;
-    default:        return null;
-  }
-}
-
 function randomPassword() {
   // Plain 20-char password — passes the 32-char validator.
   // The model's pre("save") bcrypt hook will hash it automatically.
@@ -95,8 +85,12 @@ export const handleGoogleOAuth = catchAsyncError(async (req, res, next) => {
     headers: { Authorization: `Bearer ${access_token}` },
   });
 
-  const { email, name, picture } = profileRes.data;
+  const { email, name, picture, verified_email } = profileRes.data;
   if (!email) return next(new ErrorHandler("Could not get email from Google.", 400));
+  // Only a Google-verified address may log into (or create) the account for that email
+  if (verified_email === false) {
+    return next(new ErrorHandler("Your Google email address is not verified.", 400));
+  }
 
   const Model = getModelByRole(role);
   if (!Model) return next(new ErrorHandler("Invalid role.", 400));
@@ -130,7 +124,6 @@ export const handleGoogleOAuth = catchAsyncError(async (req, res, next) => {
     user = await Model.create({
       name,
       email,
-      phone:           "+910000000000", // placeholder — can update in profile
       password:        randomPassword(),   // pre-save hook will bcrypt this
       accountVerified: true,
       profilePhoto:    picture ? { public_id: "", url: picture } : undefined,
@@ -262,7 +255,6 @@ export const handleLinkedInOAuth = catchAsyncError(async (req, res, next) => {
     user = await Model.create({
       name:            name || email.split("@")[0],
       email,
-      phone:           "+910000000000",
       password:        randomPassword(),   // pre-save hook will bcrypt this
       accountVerified: true,
       profilePhoto:    picture ? { public_id: "", url: picture } : undefined,

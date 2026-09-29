@@ -6,10 +6,11 @@ import { toast } from "react-toastify";
 import { useSocket } from "../../useSocket";
 import {
   PiUsersThree, PiCheck, PiX, PiCircleNotch,
-  PiArrowRight, PiClock, PiHandshake,
+  PiClock, PiHandshake,
 } from "react-icons/pi";
+import { API as API_ROOT } from "../../utils/api";
 
-const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/connection`;
+const API = `${API_ROOT}/connection`;
 
 const Avatar = ({ name, size = "w-10 h-10" }) => (
   <div className={`${size} rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>

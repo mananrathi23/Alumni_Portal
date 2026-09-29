@@ -1,76 +1,49 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
-import { Student } from "../models/StudentModel.js";
-import { Alumni } from "../models/AlumniModel.js";
-import { Teacher } from "../models/TeacherModel.js";
+import { getMemberModel } from "../utils/userModels.js";
+import { pageParams } from "../utils/pagination.js";
 import { searchRegex } from "../utils/escapeRegex.js";
 
-// Everyone can see everyone:
-// Student  → sees Alumni + Teachers + other Students
-// Alumni   → sees Students + Teachers + other Alumni
-// Teacher  → sees Students + Alumni + other Teachers
-// Only restriction: you never see yourself
-const visibleRoles = {
-  Student: ["Student", "Alumni", "Teacher"],
-  Alumni: ["Student", "Alumni", "Teacher"],
-  Teacher: ["Student", "Alumni", "Teacher"],
-  Admin: ["Student", "Alumni", "Teacher"],
+const MEMBER_ROLES = ["Student", "Alumni", "Teacher"];
+const MENTOR_ROLES = ["Alumni", "Teacher"];
+
+const FIELDS = {
+  Student: "name email department year skills bio linkedIn github portfolio enrollmentNumber enrollmentYear profilePhoto",
+  Alumni: "name email department graduationYear currentCompany currentDesignation industry skills bio linkedIn github availableForMentorship profilePhoto",
+  Teacher: "name email department designation experience qualifications skills bio linkedIn github availableForMentorship profilePhoto",
 };
 
-// ── Fix 5: Paginated getPeople — page=1, limit=20 by default ─────────────────
-// GET /api/v1/people
+// GET /api/v1/people?search=&filterRole=&department=&mentorOnly=true&page=&limit=
+// Everyone sees every verified, unblocked member except themselves. Each role is
+// paged separately (up to `limit` per role per page) and merged.
 export const getPeople = catchAsyncError(async (req, res) => {
   const user = req.user;
-  const myRole = user.constructor.modelName;
-  const allowed = visibleRoles[myRole] || [];
-
   const { search, filterRole, department } = req.query;
-  const page = Math.max(1, parseInt(req.query.page) || 1);
-  // Hard cap so one request can't pull the whole user base
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = pageParams(req.query, { defaultLimit: 20, maxLimit: 100 });
+  const mentorOnly = req.query.mentorOnly === "true";
 
-  const rolesToQuery = filterRole && filterRole !== "All"
-    ? [filterRole]
-    : allowed;
-
-  const re = searchRegex(search);
-  const searchFilter = re ? { $or: [{ name: re }, { department: re }] } : {};
-
-  const deptFilter = department && department !== "All"
-    ? { department }
-    : {};
+  let roles = MEMBER_ROLES.includes(filterRole) ? [filterRole] : MEMBER_ROLES;
+  if (mentorOnly) roles = roles.filter((r) => MENTOR_ROLES.includes(r));
 
   const baseFilter = {
     accountVerified: true,
-    adminVerified: true,   // hide users not yet verified by admin
-    isBlocked: false,      // hide blocked users
-    _id: { $ne: user._id }, // never show yourself
-    ...searchFilter,
-    ...deptFilter,
+    adminVerified: true,          // hide users not yet verified by admin
+    isBlocked: { $ne: true },     // hide blocked users
+    _id: { $ne: user._id },       // never show yourself
   };
+  const re = searchRegex(search);
+  if (re) baseFilter.$or = [{ name: re }, { department: re }];
+  if (department && department !== "All") baseFilter.department = String(department);
+  if (mentorOnly) baseFilter.availableForMentorship = true;
 
-  const fields = {
-    Student: "name email department year skills bio linkedIn github portfolio enrollmentNumber enrollmentYear profilePhoto",
-    Alumni: "name email department graduationYear currentCompany currentDesignation industry skills bio linkedIn github availableForMentorship profilePhoto",
-    Teacher: "name email department designation experience qualifications bio linkedIn profilePhoto",
-  };
-
-  // Run count + paginated find in parallel for each role
-  const queries = rolesToQuery.map(async (role) => {
-    let Model;
-    if (role === "Student") Model = Student;
-    else if (role === "Alumni") Model = Alumni;
-    else if (role === "Teacher") Model = Teacher;
-    else return { docs: [], total: 0 };
-
+  const results = await Promise.all(roles.map(async (role) => {
+    const Model = getMemberModel(role);
     const [docs, total] = await Promise.all([
-      Model.find(baseFilter).select(fields[role]).skip(skip).limit(limit).lean(),
+      Model.find(baseFilter).select(FIELDS[role]).skip(skip).limit(limit).lean(),
       Model.countDocuments(baseFilter),
     ]);
     return { docs: docs.map((d) => ({ ...d, role })), total };
-  });
+  }));
 
-  const results = await Promise.all(queries);
   const people = results.flatMap((r) => r.docs);
   const total = results.reduce((sum, r) => sum + r.total, 0);
 
@@ -79,8 +52,8 @@ export const getPeople = catchAsyncError(async (req, res) => {
     count: people.length,
     total,
     page,
-    pages: Math.ceil(total / limit),
-    hasMore: page * limit < total,
+    // More pages exist while any role still has people beyond this page
+    hasMore: results.some((r) => page * limit < r.total),
     people,
   });
 });

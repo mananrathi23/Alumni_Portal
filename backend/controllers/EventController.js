@@ -6,14 +6,61 @@ import { Alumni }          from "../models/AlumniModel.js";
 import { Teacher }         from "../models/TeacherModel.js";
 import { invalidateCache } from "../middlewares/cache.js";
 import { emitFeedUpdated } from "../Socket.js";
+import { findInvalidUrlField } from "../utils/validateUrl.js";
+import { pageParams } from "../utils/pagination.js";
 
 const POSTER_ROLES = ["Admin", "Alumni", "Teacher"];
 
+// Registrants' names and emails are visible only to the organizer and admins;
+// everyone else gets a count and whether they themselves are registered.
+const canSeeRegistrants = (event, user) =>
+  user.constructor.modelName === "Admin" || event.organizer?.id?.toString() === user._id.toString();
+
+// Mutates each event: isRegistered, registeredCount, and registeredStudents
+// (populated for organizer/admin, empty for everyone else)
+const shapeRegistrations = async (events, user) => {
+  const me = user._id.toString();
+  const visibleIds = new Set();
+  for (const e of events) {
+    const ids = (e.registeredStudents || []).map(String);
+    e.isRegistered = ids.includes(me);
+    e.registeredCount = ids.length;
+    if (canSeeRegistrants(e, user)) ids.forEach((id) => visibleIds.add(id));
+  }
+
+  const userMap = {};
+  if (visibleIds.size > 0) {
+    const ids = [...visibleIds];
+    const [students, alumni, teachers] = await Promise.all([
+      Student.find({ _id: { $in: ids } }, "name email department enrollmentYear").lean(),
+      Alumni.find({ _id: { $in: ids } }, "name email department enrollmentYear").lean(),
+      Teacher.find({ _id: { $in: ids } }, "name email department").lean(),
+    ]);
+    [...students, ...alumni, ...teachers].forEach((u) => { userMap[u._id.toString()] = u; });
+  }
+
+  for (const e of events) {
+    e.registeredStudents = canSeeRegistrants(e, user)
+      ? (e.registeredStudents || []).map((id) => {
+        const strId = id.toString();
+        return userMap[strId] ? { ...userMap[strId], _id: strId } : { _id: strId, name: "Unknown" };
+      })
+      : [];
+  }
+};
+
+// Non-admins see events for "All", for their role, or that they organise
+const visibleTo = (event, user) => {
+  const role = user.constructor.modelName;
+  if (role === "Admin" || event.organizer?.id?.toString() === user._id.toString()) return true;
+  return !event.audience || event.audience === "All" || event.audience === role;
+};
+
 // ── GET /api/v1/events ────────────────────────────────────────────────────────
-// Query: type, upcoming (bool), past (bool), mine (bool), page, limit
+// Query: type, view (upcoming|past|mine), page, limit
 export const getEvents = catchAsyncError(async (req, res) => {
-  const { type, view = "upcoming", page = 1, limit = 20 } = req.query;
-  const skip = (Number(page) - 1) * Number(limit);
+  const { type, view = "upcoming" } = req.query;
+  const { limit, skip } = pageParams(req.query, { defaultLimit: 20, maxLimit: 50 });
 
   const now    = new Date();
   const filter = { isActive: true };
@@ -21,7 +68,7 @@ export const getEvents = catchAsyncError(async (req, res) => {
   if (view === "upcoming") filter.date = { $gte: now };
   if (view === "past")     filter.date = { $lt:  now };
   if (view === "mine")     filter["organizer.id"] = req.user._id;
-  if (type && type !== "all") filter.type = type;
+  if (type && type !== "all") filter.type = String(type);
 
   const role = req.user.constructor.modelName;
   if (role !== "Admin") {
@@ -35,68 +82,23 @@ export const getEvents = catchAsyncError(async (req, res) => {
   const sortObj = view === "past" ? { date: -1 } : { date: 1 }; // upcoming asc, past desc
 
   const [events, total] = await Promise.all([
-    Event.find(filter).sort(sortObj).skip(skip).limit(Number(limit)).lean(),
+    Event.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
     Event.countDocuments(filter),
   ]);
 
-  // Manually populate registeredStudents from all roles
-  const allIds = [];
-  events.forEach(e => {
-    (e.registeredStudents || []).forEach(id => {
-      if (id) allIds.push(id.toString());
-    });
-  });
-  const uniqueIds = [...new Set(allIds)];
-  if (uniqueIds.length > 0) {
-    const [students, alumni, teachers] = await Promise.all([
-      Student.find({ _id: { $in: uniqueIds } }, "name email department enrollmentYear").lean(),
-      Alumni.find({ _id: { $in: uniqueIds } }, "name email department enrollmentYear").lean(),
-      Teacher.find({ _id: { $in: uniqueIds } }, "name email department").lean(),
-    ]);
-    const userMap = {};
-    students.forEach(u => userMap[u._id.toString()] = u);
-    alumni.forEach(u => userMap[u._id.toString()] = u);
-    teachers.forEach(u => userMap[u._id.toString()] = u);
-
-    events.forEach(e => {
-      e.registeredStudents = (e.registeredStudents || []).map(id => {
-        const strId = id.toString();
-        return userMap[strId] ? { ...userMap[strId], _id: strId } : { _id: strId, name: "Unknown" };
-      });
-    });
-  }
-
+  await shapeRegistrations(events, req.user);
   res.status(200).json({ success: true, events, total });
 });
 
 // ── GET /api/v1/events/:eventId ───────────────────────────────────────────────
 export const getEvent = catchAsyncError(async (req, res, next) => {
   const event = await Event.findById(req.params.eventId).lean();
-  if (!event || !event.isActive) return next(new ErrorHandler("Event not found.", 404));
-
-  // Manually populate registeredStudents
-  const rIds = (event.registeredStudents || []).map(String);
-  if (rIds.length > 0) {
-    const [students, alumni, teachers] = await Promise.all([
-      Student.find({ _id: { $in: rIds } }, "name email department enrollmentYear").lean(),
-      Alumni.find({ _id: { $in: rIds } }, "name email department enrollmentYear").lean(),
-      Teacher.find({ _id: { $in: rIds } }, "name email department").lean(),
-    ]);
-    const userMap = {};
-    students.forEach(u => userMap[u._id.toString()] = u);
-    alumni.forEach(u => userMap[u._id.toString()] = u);
-    teachers.forEach(u => userMap[u._id.toString()] = u);
-
-    event.registeredStudents = rIds.map(id => {
-      return userMap[id] ? { ...userMap[id], _id: id } : { _id: id, name: "Unknown" };
-    });
+  if (!event || !event.isActive || !visibleTo(event, req.user)) {
+    return next(new ErrorHandler("Event not found.", 404));
   }
 
-  const isRegistered = event.registeredStudents
-    ?.map(s => String(s._id))
-    .includes(req.user._id.toString());
-
-  res.status(200).json({ success: true, event, isRegistered: isRegistered || false });
+  await shapeRegistrations([event], req.user);
+  res.status(200).json({ success: true, event, isRegistered: event.isRegistered });
 });
 
 // ── POST /api/v1/events ───────────────────────────────────────────────────────
@@ -116,6 +118,8 @@ export const createEvent = catchAsyncError(async (req, res, next) => {
   if (!location?.trim() && !link?.trim()) {
     return next(new ErrorHandler("Provide either a physical location or an online link.", 400));
   }
+  const badLink = findInvalidUrlField(req.body, ["link"]);
+  if (badLink) return next(new ErrorHandler(`${badLink} must be a full http(s) link, e.g. https://…`, 400));
 
   // ── Date validations ──────────────────────────────────────────────────────
   const eventDate = new Date(date);
@@ -185,6 +189,14 @@ export const updateEvent = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Not authorized to edit this event.", 403));
   }
 
+  const badLink = findInvalidUrlField(req.body, ["link"]);
+  if (badLink) return next(new ErrorHandler(`${badLink} must be a full http(s) link, e.g. https://…`, 400));
+  if (req.body.date !== undefined) {
+    const newDate = new Date(req.body.date);
+    if (Number.isNaN(newDate.getTime())) return next(new ErrorHandler("Invalid event date.", 400));
+    if (newDate <= new Date()) return next(new ErrorHandler("Event date must be in the future.", 400));
+  }
+
   const allowed = ["title","description","date","time","location","link","type","audience"];
   allowed.forEach(f => {
     if (req.body[f] !== undefined) event[f] = req.body[f];
@@ -224,7 +236,9 @@ export const deleteEvent = catchAsyncError(async (req, res, next) => {
 // Students can RSVP to an event
 export const registerForEvent = catchAsyncError(async (req, res, next) => {
   const event = await Event.findById(req.params.eventId);
-  if (!event || !event.isActive) return next(new ErrorHandler("Event not found.", 404));
+  if (!event || !event.isActive || !visibleTo(event, req.user)) {
+    return next(new ErrorHandler("Event not found.", 404));
+  }
 
   const role = req.user.constructor.modelName;
 
@@ -249,26 +263,18 @@ export const registerForEvent = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Registration deadline for this event has passed.", 400));
   }
 
-  const userId    = req.user._id.toString();
-  const alreadyIn = event.registeredStudents.map(String).includes(userId);
-
-  if (alreadyIn) {
-    // Toggle off — unregister
-    event.registeredStudents = event.registeredStudents.filter(id => id.toString() !== userId);
-    await event.save();
-
-    // Invalidate cache
+  // Atomic toggle: a double-click can't register the same person twice
+  const unregistered = await Event.updateOne(
+    { _id: event._id, registeredStudents: req.user._id },
+    { $pull: { registeredStudents: req.user._id } }
+  );
+  if (unregistered.modifiedCount > 0) {
     await invalidateCache("events");
-
     return res.status(200).json({ success: true, registered: false, message: "Unregistered." });
   }
 
-  event.registeredStudents.push(req.user._id);
-  await event.save();
-
-  // Invalidate cache
+  await Event.updateOne({ _id: event._id }, { $addToSet: { registeredStudents: req.user._id } });
   await invalidateCache("events");
-
   res.status(200).json({
     success: true,
     registered: true,

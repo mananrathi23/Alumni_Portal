@@ -34,6 +34,3 @@ export const containsProfanity = async (text) => {
 
   return false;
 };
-
-/** Alias — for call-sites that import isProfane by name */
-export const isProfane = containsProfanity;

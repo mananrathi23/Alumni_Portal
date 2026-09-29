@@ -97,5 +97,12 @@ const shutdown = async (signal) => {
   }
 };
 
+// A stray rejected promise (e.g. a fire-and-forget DB write or email) must not
+// take the whole server down — Node's default is to exit on unhandled rejections.
+// Log it so the underlying bug can still be found and fixed.
+process.on("unhandledRejection", (reason) => {
+  console.error("[Unhandled rejection]", reason instanceof Error ? reason.stack : reason);
+});
+
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT",  () => shutdown("SIGINT"));

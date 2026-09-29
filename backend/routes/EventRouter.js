@@ -1,5 +1,5 @@
 import express from "express";
-import { isAuthenticated, isAdmin, isStaff, isVerifiedByAdmin } from "../middlewares/auth.js";
+import { isAuthenticated, isStaff, isVerifiedByAdmin } from "../middlewares/auth.js";
 import {
   getEvents, getEvent, createEvent, updateEvent, deleteEvent, registerForEvent,
 } from "../controllers/EventController.js";

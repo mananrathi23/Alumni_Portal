@@ -11,6 +11,7 @@ import { useState, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { PiCamera, PiCircleNotch } from "react-icons/pi";
+import { API } from "../utils/api";
 
 const ProfilePhotoUpload = ({ user, accentColor = "sky", onUploaded }) => {
   const [preview,   setPreview]   = useState(user?.profilePhoto?.url || null);
@@ -49,7 +50,7 @@ const ProfilePhotoUpload = ({ user, accentColor = "sky", onUploaded }) => {
       setUploading(true);
       try {
         const res = await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/upload-photo`,
+          `${API}/user/upload-photo`,
           { photo: base64 },
           { withCredentials: true, headers: { "Content-Type": "application/json" } }
         );

@@ -1,8 +1,8 @@
-import React from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API } from "../../utils/api";
 
 const NEEDS_YEAR = ["Student", "Alumni"];
 
@@ -22,7 +22,7 @@ const Register = ({ selectedRole }) => {
     if (data.enrollmentYear) data.enrollmentYear = Number(data.enrollmentYear);
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/register`, data, {
+      const res = await axios.post(`${API}/user/register`, data, {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });

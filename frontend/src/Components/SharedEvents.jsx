@@ -13,8 +13,10 @@ import {
 
 import RestrictedAccess from "./RestrictedAccess";
 import { useFeedRefresh } from "../utils/useFeedRefresh";
+import { safeUrl } from "../utils/safeUrl";
+import { API as API_ROOT } from "../utils/api";
 
-const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/events`;
+const API = `${API_ROOT}/events`;
 const EVENT_TYPES = ["seminar","workshop","webinar","hackathon","reunion","placement","other"];
 const POSTER_ROLES = ["Admin", "Alumni", "Teacher"];
 
@@ -269,7 +271,7 @@ function EventDetailModal({ event, currentUser, onClose, onToggleRegister, isReg
               {event.link && (
                 <div className="flex items-center gap-2.5 text-sm">
                   <PiLink size={15} className="text-slate-500 flex-shrink-0"/>
-                  <a href={event.link} target="_blank" rel="noreferrer"
+                  <a href={safeUrl(event.link)} target="_blank" rel="noreferrer"
                      className="text-sky-400 hover:text-sky-300 hover:underline flex items-center gap-1">
                     Join Online <PiArrowUpRight size={12}/>
                   </a>
@@ -401,7 +403,7 @@ function EventCard({ event, currentUser, onEdit, onDelete, onToggleRegister, isR
         <div className="flex items-center gap-1.5"><PiCalendarBlank size={13} className="text-slate-500"/>{formatDate(event.date)}</div>
         <div className="flex items-center gap-1.5"><PiClock size={13} className="text-slate-500"/>{event.time}</div>
         {event.location && <div className="flex items-center gap-1.5"><PiMapPin size={13} className="text-slate-500"/>{event.location}</div>}
-        {event.link && <a href={event.link} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sky-400 hover:underline"><PiLink size={13}/>Join Online</a>}
+        {event.link && <a href={safeUrl(event.link)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sky-400 hover:underline"><PiLink size={13}/>Join Online</a>}
         <div className="flex items-center gap-1.5"><PiUser size={13} className="text-slate-500"/>{event.organizer?.name} · {event.organizer?.role}</div>
       </div>
 
@@ -476,13 +478,11 @@ export default function SharedEvents({ role, accentColor = "sky" }) {
       const view = tab === "mine" ? "mine" : tab;
       const res  = await axios.get(API, { params: { view }, withCredentials: true });
       setEvents(res.data.events || []);
-      if (role === "Student") {
-        const map = {};
-        (res.data.events || []).forEach(e => {
-          map[e._id] = (e.registeredStudents || []).map(s => typeof s === 'object' ? String(s._id) : String(s)).includes(user?._id?.toString());
-        });
-        setReg(map);
-      }
+      // The server says whether *you* are registered (the registrant list is
+      // only sent to the organizer), for every role that can register
+      const map = {};
+      (res.data.events || []).forEach(e => { map[e._id] = !!e.isRegistered; });
+      setReg(map);
     } catch { toast.error("Failed to load events."); }
     finally { setLoading(false); }
   };

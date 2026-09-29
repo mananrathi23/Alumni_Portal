@@ -10,8 +10,10 @@ import { ToastContainer } from 'react-toastify'
 import { Context } from './context'
 const ChatbotWidget = lazy(() => import('./Components/ChatbotWidget.jsx'))
 
+// Sidebar frame for Students, Alumni and Teachers (Admin has its own)
+const MemberLayout = lazy(() => import('./Components/MemberLayout.jsx'))
+
 // ─── STUDENT ──────────────────────────────────────────────────────────────────
-const StudentLayout = lazy(() => import('./Components/StudentDashboard/StudentLayout.jsx'))
 const StudentDashboardHome = lazy(() => import('./Components/StudentDashboard/DashboardHome.jsx'))
 const StudentForum = lazy(() => import('./Components/StudentDashboard/Forum.jsx'))
 const StudentAlumni = lazy(() => import('./Components/StudentDashboard/Alumni.jsx'))
@@ -25,7 +27,6 @@ const StudentBatchmates = lazy(() => import('./Components/StudentDashboard/Batch
 const StudentIncubation = lazy(() => import('./Components/StudentDashboard/Incubation.jsx'))
 
 // ─── TEACHER ──────────────────────────────────────────────────────────────────
-const TeacherLayout = lazy(() => import('./Components/TeacherDashboard/TeacherLayout.jsx'))
 const TeacherDashboardHome = lazy(() => import('./Components/TeacherDashboard/DashboardHome.jsx'))
 const TeacherForum = lazy(() => import('./Components/TeacherDashboard/Forum.jsx'))
 const TeacherStudents = lazy(() => import('./Components/TeacherDashboard/Students.jsx'))
@@ -38,7 +39,6 @@ const TeacherBatchmates = lazy(() => import('./Components/TeacherDashboard/Batch
 const TeacherIncubation = lazy(() => import('./Components/TeacherDashboard/Incubation.jsx'))
 
 // ─── ALUMNI ───────────────────────────────────────────────────────────────────
-const AlumniLayout = lazy(() => import('./Components/AlumniDashboard/AlumniLayout.jsx'))
 const AlumniDashboardHome = lazy(() => import('./Components/AlumniDashboard/DashboardHome.jsx'))
 const AlumniForum = lazy(() => import('./Components/AlumniDashboard/Forum.jsx'))
 const AlumniStudents = lazy(() => import('./Components/AlumniDashboard/Students.jsx'))
@@ -87,7 +87,7 @@ function App() {
     // ─── STUDENT ──────────────────────────────────────────────────────────────
     {
       path: '/student',
-      element: <ProtectedRoute allowedRole="Student">{page(<StudentLayout />)}</ProtectedRoute>,
+      element: <ProtectedRoute allowedRole="Student">{page(<MemberLayout role="Student" />)}</ProtectedRoute>,
       children: [
         { path: 'dashboard',  element: page(<StudentDashboardHome />) },
         { path: 'forum',      element: page(<StudentForum />) },
@@ -106,7 +106,7 @@ function App() {
     // ─── TEACHER ──────────────────────────────────────────────────────────────
     {
       path: '/teacher',
-      element: <ProtectedRoute allowedRole="Teacher">{page(<TeacherLayout />)}</ProtectedRoute>,
+      element: <ProtectedRoute allowedRole="Teacher">{page(<MemberLayout role="Teacher" />)}</ProtectedRoute>,
       children: [
         { path: 'dashboard',  element: page(<TeacherDashboardHome />) },
         { path: 'forum',      element: page(<TeacherForum />) },
@@ -124,7 +124,7 @@ function App() {
     // ─── ALUMNI ───────────────────────────────────────────────────────────────
     {
       path: '/alumni',
-      element: <ProtectedRoute allowedRole="Alumni">{page(<AlumniLayout />)}</ProtectedRoute>,
+      element: <ProtectedRoute allowedRole="Alumni">{page(<MemberLayout role="Alumni" />)}</ProtectedRoute>,
       children: [
         { path: 'dashboard',  element: page(<AlumniDashboardHome />) },
         { path: 'forum',      element: page(<AlumniForum />) },

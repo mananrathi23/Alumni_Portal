@@ -1,16 +1,17 @@
-import React, { useState, useContext } from "react";
+import { useState, useContext } from "react";
 import { useOutletContext } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../../context";
 import ProfilePhotoUpload from "../ProfilePhotoUpload.jsx";
 import {
-  PiPencilSimple, PiCheck, PiX, PiLinkedinLogo, PiGithubLogo,
-  PiBriefcase, PiStar, PiUser, PiEnvelope, PiChalkboardTeacher,
+  PiPencilSimple, PiCheck, PiX, PiLinkedinLogo, PiBriefcase, PiStar, PiUser, PiEnvelope, PiChalkboardTeacher,
 } from "react-icons/pi";
-import { isTeacherProfileComplete } from "../../utils/profileCompletion";
+import { isProfileComplete } from "../../utils/profileCompletion";
+import { safeUrl } from "../../utils/safeUrl";
+import { DEPARTMENTS } from "../../utils/departments";
+import { API } from "../../utils/api";
 
-const DEPARTMENTS  = ["Computer Science","Information Technology","Electronics","Mechanical","Civil","Other"];
 const DESIGNATIONS = ["Professor","Associate Professor","Assistant Professor","Lecturer","HOD","Other"];
 
 const inp = "w-full px-3 py-2.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all";
@@ -52,7 +53,7 @@ const Profile = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/update-profile`, form,
+      const res = await axios.put(`${API}/user/update-profile`, form,
         { withCredentials: true, headers: { "Content-Type": "application/json" } });
       toast.success("Profile updated!");
       setUser(res.data.user);
@@ -62,7 +63,7 @@ const Profile = () => {
     finally { setLoading(false); }
   };
 
-  const complete = isTeacherProfileComplete(teacher);
+  const complete = isProfileComplete("Teacher", teacher);
 
   return (
     <div className="max-w-5xl mx-auto space-y-5">
@@ -192,7 +193,7 @@ const Profile = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[{label:"LinkedIn",key:"linkedIn",placeholder:"https://linkedin.com/in/…"},{label:"GitHub",key:"github",placeholder:"https://github.com/…"}].map(({label,key,placeholder}) => (
                 <Field key={key} label={label} value={teacher?.[key]}>
-                  {teacher?.[key] && !editing && <a href={teacher[key]} target="_blank" rel="noreferrer" className="text-sky-400 text-sm hover:underline truncate block">{teacher[key]}</a>}
+                  {teacher?.[key] && !editing && <a href={safeUrl(teacher[key])} target="_blank" rel="noreferrer" className="text-sky-400 text-sm hover:underline truncate block">{teacher[key]}</a>}
                   {editing && <input type="url" placeholder={placeholder} value={form[key]} onChange={e => set(key, e.target.value)} className={inp}/>}
                 </Field>
               ))}

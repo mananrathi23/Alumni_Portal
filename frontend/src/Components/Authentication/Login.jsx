@@ -1,10 +1,11 @@
-import React, { useState, useContext } from "react";
+import { useState, useContext } from "react";
 import { useForm } from "react-hook-form";
 import ForgotPassword from "./ForgotPassword";
 import { Context } from "../../context";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API } from "../../utils/api";
 
 const Login = ({ selectedRole }) => {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
@@ -18,7 +19,7 @@ const Login = ({ selectedRole }) => {
     data.keepSignedIn = keepSignedIn;
 
     await axios
-      .post(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/login`, data, {
+      .post(`${API}/user/login`, data, {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       })

@@ -1,10 +1,11 @@
-import React, { useContext } from "react";
+import { useContext } from "react";
 import { useForm } from "react-hook-form";
 import { useParams, useNavigate } from "react-router-dom";
 import { Context } from "../../context";
 import { PiGraduationCap } from "react-icons/pi";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API } from "../../utils/api";
 
 const OtpForm = ({ email, role }) => {
   const navigateTo = useNavigate();
@@ -19,7 +20,7 @@ const OtpForm = ({ email, role }) => {
   const handleOtpVerification = async (data) => {
     await axios
       .post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/otp-verification`,
+        `${API}/user/otp-verification`,
         { email, otp: data.otp, role },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       )

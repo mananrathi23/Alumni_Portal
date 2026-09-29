@@ -6,7 +6,7 @@
  */
 const MAX_SEARCH_LENGTH = 100;
 
-export const escapeRegex = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegex = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Returns a `{ $regex, $options }` condition, or null when the search is empty.
 export const searchRegex = (text) => {

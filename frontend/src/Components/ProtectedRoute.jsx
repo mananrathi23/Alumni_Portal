@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { Navigate } from "react-router-dom";
 import axios from "axios";
 import { Context } from "../context";
+import { API } from "../utils/api";
 
 /**
  * ProtectedRoute
@@ -9,7 +10,7 @@ import { Context } from "../context";
  *
  * Usage:
  *   <ProtectedRoute allowedRole="Student">
- *     <StudentLayout />
+ *     <MemberLayout role="Student" />
  *   </ProtectedRoute>
  *
  * Props:
@@ -22,7 +23,7 @@ const ProtectedRoute = ({ children, allowedRole }) => {
 
   useEffect(() => {
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true })
+      .get(`${API}/user/me`, { withCredentials: true })
       .then((res) => {
         const role = res.data.user?.role;
         // Fix 12: Populate global Context so child components don't re-fetch /me

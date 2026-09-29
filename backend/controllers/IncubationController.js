@@ -3,12 +3,24 @@ import ErrorHandler from "../middlewares/error.js";
 import { Incubation } from "../models/IncubationModel.js";
 import { emitToAll, emitFeedUpdated } from "../Socket.js";
 import { searchRegex } from "../utils/escapeRegex.js";
+import { findInvalidUrlField } from "../utils/validateUrl.js";
+
+// Who expressed interest (and their messages) is for the idea's author only;
+// everyone else sees a count and whether they themselves are interested.
+const shapeIdea = (idea, user) => {
+  const obj = typeof idea.toObject === "function" ? idea.toObject() : { ...idea };
+  const me = user._id.toString();
+  const interested = obj.interestedUsers || [];
+  obj.interestedCount = interested.length;
+  obj.amInterested = interested.some((u) => u.userId?.toString() === me);
+  if (obj.authorId?.toString() !== me) obj.interestedUsers = [];
+  return obj;
+};
 
 // ── GET all active ideas (feed) ───────────────────────────────────────────────
 export const getIdeas = catchAsyncError(async (req, res) => {
   const { search, stage, tag, mine } = req.query;
   const user = req.user;
-  const role = user.constructor.modelName;
 
   const filter = { active: true };
 
@@ -39,14 +51,17 @@ export const getIdeas = catchAsyncError(async (req, res) => {
     Incubation.countDocuments(filter),
   ]);
 
-  res.status(200).json({ success: true, count: ideas.length, total, page, hasMore: page * limit < total, ideas });
+  res.status(200).json({
+    success: true, count: ideas.length, total, page, hasMore: page * limit < total,
+    ideas: ideas.map((i) => shapeIdea(i, user)),
+  });
 });
 
 // ── GET single idea with comments ─────────────────────────────────────────────
 export const getIdea = catchAsyncError(async (req, res, next) => {
   const idea = await Incubation.findById(req.params.id);
   if (!idea || !idea.active) return next(new ErrorHandler("Idea not found.", 404));
-  res.status(200).json({ success: true, idea });
+  res.status(200).json({ success: true, idea: shapeIdea(idea, req.user) });
 });
 
 // ── POST create idea ──────────────────────────────────────────────────────────
@@ -58,6 +73,8 @@ export const createIdea = catchAsyncError(async (req, res, next) => {
   if (!title || !description) {
     return next(new ErrorHandler("Title and description are required.", 400));
   }
+  const badLink = findInvalidUrlField(req.body, ["projectLink", "repoLink"]);
+  if (badLink) return next(new ErrorHandler(`${badLink} must be a full http(s) link, e.g. https://…`, 400));
 
   const idea = await Incubation.create({
     title, description, problemStatement, targetAudience,
@@ -84,6 +101,9 @@ export const updateIdea = catchAsyncError(async (req, res, next) => {
   if (idea.authorId.toString() !== req.user._id.toString()) {
     return next(new ErrorHandler("Only the author can edit this idea.", 403));
   }
+
+  const badLink = findInvalidUrlField(req.body, ["projectLink", "repoLink"]);
+  if (badLink) return next(new ErrorHandler(`${badLink} must be a full http(s) link, e.g. https://…`, 400));
 
   const fields = ["title", "description", "problemStatement", "targetAudience", "stage", "tags", "lookingFor", "projectLink", "repoLink"];
   fields.forEach((f) => { if (req.body[f] !== undefined) idea[f] = req.body[f]; });
@@ -149,7 +169,12 @@ export const deleteComment = catchAsyncError(async (req, res, next) => {
   const comment = idea.comments.id(req.params.commentId);
   if (!comment) return next(new ErrorHandler("Comment not found.", 404));
 
-  if (comment.authorId.toString() !== req.user._id.toString()) {
+  // The commenter, the idea's author, or an admin (moderation) may delete
+  const me = req.user._id.toString();
+  const canDelete = comment.authorId.toString() === me
+    || idea.authorId.toString() === me
+    || req.user.constructor.modelName === "Admin";
+  if (!canDelete) {
     return next(new ErrorHandler("Not authorised.", 403));
   }
 
@@ -193,19 +218,23 @@ export const expressInterest = catchAsyncError(async (req, res, next) => {
 });
 
 // ── POST toggle upvote ────────────────────────────────────────────────────────
+// Atomic toggle: concurrent clicks can't add the same vote twice
 export const toggleUpvote = catchAsyncError(async (req, res, next) => {
-  const idea = await Incubation.findById(req.params.id);
-  if (!idea || !idea.active) return next(new ErrorHandler("Idea not found.", 404));
-
-  const uid = req.user._id.toString();
-  const idx = idea.upvotes.findIndex((id) => id.toString() === uid);
-
-  if (idx === -1) {
-    idea.upvotes.push(req.user._id);
-  } else {
-    idea.upvotes.splice(idx, 1);
+  const filter = { _id: req.params.id, active: true };
+  const removed = await Incubation.findOneAndUpdate(
+    { ...filter, upvotes: req.user._id },
+    { $pull: { upvotes: req.user._id } },
+    { new: true, projection: { upvotes: 1 } }
+  );
+  if (removed) {
+    return res.status(200).json({ success: true, upvotes: removed.upvotes.length, upvoted: false });
   }
 
-  await idea.save();
-  res.status(200).json({ success: true, upvotes: idea.upvotes.length, upvoted: idx === -1 });
+  const added = await Incubation.findOneAndUpdate(
+    filter,
+    { $addToSet: { upvotes: req.user._id } },
+    { new: true, projection: { upvotes: 1 } }
+  );
+  if (!added) return next(new ErrorHandler("Idea not found.", 404));
+  res.status(200).json({ success: true, upvotes: added.upvotes.length, upvoted: true });
 });

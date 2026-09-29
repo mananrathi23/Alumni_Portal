@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { MdMarkEmailRead } from "react-icons/md";
+import { API } from "../../utils/api";
 
 // accepts selectedRole from Login.jsx
 const ForgotPassword = ({ onBack, selectedRole }) => {
@@ -13,7 +14,7 @@ const ForgotPassword = ({ onBack, selectedRole }) => {
   const onSubmit = async (data) => {
     await axios
       .post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/password/forgot`,
+        `${API}/user/password/forgot`,
         { email: data.email, role: selectedRole },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       )

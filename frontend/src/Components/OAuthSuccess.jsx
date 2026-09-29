@@ -4,6 +4,7 @@ import axios from "axios";
 import { useContext } from "react";
 import { toast } from "react-toastify";
 import { Context } from "../context";
+import { API } from "../utils/api";
 
 /**
  * OAuthSuccess
@@ -22,7 +23,7 @@ const OAuthSuccess = () => {
     const errorMsg = params.get("error");
     if (errorMsg) {
       toast.error(errorMsg);
-      navigate("/login");
+      navigate("/login", { replace: true });
       return;
     }
 
@@ -37,17 +38,15 @@ const OAuthSuccess = () => {
     if (token) headers.Authorization = `Bearer ${token}`;
 
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true, headers })
+      .get(`${API}/user/me`, { withCredentials: true, headers })
       .then((res) => {
         setIsAuthenticated(true);
         setUser(res.data.user);
-        if (role === "Student") navigate("/student/dashboard");
-        else if (role === "Alumni")  navigate("/alumni/dashboard");
-        else if (role === "Teacher") navigate("/teacher/dashboard");
-        else if (role === "Admin")   navigate("/admin/dashboard");
-        else navigate("/");
+        // replace: this page's URL carries the login token — keep it out of history
+        const dashboards = { Student: "/student/dashboard", Alumni: "/alumni/dashboard", Teacher: "/teacher/dashboard", Admin: "/admin/dashboard" };
+        navigate(dashboards[role] || "/", { replace: true });
       })
-      .catch(() => navigate("/login"));
+      .catch(() => navigate("/login", { replace: true }));
   }, []);
 
   return (

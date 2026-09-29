@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import jwt from "jsonwebtoken";
 
 const getBackendUrl = () => {
   const url = process.env.BACKEND_URL || "http://localhost:4000";
@@ -17,6 +18,10 @@ const getOAuth2Client = () => {
 // ── Convert slot day + time → next real ISO datetime ─────────────────────────
 // Handles both 3-letter ("Mon") and full ("Monday") day names
 // Handles both 12-hr ("10:00 AM") and 24-hr ("14:00") time formats
+// Slots are India time. The server's own timezone must not matter: production
+// runs in UTC, where local setHours() put sessions 5½ hours late.
+const IST_OFFSET_MS = 330 * 60 * 1000; // UTC+05:30, no daylight saving
+
 export function getNextSlotISO(day, time) {
   const DAY_MAP = {
     Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
@@ -27,25 +32,29 @@ export function getNextSlotISO(day, time) {
   const targetDay = DAY_MAP[day];
   if (targetDay === undefined) throw new Error(`Unknown day value: "${day}"`);
 
-  const now  = new Date();
-  const date = new Date();
-
-  // Minimum 1 day ahead — prevents creating a meeting in the past
-  const diff = ((targetDay - now.getDay() + 7) % 7) || 7;
-  date.setDate(now.getDate() + diff);
-
   // Parse time string: "10:00 AM" / "2:00 PM" / "14:00"
-  const parts        = time.trim().split(" ");
+  const parts        = String(time).trim().split(/\s+/);
   const [hStr, mStr] = parts[0].split(":");
   let   hours        = parseInt(hStr, 10);
-  const minutes      = parseInt(mStr, 10);
+  const minutes      = parseInt(mStr ?? "0", 10);
   const meridiem     = parts[1]?.toUpperCase();
 
   if (meridiem === "PM" && hours !== 12) hours += 12;
   if (meridiem === "AM" && hours === 12) hours  = 0;
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours > 23 || minutes > 59) {
+    throw new Error(`Unknown time value: "${time}"`);
+  }
 
-  date.setHours(hours, minutes, 0, 0);
-  return date.toISOString();
+  // Read today's date and weekday on the India wall clock (via the UTC getters of a shifted Date)
+  const nowIst = new Date(Date.now() + IST_OFFSET_MS);
+
+  // Minimum 1 day ahead — prevents creating a meeting in the past
+  const diff = ((targetDay - nowIst.getUTCDay() + 7) % 7) || 7;
+
+  const utcMs = Date.UTC(
+    nowIst.getUTCFullYear(), nowIst.getUTCMonth(), nowIst.getUTCDate() + diff, hours, minutes
+  ) - IST_OFFSET_MS;
+  return new Date(utcMs).toISOString();
 }
 
 // ── Generate the Google OAuth consent URL ────────────────────────────────────
@@ -54,18 +63,18 @@ export function getNextSlotISO(day, time) {
 // Google's redirect carries no JWT cookie — state is the only safe channel.
 // Replace your buildGoogleAuthUrl in backend/utils/googleCalendar.js with this:
 export function buildGoogleAuthUrl(mentorId, mentorRole) {
-  // Add this console.log to debug. If it says "undefined", your .env isn't loading!
-  console.log("Using Client ID:", process.env.GOOGLE_CLIENT_ID);
-
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     `${getBackendUrl()}/api/v1/mentorship/auth/callback`
   );
 
-  const state = Buffer.from(
-    JSON.stringify({ mentorId, mentorRole })
-  ).toString("base64");
+  // Signed and short-lived: the callback trusts `state` to say whose account to
+  // link, so it must not be forgeable (an unsigned state let anyone attach their
+  // Google account to another mentor)
+  const state = jwt.sign({ mentorId, mentorRole, purpose: "google-calendar" }, process.env.JWT_SECRET_KEY, {
+    expiresIn: "15m",
+  });
 
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
@@ -80,9 +89,11 @@ export function buildGoogleAuthUrl(mentorId, mentorRole) {
 // ── Decode the state param Google sends back on redirect ─────────────────────
 export function decodeOAuthState(state) {
   try {
-    const decoded = JSON.parse(Buffer.from(state, "base64").toString("utf8"));
-    if (!decoded.mentorId || !decoded.mentorRole) throw new Error("Missing fields");
-    return decoded;
+    const decoded = jwt.verify(state, process.env.JWT_SECRET_KEY);
+    if (decoded.purpose !== "google-calendar" || !decoded.mentorId || !decoded.mentorRole) {
+      throw new Error("Missing fields");
+    }
+    return { mentorId: decoded.mentorId, mentorRole: decoded.mentorRole };
   } catch {
     throw new Error("Invalid OAuth state parameter.");
   }

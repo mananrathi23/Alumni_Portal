@@ -7,8 +7,9 @@ import ThemeToggle from "../ThemeToggle.jsx";
 import {
   PiGraduationCap, PiHouseLine, PiNewspaper, PiUsersThree,
   PiCalendarCheck, PiBriefcase, PiSignOut,
-  PiShieldCheck, PiList, PiX, PiHeadset,
+  PiShieldCheck, PiList, PiHeadset,
 } from "react-icons/pi";
+import { API } from "../../utils/api";
 
 const NAV = [
   { label: "Dashboard", path: "/admin/dashboard", icon: PiHouseLine },
@@ -28,7 +29,7 @@ const AdminLayout = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true });
+      await axios.get(`${API}/user/logout`, { withCredentials: true });
     } catch { /* non-critical: keep current state */ }
     localStorage.removeItem("alumniToken");
     setIsAuthenticated(false);

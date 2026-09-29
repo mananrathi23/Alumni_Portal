@@ -5,7 +5,7 @@
 // are prepended, the scroll position is kept on what the user was reading.
 //
 // Usage:
-//   const chat = useChatHistory(`${API}/connections/${id}/chat`, { onError });
+//   const chat = useChatHistory(`${API}/conversations/${otherUserId}/messages`, { onError });
 //   <div ref={chat.containerRef}> … chat.messages … </div>
 //   In the auto-scroll effect: if (chat.consumePrepend()) return;
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";

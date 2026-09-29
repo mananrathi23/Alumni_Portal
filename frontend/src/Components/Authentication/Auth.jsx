@@ -1,5 +1,5 @@
 import ThemeToggle from "../ThemeToggle.jsx";
-import React, { useState, useContext } from "react";
+import { useState, useContext } from "react";
 import { PiGraduationCap, PiUsersThree, PiBriefcase, PiHandshake, PiCalendarCheck } from "react-icons/pi";
 import { Navigate } from "react-router-dom";
 import { Context } from "../../context";

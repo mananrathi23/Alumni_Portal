@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import { useState, useContext } from "react";
 import { useOutletContext } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -10,8 +10,10 @@ import {
   PiEnvelope, PiIdentificationCard,
 } from "react-icons/pi";
 import { isProfileComplete } from "../../utils/profileCompletion";
+import { safeUrl } from "../../utils/safeUrl";
+import { DEPARTMENTS } from "../../utils/departments";
+import { API } from "../../utils/api";
 
-const DEPARTMENTS = ["Computer Science", "Information Technology", "Electronics", "Mechanical", "Civil", "Other"];
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 
 const inp = "w-full px-3 py-2.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all";
@@ -55,7 +57,7 @@ const Profile = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/update-profile`,
+      const res = await axios.put(`${API}/user/update-profile`,
         { ...form, cgpa: form.cgpa ? Number(form.cgpa) : undefined, enrollmentYear: form.enrollmentYear ? Number(form.enrollmentYear) : undefined },
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       );
@@ -67,7 +69,7 @@ const Profile = () => {
     finally { setLoading(false); }
   };
 
-  const complete = isProfileComplete(student);
+  const complete = isProfileComplete("Student", student);
 
   return (
     <div className="max-w-5xl mx-auto space-y-5">
@@ -186,19 +188,19 @@ const Profile = () => {
             {(student?.linkedIn || student?.github || student?.portfolio) && (
               <div className="flex gap-2 pt-1">
                 {student.linkedIn && (
-                  <a href={student.linkedIn} target="_blank" rel="noreferrer"
+                  <a href={safeUrl(student.linkedIn)} target="_blank" rel="noreferrer"
                     className="flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300 transition-colors">
                     <PiLinkedinLogo size={13} /> LinkedIn
                   </a>
                 )}
                 {student.github && (
-                  <a href={student.github} target="_blank" rel="noreferrer"
+                  <a href={safeUrl(student.github)} target="_blank" rel="noreferrer"
                     className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition-colors">
                     <PiGithubLogo size={13} /> GitHub
                   </a>
                 )}
                 {student.portfolio && (
-                  <a href={student.portfolio} target="_blank" rel="noreferrer"
+                  <a href={safeUrl(student.portfolio)} target="_blank" rel="noreferrer"
                     className="flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors">
                     <PiLink size={13} /> Portfolio
                   </a>
@@ -307,7 +309,7 @@ const Profile = () => {
             <div className="space-y-3">
               <Field label="LinkedIn" value={student?.linkedIn}>
                 {student?.linkedIn && !editing && (
-                  <a href={student.linkedIn} target="_blank" rel="noreferrer" className="text-sky-400 text-sm hover:underline flex items-center gap-1.5">
+                  <a href={safeUrl(student.linkedIn)} target="_blank" rel="noreferrer" className="text-sky-400 text-sm hover:underline flex items-center gap-1.5">
                     <PiLinkedinLogo size={14} /> {student.linkedIn}
                   </a>
                 )}
@@ -315,7 +317,7 @@ const Profile = () => {
               </Field>
               <Field label="GitHub" value={student?.github}>
                 {student?.github && !editing && (
-                  <a href={student.github} target="_blank" rel="noreferrer" className="text-slate-700 text-sm hover:underline flex items-center gap-1.5">
+                  <a href={safeUrl(student.github)} target="_blank" rel="noreferrer" className="text-slate-700 text-sm hover:underline flex items-center gap-1.5">
                     <PiGithubLogo size={14} /> {student.github}
                   </a>
                 )}
@@ -323,7 +325,7 @@ const Profile = () => {
               </Field>
               <Field label="Portfolio" value={student?.portfolio}>
                 {student?.portfolio && !editing && (
-                  <a href={student.portfolio} target="_blank" rel="noreferrer" className="text-emerald-600 text-sm hover:underline flex items-center gap-1.5">
+                  <a href={safeUrl(student.portfolio)} target="_blank" rel="noreferrer" className="text-emerald-600 text-sm hover:underline flex items-center gap-1.5">
                     <PiLink size={14} /> {student.portfolio}
                   </a>
                 )}

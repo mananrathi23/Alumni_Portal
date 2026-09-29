@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { PiGraduationCap, PiUsersThree, PiBriefcase, PiHandshake, PiCalendarCheck, PiSpeakerHigh } from "react-icons/pi";
 import { NavLink } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle.jsx";
 import { Context } from "../context";
+import { API } from "../utils/api";
 
 // ── NEWS TICKER ──────────────────────────────────────────────────────────────
 // Alternating colours for news items (red → green → amber → sky → repeat)
@@ -14,7 +15,7 @@ const NewsTicker = () => {
 
   useEffect(() => {
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/news`)
+      .get(`${API}/news`)
       .then((res) => setNews(res.data.news || []))
       .catch(() => setNews([]));
   }, []);
@@ -90,7 +91,7 @@ const MainPage = () => {
 
   useEffect(() => {
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/news`)
+      .get(`${API}/news`)
       .then((res) => setNews(res.data.news || []))
       .catch(() => {});
   }, []);

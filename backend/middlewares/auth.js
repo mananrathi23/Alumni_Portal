@@ -1,23 +1,11 @@
 import { catchAsyncError } from "./catchAsyncError.js";
 import ErrorHandler from "./error.js";
 import jwt from "jsonwebtoken";
-import { Student } from "../models/StudentModel.js";
-import { Teacher } from "../models/TeacherModel.js";
-import { Alumni } from "../models/AlumniModel.js";
 import { Admin } from "../models/AdminModel.js";
 import { isTokenBlacklisted } from "../utils/tokenBlacklist.js";
+import { getModelByRole } from "../utils/userModels.js";
 
 const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
-
-function getModelByRole(role) {
-  switch (role) {
-    case "Student": return Student;
-    case "Teacher": return Teacher;
-    case "Alumni": return Alumni;
-    case "Admin": return Admin;
-    default: return null;
-  }
-}
 
 export const isAuthenticated = catchAsyncError(async (req, res, next) => {
   // Check cookie first, then Authorization header (for cross-domain & tests)
@@ -61,10 +49,9 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
   // ── Fire-and-forget: log IP + last seen (adds zero latency) ──────────────
   // Throttled: only write when the IP changed or lastSeenAt is stale, so a busy
   // user doesn't cause a DB write on every single API request.
-  const ip =
-    (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
-    req.socket?.remoteAddress ||
-    null;
+  // req.ip honours `trust proxy` (the address Nginx saw); the first
+  // X-Forwarded-For entry is client-controlled and can be faked
+  const ip = req.ip || req.socket?.remoteAddress || null;
   const lastSeenMs = req.user.lastSeenAt ? new Date(req.user.lastSeenAt).getTime() : 0;
   if (ip !== req.user.lastIP || Date.now() - lastSeenMs > LAST_SEEN_THROTTLE_MS) {
     Model.findByIdAndUpdate(decoded.id, {

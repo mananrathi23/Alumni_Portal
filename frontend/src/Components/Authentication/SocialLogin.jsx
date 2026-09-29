@@ -2,8 +2,9 @@ import { useState } from "react";
 import axios from "axios";
 import { FaGoogle, FaLinkedin } from "react-icons/fa";
 import { PiCircleNotch } from "react-icons/pi";
+import { API } from "../../utils/api";
 
-const BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1/oauth`;
+const BASE = `${API}/oauth`;
 
 const SocialLogin = ({ selectedRole }) => {
   const [loadingGoogle,   setLoadingGoogle]   = useState(false);

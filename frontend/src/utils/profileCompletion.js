@@ -1,12 +1,31 @@
-// profileCompletion.js — whether a user has filled in the profile fields their
-// role requires. Layouts use these to show the "complete your profile" prompt,
-// so they live here rather than in the Profile pages (which load lazily).
+// profileCompletion.js — the profile fields each role must fill in before an
+// admin can verify them. Layouts use this to show the "complete your profile"
+// prompt, and the prompt lists the same fields, so both come from one place.
 
-export const isProfileComplete = (student) =>
-  !!(student?.department && student.department !== "Not Set" && student?.year && student?.enrollmentNumber && student?.bio);
+const isSet = (v) => !!v && v !== "Not Set";
 
-export const isTeacherProfileComplete = u =>
-  !!(u?.department && u.department !== "Not Set" && u?.designation && u.designation !== "Not Set" && u?.employeeId && u?.bio);
+export const REQUIRED_PROFILE_FIELDS = {
+  Student: [
+    { label: "Enrollment Number", key: "enrollmentNumber" },
+    { label: "Department",        key: "department" },
+    { label: "Year",              key: "year" },
+    { label: "Bio",               key: "bio" },
+  ],
+  Teacher: [
+    { label: "Department",  key: "department" },
+    { label: "Designation", key: "designation" },
+    { label: "Employee ID", key: "employeeId" },
+    { label: "Bio",         key: "bio" },
+  ],
+  Alumni: [
+    { label: "Department",      key: "department" },
+    { label: "Current Company", key: "currentCompany" },
+    { label: "Graduation Year", key: "graduationYear" },
+    { label: "Bio",             key: "bio" },
+  ],
+};
 
-export const isAlumniProfileComplete = u =>
-  !!(u?.department && u.department !== "Not Set" && u?.currentCompany && u?.bio && u?.graduationYear);
+export const isFieldComplete = (user, key) => isSet(user?.[key]);
+
+export const isProfileComplete = (role, user) =>
+  (REQUIRED_PROFILE_FIELDS[role] || []).every(({ key }) => isFieldComplete(user, key));

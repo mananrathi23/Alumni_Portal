@@ -25,17 +25,21 @@ Important Rules:
 - Only answer questions related to the portal, UI, networking, mentorship, jobs, and events.
 `;
 
+// Whole-word matching: substring checks read "email" as "ai" and any message
+// containing a "2" as a request for an admin
+const ESCALATE_RE = /^\s*2\s*$|\b(admin|human|support|escalate)\b/i;
+const CONTINUE_RE = /^\s*1\s*$|\b(ai|continue|bot)\b/i;
+
 function normalizeChoiceFromText(text = "") {
-  const t = String(text).trim().toLowerCase();
+  const t = String(text).trim();
   if (!t) return null;
-  if (["2", "admin", "human", "support", "talk to admin", "escalate"].some((k) => t.includes(k))) {
-    return "escalate_to_admin";
-  }
-  if (["1", "ai", "continue", "continue with ai", "chat with ai"].some((k) => t.includes(k))) {
-    return "continue_with_ai";
-  }
+  if (ESCALATE_RE.test(t)) return "escalate_to_admin";
+  if (CONTINUE_RE.test(t)) return "continue_with_ai";
   return null;
 }
+
+const MAX_SUPPORT_MESSAGE = 2000;
+const IMAGE_DATA_URI = /^data:(image\/(?:png|jpe?g|webp));base64,/i;
 
 async function applyEscalationChoice(ticket, choice) {
   ticket.userChoice = choice;
@@ -60,8 +64,15 @@ async function applyEscalationChoice(ticket, choice) {
 
 // ── ASK AI (User sends message) ────────────────────────────────────────────
 export const askSupportChat = catchAsyncError(async (req, res, next) => {
-  const { text, image } = req.body;
+  const { image } = req.body;
+  const text = typeof req.body.text === "string" ? req.body.text.trim() : "";
   if (!text) return next(new ErrorHandler("Message text is required.", 400));
+  if (text.length > MAX_SUPPORT_MESSAGE) {
+    return next(new ErrorHandler(`Please keep messages under ${MAX_SUPPORT_MESSAGE} characters.`, 400));
+  }
+  if (image && (typeof image !== "string" || !IMAGE_DATA_URI.test(image))) {
+    return next(new ErrorHandler("Screenshots must be PNG, JPEG or WebP images.", 400));
+  }
 
   const userId = req.user._id;
   const userModel = req.user.constructor.modelName;
@@ -136,11 +147,12 @@ export const askSupportChat = catchAsyncError(async (req, res, next) => {
       let messageParts = [text];
 
       if (image) {
-        const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+        // Send the real type: PNG screenshots were labelled image/jpeg
+        const mimeType = image.match(IMAGE_DATA_URI)[1].toLowerCase().replace("jpg", "jpeg");
         messageParts.push({
           inlineData: {
-            data: base64Data,
-            mimeType: "image/jpeg"
+            data: image.replace(IMAGE_DATA_URI, ""),
+            mimeType,
           }
         });
       }

@@ -37,7 +37,9 @@ router.get("/", async (req, res) => {
 
   const healthy = mongoOk && redisOk;
   const responseTimeMs = Date.now() - start;
-  const statusCode = mongoOk ? 200 : 503;
+  // 503 while draining during shutdown, so load balancers stop sending traffic here
+  const shuttingDown = req.app.locals.shuttingDown === true;
+  const statusCode = mongoOk && !shuttingDown ? 200 : 503;
 
   res.status(statusCode).json({
     status: healthy ? "healthy" : "degraded",

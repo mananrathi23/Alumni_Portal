@@ -134,7 +134,7 @@ Then **redeploy** (Vite bakes these in at build time).
 ```bash
 docker compose ps                        # status
 docker compose logs -f backend           # API logs (both replicas)
-docker compose up -d --build backend     # deploy new backend code after rsync/git pull
+./deploy/rolling-update.sh              # deploy new backend code (zero downtime) after rsync/git pull
 docker compose restart nginx             # after editing nginx/nginx.conf
 ```
 

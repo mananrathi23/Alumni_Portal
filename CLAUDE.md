@@ -28,7 +28,7 @@ Frontend (`cd frontend`) — needs Node ≥ 20.19 (Vite 7); CI uses Node 24:
 
 E2E (repo root): `npx playwright test`. Note these specs hit the **live Vercel deployment** (`LOGIN_URL` hardcoded in each spec), not a local server.
 
-Production backend: `docker-compose.yml` runs Redis, 2 backend replicas, Nginx (TLS) and certbot, intended for an Oracle Cloud Always Free VM. The frontend deploys separately to Vercel. Secrets come from the root `.env` (`REDIS_PASSWORD`) and `backend/.env`, never the compose file. First-time setup and HTTPS: `deploy/init-letsencrypt.sh`; the full walkthrough is in `deploy/ORACLE_FREE_TIER.md`. MongoDB is external (Atlas via `MONGO_URI`).
+Production backend: `docker-compose.yml` runs Redis, 2 backend replicas, Nginx (TLS) and certbot, intended for an Oracle Cloud Always Free VM. The frontend deploys separately to Vercel. Secrets come from the root `.env` (`REDIS_PASSWORD`) and `backend/.env`, never the compose file. First-time setup and HTTPS: `deploy/init-letsencrypt.sh`. Redeploy the backend with `deploy/rolling-update.sh` (starts new replicas, waits until healthy, then stops the old ones; `server.js` shuts down gracefully on SIGTERM); the full walkthrough is in `deploy/ORACLE_FREE_TIER.md`. MongoDB is external (Atlas via `MONGO_URI`).
 
 CI (`.github/workflows/test.yml`, Node 24) runs backend coverage, frontend coverage, then Playwright.
 

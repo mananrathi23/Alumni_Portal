@@ -58,6 +58,13 @@ app.use(cors({
 
 app.use(cookieParser());
 
+// While shutting down, ask clients not to reuse this connection so they
+// reconnect to a replica that is still running.
+app.use((req, res, next) => {
+  if (req.app.locals.shuttingDown) res.set("Connection", "close");
+  next();
+});
+
 // ── Fix 2: Reduce body size limit from 50mb → 2mb ─────────────────────────────
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));

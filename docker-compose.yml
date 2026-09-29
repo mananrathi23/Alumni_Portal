@@ -52,6 +52,7 @@ services:
       dockerfile: Dockerfile
     image: alumni-portal-backend:latest
     restart: unless-stopped
+    stop_grace_period: 30s               # server.js drains for up to 20s on SIGTERM
     deploy:
       replicas: 2                          # Two API instances — Nginx load-balances between them
       resources:

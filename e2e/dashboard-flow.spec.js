@@ -1,14 +1,22 @@
 /**
  * dashboard-flow.spec.js — E2E: Full login to dashboard flow
- * Tests against: https://alumni-portal-gamma-eosin.vercel.app/login
+ * Runs against a local build by default; set E2E_BASE_URL to test a deployed site.
  * Uses mocked API responses to ensure test stability and isolate frontend routing logic.
  */
 const { test, expect } = require('@playwright/test');
 
-const LOGIN_URL = 'https://alumni-portal-gamma-eosin.vercel.app/login';
+const LOGIN_URL = '/login'; // relative to baseURL in playwright.config.js
 
-// Helper to mock the login API response
+// Helper to mock the login API response, plus /user/me so the dashboard's
+// session check succeeds instead of bouncing back to /login
 async function mockLoginAPI(page, role) {
+  const user = {
+    _id: 'fake-id',
+    name: `Test ${role}`,
+    email: `${role.toLowerCase()}@test.com`,
+    role: role,
+    adminVerified: true,
+  };
   await page.route('**/api/v1/user/login', async route => {
     await route.fulfill({
       status: 200,
@@ -17,15 +25,15 @@ async function mockLoginAPI(page, role) {
         success: true,
         message: 'Login successful',
         token: 'fake-jwt-token-12345',
-        user: {
-          _id: 'fake-id',
-          name: `Test ${role}`,
-          email: `${role.toLowerCase()}@test.com`,
-          role: role
-        }
+        user,
       })
     });
   });
+  await page.route('**/api/v1/user/me', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, user }),
+  }));
 }
 
 test.describe('Alumni Portal — Dashboard Login Flow', () => {

@@ -1,10 +1,10 @@
 /**
  * registration-flow.spec.js — E2E: Full registration form flow
- * Tests against: https://alumni-portal-gamma-eosin.vercel.app/login
+ * Runs against a local build by default; set E2E_BASE_URL to test a deployed site.
  */
 const { test, expect } = require('@playwright/test');
 
-const LOGIN_URL = 'https://alumni-portal-gamma-eosin.vercel.app/login';
+const LOGIN_URL = '/login'; // relative to baseURL in playwright.config.js
 
 test.describe('Alumni Portal — Registration Flow', () => {
 

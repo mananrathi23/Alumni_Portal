@@ -10,8 +10,8 @@ import { PiGraduationCap, PiUserCircle, PiCaretDown, PiSpeakerHigh, PiWarningCir
 import axios from "axios";
 import ChatbotWidget from "./ChatbotWidget";
 import ThemeToggle from "./ThemeToggle.jsx";
-import { Context } from "../main";
-import { useSocket } from "../SocketContext";
+import { Context } from "../context";
+import { useSocket } from "../useSocket";
 import { toast } from "react-toastify";
 
 const BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1`;
@@ -126,7 +126,7 @@ const MobileBottomNav = ({ navGroups, accentColor }) => {
 
 // ── DashboardShell ────────────────────────────────────────────────────────────
 const DashboardShell = ({
-  user, role, accentColor = "sky",
+  user, accentColor = "sky",
   navGroups = [], children,
   profilePath, onLogout,
 }) => {
@@ -184,12 +184,6 @@ const DashboardShell = ({
     };
   }, [isSocketReady, socketRef]);
 
-  const handleBellClick = () => {
-    if (role === "Student") navigate("/student/requests");
-    else if (role === "Alumni") navigate("/alumni/messages");
-    else if (role === "Teacher") navigate("/teacher/messages");
-  };
-
   const handleRequestResponse = async (requestId, status) => {
     try {
       await axios.put(`${BASE}/connection/${requestId}/respond`, { status }, { withCredentials: true });
@@ -224,7 +218,9 @@ const DashboardShell = ({
       violet: "linear-gradient(135deg,#f5f3ff 0%,#ede9fe 40%,#ddd6fe 100%)",
     }[accentColor];
 
-  const SidebarContent = () => (
+  // A JSX value, not a nested component: a component defined during render is a
+  // new type every render, so React would remount the whole sidebar each time
+  const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="h-14 flex items-center gap-3 px-4 border-b border-slate-200/70 dark:border-white/[0.06] flex-shrink-0">
@@ -312,7 +308,7 @@ const DashboardShell = ({
     <div className="min-h-screen flex" style={{ background: bgGradient }}>
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 bg-white dark:bg-slate-900 backdrop-blur border-r border-slate-200/70 dark:border-white/[0.06] fixed top-0 left-0 h-full z-30">
-        <SidebarContent />
+        {sidebarContent}
       </aside>
 
       {/* Mobile backdrop */}
@@ -327,7 +323,7 @@ const DashboardShell = ({
       <aside
         className={`fixed top-0 left-0 h-full w-60 z-50 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200/70 dark:border-white/[0.06] transform transition-transform duration-300 lg:hidden ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <SidebarContent />
+        {sidebarContent}
       </aside>
 
       {/* Main */}

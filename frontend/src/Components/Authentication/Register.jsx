@@ -1,6 +1,5 @@
-import React, { useContext } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
-import { Context } from "../../main.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -8,7 +7,6 @@ import { toast } from "react-toastify";
 const NEEDS_YEAR = ["Student", "Alumni"];
 
 const Register = ({ selectedRole }) => {
-  const { isAuthenticated } = useContext(Context);
   const navigateTo = useNavigate();
 
   const {

@@ -4,7 +4,7 @@
 import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../main";
+import { Context } from "../context";
 import {
   PiBriefcase, PiPlus, PiX, PiMagnifyingGlass, PiCircleNotch,
   PiLink, PiBuildings, PiListChecks, PiPencilSimple, PiTrash,

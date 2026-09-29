@@ -7,6 +7,7 @@ import { Student } from "../models/StudentModel.js";
 import { Alumni } from "../models/AlumniModel.js";
 import { Teacher } from "../models/TeacherModel.js";
 import { emitToUser } from "../Socket.js";
+import { fetchChatPage } from "../utils/chatHistory.js";
 
 // Helper — find any user by id and role
 async function findUserByIdAndRole(id, role) {
@@ -372,14 +373,17 @@ export const getChatMessages = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Chat is only available for accepted connections.", 403));
   }
 
-  const messages = await ChatMessage.find({ connectionId }).sort({ createdAt: 1 }).lean();
+  const { messages, hasMore } = await fetchChatPage({ connectionId }, req.query);
 
-  await ChatMessage.updateMany(
-    { connectionId, "sender.id": { $ne: user._id }, readBy: { $ne: user._id } },
-    { $addToSet: { readBy: user._id } }
-  );
+  // Opening the chat (first page) marks everything as read; older pages don't need to
+  if (!req.query.before) {
+    await ChatMessage.updateMany(
+      { connectionId, "sender.id": { $ne: user._id }, readBy: { $ne: user._id } },
+      { $addToSet: { readBy: user._id } }
+    );
+  }
 
-  res.status(200).json({ success: true, messages });
+  res.status(200).json({ success: true, messages, hasMore });
 });
 
 export const sendChatMessage = catchAsyncError(async (req, res, next) => {

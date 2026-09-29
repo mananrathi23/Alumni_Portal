@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import { PiCheckCircle, PiPaperPlaneRight, PiRobot, PiUser, PiWarningCircle } from "react-icons/pi";
 
 const SupportTickets = () => {
@@ -18,7 +18,7 @@ const SupportTickets = () => {
         withCredentials: true,
       });
       setTickets(res.data.tickets || []);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load support tickets");
     } finally {
       setLoading(false);
@@ -65,7 +65,7 @@ const SupportTickets = () => {
         setReplyText("");
       }
 
-    } catch (err) {
+    } catch {
       toast.error("Failed to send reply");
     }
   };

@@ -6,7 +6,7 @@
 // - Falls back to a slow poll, only while the tab is visible, in case a socket
 //   event was missed.
 import { useEffect, useRef } from "react";
-import { useSocket } from "../SocketContext";
+import { useSocket } from "../useSocket";
 
 const FALLBACK_POLL_MS = 60_000;
 const MAX_JITTER_MS = 2_000;

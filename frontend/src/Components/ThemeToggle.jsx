@@ -2,7 +2,7 @@
  * ThemeToggle — moon/sun button used in topbar and anywhere else
  */
 import { useContext } from "react";
-import { Context } from "../main";
+import { Context } from "../context";
 import { PiMoon, PiSun } from "react-icons/pi";
 
 const ThemeToggle = ({ size = "sm" }) => {

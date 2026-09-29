@@ -218,7 +218,8 @@ export const handleEscalationChoice = catchAsyncError(async (req, res, next) => 
 export const getAdminTickets = catchAsyncError(async (req, res, next) => {
   const tickets = await SupportTicket.find({ status: { $ne: "Resolved" } })
     .populate("userId", "name email profilePhoto role")
-    .sort("-updatedAt");
+    .sort("-updatedAt")
+    .limit(100); // the admin works through the most recent open tickets first
 
   res.status(200).json({
     success: true,

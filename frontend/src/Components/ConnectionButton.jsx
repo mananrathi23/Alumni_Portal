@@ -1,8 +1,8 @@
 // frontend/src/Components/ConnectButton.jsx
 import React, { useState, useEffect, useRef, useContext } from "react";
 import axios from "axios";
-import { Context } from "../main";
-import { useSocket } from "../SocketContext";
+import { Context } from "../context";
+import { useSocket } from "../useSocket";
 
 const ConnectButton = ({ targetId, targetRole, targetName, onStatusChange }) => {
   const { user } = useContext(Context);

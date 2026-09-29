@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import axios from "axios";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import {
   PiUsersThree, PiBriefcase, PiChatsCircle,
   PiCalendarCheck, PiHandshake, PiArrowRight, PiRocketLaunch,
@@ -60,23 +60,24 @@ const DashboardHome = () => {
           axios.get(`${BASE}/jobs`,        { withCredentials: true }),
           axios.get(`${BASE}/forum/questions`,       { withCredentials: true }),
           axios.get(`${BASE}/events`,      { params: { view: "upcoming" }, withCredentials: true }),
-          axios.get(`${BASE}/incubation`,  { withCredentials: true }),
-          axios.get(`${BASE}/mentorship/requests`, { withCredentials: true }),
+          axios.get(`${BASE}/incubation`,  { params: { limit: 3 }, withCredentials: true }), // the feed card shows 3
+          axios.get(`${BASE}/mentorship/requests`, { params: { status: "Pending", countOnly: "true" }, withCredentials: true }),
         ]);
 
         const jobsList    = jobsR.status      === "fulfilled" ? (jobsR.value.data.jobs       || []) : [];
         const forumsList  = forumsR.status    === "fulfilled" ? (forumsR.value.data.questions || forumsR.value.data.posts    || forumsR.value.data.forums || []) : [];
         const eventsList  = eventsR.status    === "fulfilled" ? (eventsR.value.data.events   || []) : [];
         const ideasList   = ideasR.status     === "fulfilled" ? (ideasR.value.data.ideas     || []) : [];
-        const mentorReqs  = mentorshipR.status === "fulfilled" ? (mentorshipR.value.data.requests || []) : [];
-        const pendingMentees = mentorReqs.filter(r => r.status === "Pending").length;
+        const pendingMentees = mentorshipR.status === "fulfilled" ? (mentorshipR.value.data.count || 0) : 0;
+        // Lists are paginated, so counts come from the server's total
+        const totalOf = (r, list) => (r.status === "fulfilled" && r.value.data.total) || list.length;
 
         setJobs(jobsList);
         setForums(forumsList);
         setEvents(eventsList);
         setIdeas(ideasList);
-        setStats({ mentees: pendingMentees, jobs: jobsList.length, forums: forumsList.length, events: eventsList.length });
-      } catch {}
+        setStats({ mentees: pendingMentees, jobs: totalOf(jobsR, jobsList), forums: totalOf(forumsR, forumsList), events: totalOf(eventsR, eventsList) });
+      } catch { /* non-critical: keep current state */ }
       finally { setLoading(false); }
     };
     go();

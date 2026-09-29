@@ -13,37 +13,43 @@ const Students = () => {
   const [myConnectionsOnly, setMyConnectionsOnly] = useState(false);
 
   useEffect(() => {
-    const params = {};
-    if (search) params.search = search;
-    if (filterRole !== "All") params.filterRole = filterRole;
-    if (department !== "All") params.department = department;
+    let cancelled = false;
+    // Debounced so typing in the search box doesn't send a request per keystroke
+    const t = setTimeout(() => {
+      const params = {};
+      if (search) params.search = search;
+      if (filterRole !== "All") params.filterRole = filterRole;
+      if (department !== "All") params.department = department;
 
-    setLoading(true);
-    const endpoint = myConnectionsOnly 
-      ? `${import.meta.env.VITE_BACKEND_URL}/api/v1/connections`
-      : `${import.meta.env.VITE_BACKEND_URL}/api/v1/people`;
+      setLoading(true);
+      const endpoint = myConnectionsOnly 
+        ? `${import.meta.env.VITE_BACKEND_URL}/api/v1/connections`
+        : `${import.meta.env.VITE_BACKEND_URL}/api/v1/people`;
 
-    axios.get(endpoint, { params, withCredentials: true })
-      .then((res) => {
-        let result = [];
-        if (myConnectionsOnly) {
-          result = (res.data.connections || []).map(c => ({
-            ...c.connectedWith,
-            _id: c.connectedWith.id || c.connectedWith._id
-          }));
-          if (search) {
-            const low = search.toLowerCase();
-            result = result.filter(p => p.name?.toLowerCase().includes(low) || p.department?.toLowerCase().includes(low));
+      axios.get(endpoint, { params, withCredentials: true })
+        .then((res) => {
+          if (cancelled) return; // a newer search already replaced this one
+          let result = [];
+          if (myConnectionsOnly) {
+            result = (res.data.connections || []).map(c => ({
+              ...c.connectedWith,
+              _id: c.connectedWith.id || c.connectedWith._id
+            }));
+            if (search) {
+              const low = search.toLowerCase();
+              result = result.filter(p => p.name?.toLowerCase().includes(low) || p.department?.toLowerCase().includes(low));
+            }
+            if (filterRole !== "All") result = result.filter(p => p.role === filterRole);
+            if (department !== "All") result = result.filter(p => p.department === department);
+          } else {
+            result = res.data.people || [];
           }
-          if (filterRole !== "All") result = result.filter(p => p.role === filterRole);
-          if (department !== "All") result = result.filter(p => p.department === department);
-        } else {
-          result = res.data.people || [];
-        }
-        setPeople(result);
-      })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
+          setPeople(result);
+        })
+        .catch((err) => console.error(err))
+        .finally(() => { if (!cancelled) setLoading(false); });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
   }, [search, filterRole, department, myConnectionsOnly]);
 
   const sel = "px-3 py-2 rounded-lg bg-slate-800 border border-white/[0.07] text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500";

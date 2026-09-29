@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { useSocket } from "../../SocketContext";
+import { useSocket } from "../../useSocket";
 import {
   PiUsersThree, PiCheck, PiX, PiCircleNotch,
   PiArrowRight, PiClock, PiHandshake,

@@ -2,8 +2,8 @@ import { useState, useEffect, useContext } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { useSocket } from "../../SocketContext";
-import { Context } from "../../main";
+import { useSocket } from "../../useSocket";
+import { Context } from "../../context";
 import {
   PiHandshake, PiClock, PiPlus, PiCheck, PiX, PiChatCircleText,
   PiClockCountdown, PiToggleLeft, PiToggleRight,
@@ -193,7 +193,7 @@ const Mentorship = () => {
       setWeeklyLimit(r.data.weeklyLimit || 5);
       setMentorStats(r.data.stats || null);
       if (refreshAlumni) refreshAlumni();
-    } catch { }
+    } catch { /* non-critical: keep current state */ }
   };
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { Context } from "../main";
+import { Context } from "../context";
 import { PiShieldWarning } from "react-icons/pi";
 
 const RestrictedAccess = ({ title = "Verification Required", message = "Your account is pending admin verification. You cannot access this feature yet." }) => {

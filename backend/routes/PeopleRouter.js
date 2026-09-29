@@ -1,6 +1,7 @@
 import express from "express";
 import { isAuthenticated } from "../middlewares/auth.js";
 import { getPeople } from "../controllers/PeopleController.js";
+import { cacheMiddleware } from "../middlewares/cache.js";
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ router.use(isAuthenticated);
 //   search     → search by name or department
 //   filterRole → "All" | "Student" | "Alumni" | "Teacher"
 //   department → filter by department
-router.get("/", getPeople);
+// Cached per viewer because the list leaves out the viewer themself
+router.get("/", cacheMiddleware("directory", { ttl: 120, partitionByUser: true }), getPeople);
 
 export default router;

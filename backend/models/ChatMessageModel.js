@@ -46,9 +46,10 @@ const chatMessageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Compound index for fast chat history fetch
-chatMessageSchema.index({ mentorshipId: 1, createdAt: 1 });
-chatMessageSchema.index({ connectionId: 1, createdAt: 1 });
+// Compound index for fast chat history fetch; _id breaks createdAt ties so
+// "load earlier messages" pages never skip or repeat a message
+chatMessageSchema.index({ mentorshipId: 1, createdAt: 1, _id: 1 });
+chatMessageSchema.index({ connectionId: 1, createdAt: 1, _id: 1 });
 // Fix 8: Index for unread count aggregation
 chatMessageSchema.index({ "sender.id": 1, readBy: 1 });
 

@@ -2,8 +2,8 @@ import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { useSocket } from "../../SocketContext";
-import { Context } from "../../main";
+import { useSocket } from "../../useSocket";
+import { Context } from "../../context";
 import {
   PiHandshake, PiMagnifyingGlass, PiStar, PiStarFill,
   PiClock, PiX, PiChatCircleText, PiClockCountdown,

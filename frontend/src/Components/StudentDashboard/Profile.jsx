@@ -2,19 +2,17 @@ import React, { useState, useContext } from "react";
 import { useOutletContext } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import ProfilePhotoUpload from "../ProfilePhotoUpload.jsx";
 import {
   PiGraduationCap, PiPencilSimple, PiCheck, PiX,
   PiLinkedinLogo, PiGithubLogo, PiLink, PiBriefcase, PiStar, PiUser,
   PiEnvelope, PiIdentificationCard,
 } from "react-icons/pi";
+import { isProfileComplete } from "../../utils/profileCompletion";
 
 const DEPARTMENTS = ["Computer Science", "Information Technology", "Electronics", "Mechanical", "Civil", "Other"];
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
-
-export const isProfileComplete = (student) =>
-  !!(student?.department && student.department !== "Not Set" && student?.year && student?.enrollmentNumber && student?.bio);
 
 const inp = "w-full px-3 py-2.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all";
 const lbl = "block text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-1.5";

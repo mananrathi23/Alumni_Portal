@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import { useForm } from "react-hook-form";
 import { useParams, useNavigate } from "react-router-dom";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import { PiGraduationCap } from "react-icons/pi";
 import axios from "axios";
 import { toast } from "react-toastify";

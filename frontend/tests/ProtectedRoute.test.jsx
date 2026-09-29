@@ -9,8 +9,6 @@ import React from 'react';
 import axios from 'axios';
 import ProtectedRoute from '../src/Components/ProtectedRoute';
 
-vi.mock('../src/main', () => ({ Context: { _currentValue: {} } }));
-vi.mock('../src/main.jsx', () => ({ Context: { _currentValue: {} } }));
 vi.mock('react', async (i) => {
   const a = await i();
   return { ...a, useContext: () => ({ setIsAuthenticated: vi.fn(), setUser: vi.fn() }) };

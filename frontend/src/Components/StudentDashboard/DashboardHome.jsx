@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import axios from "axios";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import {
   PiUsersThree, PiBriefcase, PiChatsCircle,
   PiCalendarCheck, PiHandshake, PiArrowRight,
@@ -65,7 +65,7 @@ const DashboardHome = () => {
         const m = mR.status==="fulfilled" ? mR.value.data.mentors||[] : [];
         setJobs(j); setForums(f); setEvents(e); setMentors(m);
         setStats({ jobs:j.length, forums:f.length, events:e.length, mentors:m.length });
-      } catch {}
+      } catch { /* non-critical: keep current state */ }
       finally { setLoading(false); }
     })();
   }, []);

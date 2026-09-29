@@ -93,6 +93,10 @@ const teacherSchema = new mongoose.Schema({
 teacherSchema.index({ email: 1, accountVerified: 1 });
 teacherSchema.index({ resetPasswordToken: 1 }, { sparse: true });
 teacherSchema.index({ accountVerified: 1, createdAt: 1 });
+// People / Batchmates listings filter on these flags on every request
+teacherSchema.index({ accountVerified: 1, adminVerified: 1, isBlocked: 1, name: 1 });
+// Mentor browse and smart-match
+teacherSchema.index({ availableForMentorship: 1, accountVerified: 1 });
 
 teacherSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();

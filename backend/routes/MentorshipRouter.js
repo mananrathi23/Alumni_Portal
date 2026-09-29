@@ -22,6 +22,7 @@ import {
   rateSession,
   getMyMentorStats,
 } from "../controllers/MentorshipController.js";
+import { cacheMiddleware } from "../middlewares/cache.js";
 
 const router = express.Router();
 router.use(isAuthenticated);
@@ -39,10 +40,12 @@ router.put("/settings",       updateMentorshipAvailability);
 router.put("/weekly-limit",   updateWeeklyLimit);
 
 // ── Browse & Smart Match ───────────────────────────────────────────────────
-router.get("/mentors",        getMentors);
+// Cached per viewer (the list leaves out the viewer); invalidated on slot/settings changes
+const mentorsCache = cacheMiddleware("mentors", { ttl: 120, partitionByUser: true });
+router.get("/mentors",        mentorsCache, getMentors);
 router.get("/smart-match",    smartMatchMentors);
 // alias used by student dashboard feed
-router.get("/available",      getMentors);
+router.get("/available",      mentorsCache, getMentors);
 
 // ── Request lifecycle ──────────────────────────────────────────────────────
 router.post("/requests",                        createMentorshipRequest);

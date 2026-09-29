@@ -6,6 +6,8 @@ import { Alumni } from "../models/AlumniModel.js";
 import { Connection } from "../models/ConnectionModel.js";
 import { MentorshipRequest } from "../models/MentorshipRequestModel.js";
 import { emitToUser } from "../Socket.js";
+import { invalidateUserListings } from "../middlewares/cache.js";
+import { searchRegex } from "../utils/escapeRegex.js";
 
 // Helper to get model
 function getModelByRole(role) {
@@ -18,67 +20,102 @@ function getModelByRole(role) {
 }
 
 // ── GET ALL USERS ──────────────────────────────────────────────────────────
+// GET /api/v1/admin/users?role=All|Student|Teacher|Alumni&search=&page=1&limit=50
+// Paginated across the three user collections, most recently seen first.
+// Aggregation ignores `select: false`, so secrets are removed explicitly.
+const HIDDEN_USER_FIELDS = [
+  "password", "verificationCode", "verificationCodeExpire", "resetPasswordToken",
+  "resetPasswordExpire", "mentorshipSlots", "googleTokens", "loginAttempts", "lockUntil",
+];
+const USER_ROLES = ["Student", "Teacher", "Alumni"];
+
+const rolePipeline = (role, match) => [
+  { $match: match },
+  { $unset: HIDDEN_USER_FIELDS },
+  { $addFields: { role } },
+];
+
 export const getAllUsers = catchAsyncError(async (req, res, next) => {
-  // Run the three collection scans in parallel and leave out secrets / heavy fields
-  const exclude = "-password -verificationCode -verificationCodeExpire -resetPasswordToken -resetPasswordExpire -mentorshipSlots";
-  const [students, teachers, alumni] = await Promise.all([
-    Student.find().select(exclude).lean(),
-    Teacher.find().select(exclude).lean(),
-    Alumni.find().select(exclude).lean(),
-  ]);
+  const roles = USER_ROLES.includes(req.query.role) ? [req.query.role] : USER_ROLES;
+  const page  = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
 
-  const allUsers = [
-    ...students.map(u => ({ ...u, role: "Student" })),
-    ...teachers.map(u => ({ ...u, role: "Teacher" })),
-    ...alumni.map(u => ({ ...u, role: "Alumni" })),
-  ];
+  const match = {};
+  const re = searchRegex(req.query.search);
+  if (re) match.$or = [{ name: re }, { email: re }, { department: re }];
 
-  // Sort by most recently seen first (active users at the top)
-  allUsers.sort((a, b) => {
-    if (a.lastSeenAt && b.lastSeenAt) return new Date(b.lastSeenAt) - new Date(a.lastSeenAt);
-    if (a.lastSeenAt) return -1;
-    if (b.lastSeenAt) return 1;
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
+  const [first, ...rest] = roles;
+  const [result] = await getModelByRole(first).aggregate([
+    ...rolePipeline(first, match),
+    ...rest.map((role) => ({
+      $unionWith: { coll: getModelByRole(role).collection.name, pipeline: rolePipeline(role, match) },
+    })),
+    // Active users at the top; never-seen users (null) sort last
+    { $sort: { lastSeenAt: -1, createdAt: -1, _id: -1 } },
+    {
+      $facet: {
+        users: [{ $skip: (page - 1) * limit }, { $limit: limit }],
+        total: [{ $count: "n" }],
+      },
+    },
+  ]).allowDiskUse(true);
 
+  const total = result.total[0]?.n ?? 0;
   res.status(200).json({
     success: true,
-    users: allUsers,
+    users: result.users,
+    total,
+    page,
+    hasMore: page * limit < total,
   });
 });
 
 // ── GET ALL ADMIN-VERIFIED STUDENTS (for Placement Cell) ───────────────────
-// GET /api/v1/admin/students
+// GET /api/v1/admin/users/students?search=&department=&year=&enrollmentYear=&page=1&limit=50
+// Filters run on the server; `filters` lists every option for the dropdowns.
 export const getAllStudents = catchAsyncError(async (req, res, next) => {
   const { search, department, year, enrollmentYear } = req.query;
+  const page  = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
 
-  const filter = {
+  const base = {
     accountVerified: true,
     adminVerified: true,
     isBlocked: false,
   };
 
-  // Optional filters
-  if (search) {
-    filter.$or = [
-      { name:       { $regex: search, $options: "i" } },
-      { department: { $regex: search, $options: "i" } },
-      { email:      { $regex: search, $options: "i" } },
-    ];
-  }
+  const filter = { ...base };
+  const re = searchRegex(search);
+  if (re) filter.$or = [{ name: re }, { department: re }, { email: re }];
   if (department && department !== "All") filter.department = department;
   if (year       && year !== "All")       filter.year = year;
   if (enrollmentYear && enrollmentYear !== "All") filter.enrollmentYear = Number(enrollmentYear);
 
-  const students = await Student.find(filter)
-    .select("name email department year enrollmentYear enrollmentNumber skills bio linkedIn github portfolio profilePhoto createdAt")
-    .sort({ createdAt: -1 })
-    .lean();
+  const [students, total, departments, years, classes] = await Promise.all([
+    Student.find(filter)
+      .select("name email department year enrollmentYear enrollmentNumber skills bio linkedIn github portfolio profilePhoto createdAt")
+      .sort({ createdAt: -1, _id: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    Student.countDocuments(filter),
+    Student.distinct("department", base),
+    Student.distinct("year", base),
+    Student.distinct("enrollmentYear", base),
+  ]);
 
   res.status(200).json({
     success: true,
     count: students.length,
+    total,
+    page,
+    hasMore: page * limit < total,
     students,
+    filters: {
+      departments: departments.filter(Boolean).sort(),
+      years: years.filter(Boolean).sort(),
+      classes: classes.filter((y) => typeof y === "number").sort((a, b) => b - a),
+    },
   });
 });
 
@@ -93,6 +130,7 @@ export const toggleVerifyUser = catchAsyncError(async (req, res, next) => {
 
   user.adminVerified = !user.adminVerified;
   await user.save({ validateModifiedOnly: true });
+  await invalidateUserListings();
 
   // ✅ Notify the user in real-time so their dashboard updates immediately
   emitToUser(user._id, "user:verified", { adminVerified: user.adminVerified });
@@ -115,6 +153,7 @@ export const toggleBlockUser = catchAsyncError(async (req, res, next) => {
 
   user.isBlocked = !user.isBlocked;
   await user.save({ validateModifiedOnly: true });
+  await invalidateUserListings();
 
   // ✅ Notify the user in real-time
   emitToUser(user._id, "user:blocked", { isBlocked: user.isBlocked });

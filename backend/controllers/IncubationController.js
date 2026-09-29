@@ -2,6 +2,7 @@ import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import ErrorHandler from "../middlewares/error.js";
 import { Incubation } from "../models/IncubationModel.js";
 import { emitToAll, emitFeedUpdated } from "../Socket.js";
+import { searchRegex } from "../utils/escapeRegex.js";
 
 // ── GET all active ideas (feed) ───────────────────────────────────────────────
 export const getIdeas = catchAsyncError(async (req, res) => {
@@ -17,22 +18,28 @@ export const getIdeas = catchAsyncError(async (req, res) => {
   if (stage && stage !== "all") {
     filter.stage = stage;
   }
-  if (tag) {
-    filter.tags = { $regex: tag, $options: "i" };
+  const tagRe = searchRegex(tag);
+  if (tagRe) {
+    filter.tags = tagRe;
   }
-  if (search) {
-    filter.$or = [
-      { title:       { $regex: search, $options: "i" } },
-      { description: { $regex: search, $options: "i" } },
-      { tags:        { $regex: search, $options: "i" } },
-    ];
+  const re = searchRegex(search);
+  if (re) {
+    filter.$or = [{ title: re }, { description: re }, { tags: re }];
   }
 
-  const ideas = await Incubation.find(filter)
-    .sort({ createdAt: -1 })
-    .select("-comments"); // exclude comments from list view for performance
+  const page  = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
 
-  res.status(200).json({ success: true, count: ideas.length, ideas });
+  const [ideas, total] = await Promise.all([
+    Incubation.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .select("-comments"), // exclude comments from list view for performance
+    Incubation.countDocuments(filter),
+  ]);
+
+  res.status(200).json({ success: true, count: ideas.length, total, page, hasMore: page * limit < total, ideas });
 });
 
 // ── GET single idea with comments ─────────────────────────────────────────────

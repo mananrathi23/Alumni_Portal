@@ -1,9 +1,9 @@
 // frontend/src/SocketContext.jsx
-import { createContext, useContext, useEffect, useRef, useState, useMemo } from "react";
+import { useContext, useEffect, useRef, useState, useMemo } from "react";
+import { SocketContext } from "./useSocket";
 import { io } from "socket.io-client";
-import { Context } from "./main";
+import { Context } from "./context";
 
-export const SocketContext = createContext({ socketRef: { current: null }, isSocketReady: false });
 
 export const SocketProvider = ({ children }) => {
   const { user, isAuthenticated } = useContext(Context);
@@ -11,13 +11,7 @@ export const SocketProvider = ({ children }) => {
   const [isSocketReady, setIsSocketReady] = useState(false);
 
   useEffect(() => {
-    // Cleanup old socket
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-      setIsSocketReady(false);
-    }
-
+    // The previous socket (if any) was already closed by this effect's cleanup below.
     // Wait for REAL user data — isAuthenticated must be true (not undefined, not false)
     if (isAuthenticated !== true || !user?._id) {
       return;
@@ -55,5 +49,3 @@ export const SocketProvider = ({ children }) => {
     </SocketContext.Provider>
   );
 };
-
-export const useSocket = () => useContext(SocketContext);

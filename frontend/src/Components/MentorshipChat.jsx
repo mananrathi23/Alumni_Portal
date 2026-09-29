@@ -4,8 +4,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { useSocket } from "../SocketContext";
+import { useSocket } from "../useSocket";
 import { isProfane } from "../utils/profanityCheck";
+import { useChatHistory } from "../utils/useChatHistory";
 import {
   PiX, PiPaperPlaneTilt, PiLink, PiCircleNotch,
   PiCheckCircle, PiWarningCircle, PiChatCircleText, PiLockSimple,
@@ -26,9 +27,7 @@ function formatDay(iso) {
 
 const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:4000"}/api/v1/mentorship`, currentUser, otherPerson, accentColor = "sky", onClose, sessionStatus: initialStatus }) => {
   const { socketRef, isSocketReady } = useSocket();
-  const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -42,14 +41,10 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
   // Session is read-only if Completed
   const isReadOnly = sessionStatus === "Completed";
 
-  // ── Fetch history ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    setLoading(true);
-    axios.get(`${apiBaseUrl}/${sessionId}/chat`, { withCredentials: true })
-      .then(res => { setMessages(res.data.messages || []); setError(null); })
-      .catch(() => setError("Failed to load messages."))
-      .finally(() => setLoading(false));
-  }, [sessionId, apiBaseUrl]);
+  // ── History (latest page first, older pages on demand) ─────────────────────
+  const chat = useChatHistory(`${apiBaseUrl}/${sessionId}/chat`, { onError: setError });
+  const { messages, setMessages, loading, consumePrepend } = chat;
+  useEffect(() => { setError(null); }, [sessionId]);
 
   // ── Socket listeners ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -79,26 +74,32 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
       }
     };
 
+    // Named so cleanup removes these exact listeners (an inline arrow in
+    // socket.off never matches, which leaked a pair per chat opened)
+    const onTyping = () => setIsTyping(true);
+    const onStopTyping = () => setIsTyping(false);
+
     socket.on("chat:new_message", onNewMessage);
-    socket.on("chat:typing", () => setIsTyping(true));
-    socket.on("chat:stop_typing", () => setIsTyping(false));
+    socket.on("chat:typing", onTyping);
+    socket.on("chat:stop_typing", onStopTyping);
     socket.on("mentorship:session_expired", onSessionExpired);
     socket.on("mentorship:completed", onSessionExpired);
 
     return () => {
       socket.emit("chat:leave", sessionId);
       socket.off("chat:new_message", onNewMessage);
-      socket.off("chat:typing", () => setIsTyping(true));
-      socket.off("chat:stop_typing", () => setIsTyping(false));
+      socket.off("chat:typing", onTyping);
+      socket.off("chat:stop_typing", onStopTyping);
       socket.off("mentorship:session_expired", onSessionExpired);
       socket.off("mentorship:completed", onSessionExpired);
     };
-  }, [isSocketReady, sessionId]);
+  }, [isSocketReady, sessionId, setMessages]);
 
   // ── Auto-scroll ────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (consumePrepend()) return; // older messages were added above; keep position
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, isTyping, consumePrepend]);
 
   // ── Send message ───────────────────────────────────────────────────────────
   const sendMessage = async () => {
@@ -198,7 +199,16 @@ const MentorshipChat = ({ sessionId, apiBaseUrl = `${import.meta.env.VITE_BACKEN
       )}
 
       {/* ── Messages area ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div ref={chat.containerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {!loading && chat.hasMore && (
+          <button
+            onClick={chat.loadOlder}
+            disabled={chat.loadingOlder}
+            className={`mx-auto block text-xs ${accent.text} hover:underline disabled:opacity-60`}
+          >
+            {chat.loadingOlder ? "Loading…" : "Load earlier messages"}
+          </button>
+        )}
         {loading ? (
           <div className="h-full flex items-center justify-center">
             <PiCircleNotch size={24} className={`${accent.text} animate-spin`} />

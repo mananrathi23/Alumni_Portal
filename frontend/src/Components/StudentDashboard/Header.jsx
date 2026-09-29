@@ -3,8 +3,8 @@ import axios from "axios";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FaSignOutAlt, FaTimes, FaBars } from "react-icons/fa";
 import { PiStudent } from "react-icons/pi";
-import { Context } from "../../main";
-import { useSocket } from "../../SocketContext";
+import { Context } from "../../context";
+import { useSocket } from "../../useSocket";
 import {
   PiHouseLine, PiChatsCircle, PiEnvelope, PiUsersThree,
   PiHandshake, PiBriefcase, PiCalendarCheck,

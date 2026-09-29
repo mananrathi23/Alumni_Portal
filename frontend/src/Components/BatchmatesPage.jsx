@@ -94,12 +94,54 @@ const UserCard = ({ user }) => (
 );
 
 // ── Batch card ────────────────────────────────────────────────────────────────
-const BatchCard = ({ batch, accentColor }) => {
-  const [open, setOpen] = useState(false);
-  const shown = open ? batch.members : batch.members.slice(0, 4);
+// Collapsed: the server-sent preview. Expanded: members load one page at a time.
+const MEMBERS_PAGE_SIZE = 24;
 
-  const studentCount = batch.members.filter((m) => m.role === "Student").length;
-  const alumniCount  = batch.members.filter((m) => m.role === "Alumni").length;
+const BatchCard = ({ batch, accentColor, search }) => {
+  const [open, setOpen] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  // A new search changes which members match, so start over
+  useEffect(() => {
+    setOpen(false);
+    setMembers([]);
+    setPage(0);
+    setHasMore(true);
+  }, [search]);
+
+  const loadMore = async () => {
+    if (loadingMembers) return;
+    setLoadingMembers(true);
+    try {
+      const params = { page: page + 1, limit: MEMBERS_PAGE_SIZE };
+      if (search.trim()) params.search = search.trim();
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/batchmates/${batch.year ?? "unset"}`,
+        { params, withCredentials: true }
+      );
+      setMembers((prev) => {
+        const ids = new Set(prev.map((m) => m._id));
+        return [...prev, ...(res.data.members || []).filter((m) => !ids.has(m._id))];
+      });
+      setPage(res.data.page);
+      setHasMore(res.data.hasMore);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const expand = () => {
+    setOpen(true);
+    if (page === 0) loadMore();
+  };
+
+  const shown = open && members.length > 0 ? members : batch.preview;
+  const { studentCount, alumniCount } = batch;
 
   const accent = {
     sky:    { border: "border-sky-500/30 bg-sky-500/5",     title: "text-sky-400",     sub: "bg-sky-500/10 text-sky-300" },
@@ -113,7 +155,7 @@ const BatchCard = ({ batch, accentColor }) => {
     <div className={`rounded-xl border ${accent.border} overflow-hidden`}>
       {/* Card header */}
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : expand())}
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.03] transition-colors text-left"
       >
         <div className="flex items-center gap-3">
@@ -143,15 +185,24 @@ const BatchCard = ({ batch, accentColor }) => {
       {/* Members */}
       <div className="px-4 pb-4 space-y-2">
         {shown.map((u) => <UserCard key={u._id} user={u} />)}
-        {!open && batch.members.length > 4 && (
+        {!open && batch.count > shown.length && (
           <button
-            onClick={() => setOpen(true)}
+            onClick={expand}
             className="w-full text-xs text-slate-400 hover:text-slate-200 py-2 text-center border border-white/[0.05] rounded-lg hover:bg-white/[0.03] transition-colors"
           >
-            + {batch.members.length - 4} more — Show all
+            + {batch.count - shown.length} more — Show all
           </button>
         )}
-        {open && batch.members.length > 4 && (
+        {open && hasMore && (
+          <button
+            onClick={loadMore}
+            disabled={loadingMembers}
+            className="w-full text-xs text-slate-400 hover:text-slate-200 py-2 text-center border border-white/[0.05] rounded-lg hover:bg-white/[0.03] transition-colors disabled:opacity-60"
+          >
+            {loadingMembers ? "Loading…" : `Load more (${members.length} of ${batch.count})`}
+          </button>
+        )}
+        {open && !hasMore && batch.count > batch.preview.length && (
           <button
             onClick={() => setOpen(false)}
             className="w-full text-xs text-slate-400 hover:text-slate-200 py-2 text-center border border-white/[0.05] rounded-lg hover:bg-white/[0.03] transition-colors"
@@ -278,6 +329,7 @@ const BatchmatesPage = ({
               key={batch.year ?? "unset"}
               batch={batch}
               accentColor={accentColor}
+              search={search}
             />
           ))}
         </div>

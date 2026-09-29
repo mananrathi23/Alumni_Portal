@@ -1,11 +1,11 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
-import { useSocket } from "../../SocketContext";
+import { useSocket } from "../../useSocket";
 import { toast } from "react-toastify";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import ProfileIncompleteModal from "./ProfileIncompleteModal";
-import { isProfileComplete } from "./Profile";
+import { isProfileComplete } from "../../utils/profileCompletion";
 import DashboardShell from "../DashboardShell";
 import {
   PiHouseLine, PiChatsCircle, PiEnvelope, PiUsersThree,
@@ -14,23 +14,14 @@ import {
 } from "react-icons/pi";
 
 const StudentLayout = () => {
-  const [student, setStudent] = useState(null);
+  // ProtectedRoute has already loaded /user/me into Context before rendering this layout
+  const { user: sessionUser } = useContext(Context);
+  const [student, setStudent] = useState(sessionUser);
   const [pendingCount, setPending] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(() => !!sessionUser && !isProfileComplete(sessionUser));
   const navigate = useNavigate();
   const { setIsAuthenticated, setUser } = useContext(Context);
-
-  useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true })
-      .then((res) => {
-        setIsAuthenticated(true);
-        setUser(res.data.user);
-        setStudent(res.data.user);
-        if (!isProfileComplete(res.data.user)) setShowIncompleteModal(true);
-      })
-      .catch(() => { setIsAuthenticated(false); navigate("/login"); });
-  }, []);
 
   useEffect(() => {
     axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connection/pending`, { withCredentials: true })
@@ -105,7 +96,7 @@ const StudentLayout = () => {
   }, [isSocketReady]);
 
   const handleLogout = async () => {
-    try { await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true }); } catch {}
+    try { await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true }); } catch { /* non-critical: keep current state */ }
     localStorage.removeItem("alumniToken");
     setIsAuthenticated(false);
     setUser(null);

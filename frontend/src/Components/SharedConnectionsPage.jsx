@@ -6,9 +6,10 @@ import { useState, useEffect, useRef, useContext, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../main";
-import { useSocket } from "../SocketContext";
+import { Context } from "../context";
+import { useSocket } from "../useSocket";
 import { isProfane } from "../utils/profanityCheck";
+import { useChatHistory } from "../utils/useChatHistory";
 import {
   PiMagnifyingGlass, PiUsersThree, PiChatCircleText,
   PiPaperPlaneTilt, PiCircleNotch, PiX, PiTrash,
@@ -54,9 +55,7 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
   const { socketRef, isSocketReady } = useSocket();
   const ac = ACCENT[accentColor] || ACCENT.sky;
 
-  const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -67,16 +66,9 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
   const connectionId = connection.connectionId;
   const other = connection.connectedWith;
 
-  // Fetch chat history
-  useEffect(() => {
-    setLoading(true);
-    setMessages([]);
-    axios
-      .get(`${API_BASE}/connections/${connectionId}/chat`, { withCredentials: true })
-      .then((r) => setMessages(r.data.messages || []))
-      .catch(() => toast.error("Failed to load messages."))
-      .finally(() => setLoading(false));
-  }, [connectionId]);
+  // Chat history: latest page first, older pages on demand
+  const chat = useChatHistory(`${API_BASE}/connections/${connectionId}/chat`, { onError: toast.error });
+  const { messages, setMessages, loading, consumePrepend } = chat;
 
   // Socket listeners
   useEffect(() => {
@@ -109,11 +101,12 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
       socket.off("conn_chat:typing", onTyping);
       socket.off("conn_chat:stop_typing", onStopTyping);
     };
-  }, [isSocketReady, connectionId]);
+  }, [isSocketReady, connectionId, setMessages]);
 
   useEffect(() => {
+    if (consumePrepend()) return; // older messages were added above; keep position
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, isTyping, consumePrepend]);
 
   const sendMessage = async () => {
     const trimmed = text.trim();
@@ -238,7 +231,16 @@ const ChatPanel = ({ connection, currentUser, accentColor, onClose, onRemove }) 
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div ref={chat.containerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {!loading && chat.hasMore && (
+          <button
+            onClick={chat.loadOlder}
+            disabled={chat.loadingOlder}
+            className={`mx-auto block text-xs ${ac.text} hover:underline disabled:opacity-60`}
+          >
+            {chat.loadingOlder ? "Loading…" : "Load earlier messages"}
+          </button>
+        )}
         {loading ? (
           <div className="h-full flex items-center justify-center">
             <PiCircleNotch size={22} className={`${ac.text} animate-spin`} />
@@ -405,7 +407,7 @@ export default function SharedConnectionsPage({ role, accentColor = "sky" }) {
     try {
       const res = await axios.get(`${API_BASE}/connections/chat/unread-counts`, { withCredentials: true });
       setUnread(res.data.unread || {});
-    } catch { }
+    } catch { /* non-critical: keep current state */ }
   }, []);
 
   useEffect(() => {

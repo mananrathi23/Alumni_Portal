@@ -2,6 +2,7 @@ import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { Student } from "../models/StudentModel.js";
 import { Alumni } from "../models/AlumniModel.js";
 import { Teacher } from "../models/TeacherModel.js";
+import { searchRegex } from "../utils/escapeRegex.js";
 
 // Everyone can see everyone:
 // Student  → sees Alumni + Teachers + other Students
@@ -32,14 +33,8 @@ export const getPeople = catchAsyncError(async (req, res) => {
     ? [filterRole]
     : allowed;
 
-  const searchFilter = search
-    ? {
-      $or: [
-        { name: { $regex: search, $options: "i" } },
-        { department: { $regex: search, $options: "i" } },
-      ]
-    }
-    : {};
+  const re = searchRegex(search);
+  const searchFilter = re ? { $or: [{ name: re }, { department: re }] } : {};
 
   const deptFilter = department && department !== "All"
     ? { department }

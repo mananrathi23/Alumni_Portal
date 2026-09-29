@@ -232,9 +232,9 @@ describe('POST /api/v1/user/login', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe('GET /api/v1/user/me', () => {
 
-  it('should return 400 if no token is provided', async () => {
+  it('should return 401 if no token is provided', async () => {
     const res = await request(testApp).get('/api/v1/user/me');
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect(res.body.message).toMatch(/not authenticated/i);
   });
 

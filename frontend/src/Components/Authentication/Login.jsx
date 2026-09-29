@@ -1,7 +1,7 @@
 import React, { useState, useContext } from "react";
 import { useForm } from "react-hook-form";
 import ForgotPassword from "./ForgotPassword";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";

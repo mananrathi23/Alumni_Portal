@@ -1,7 +1,7 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import { FaLinkedin, FaGithub, FaGlobe } from "react-icons/fa";
 import {
   PiUsersThree,
@@ -11,64 +11,74 @@ import {
   PiBriefcase,
 } from "react-icons/pi";
 
+const PAGE_SIZE = 50;
+
 export default function StudentProfiles() {
   const { theme } = useContext(Context);
   const [students, setStudents] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [filterOptions, setFilterOptions] = useState({ departments: [], years: [], classes: [] });
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [classOf, setClassOf] = useState("All");
   const [department, setDepartment] = useState("All");
   const [year, setYear] = useState("All");
   const [selected, setSelected] = useState(null);
 
+  // Search and filters run on the server (only admin-verified, non-blocked
+  // students); results arrive PAGE_SIZE at a time.
+  const fetchPage = useCallback(async (pageToLoad) => {
+    const params = { page: pageToLoad, limit: PAGE_SIZE };
+    if (search.trim()) params.search = search.trim();
+    if (department !== "All") params.department = department;
+    if (year !== "All") params.year = year;
+    if (classOf !== "All") params.enrollmentYear = classOf;
+    const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users/students`, {
+      params,
+      withCredentials: true,
+    });
+    setTotal(res.data.total ?? 0);
+    setHasMore(!!res.data.hasMore);
+    setPage(pageToLoad);
+    if (res.data.filters) setFilterOptions(res.data.filters);
+    return res.data.students || [];
+  }, [search, department, year, classOf]);
+
   useEffect(() => {
-    setLoading(true);
-    axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users/students`, { withCredentials: true })
-      .then((res) => {
-        // Server already returns only admin-verified, non-blocked students
-        setStudents(res.data.students || []);
-      })
-      .catch(() => toast.error("Failed to load student profiles."))
-      .finally(() => setLoading(false));
-  }, []); // load once on mount — search/filters are client-side
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const first = await fetchPage(1);
+        if (!cancelled) setStudents(first);
+      } catch {
+        if (!cancelled) toast.error("Failed to load student profiles.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [fetchPage]);
 
-  const classOptions = Array.from(
-    new Set(
-      (students || [])
-        .map((s) => s.enrollmentYear)
-        .filter((y) => typeof y === "number" && !Number.isNaN(y))
-    )
-  ).sort((a, b) => b - a);
-
-  const deptOptions = Array.from(
-    new Set(
-      (students || [])
-        .map((s) => s.department)
-        .filter(Boolean)
-    )
-  ).sort();
-
-  const yearOptions = Array.from(
-    new Set(
-      (students || [])
-        .map((s) => s.year)
-        .filter(Boolean)
-    )
-  ).sort();
-
-  const filtered = students.filter((s) => {
-    if (search) {
-      const q = search.toLowerCase();
-      const matchName = s.name?.toLowerCase().includes(q);
-      const matchDept = s.department?.toLowerCase().includes(q);
-      if (!matchName && !matchDept) return false;
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const next = await fetchPage(page + 1);
+      setStudents((prev) => {
+        const ids = new Set(prev.map((s) => s._id));
+        return [...prev, ...next.filter((s) => !ids.has(s._id))];
+      });
+    } catch {
+      toast.error("Failed to load more students.");
+    } finally {
+      setLoadingMore(false);
     }
-    if (classOf !== "All" && String(s.enrollmentYear) !== String(classOf)) return false;
-    if (department !== "All" && s.department !== department) return false;
-    if (year !== "All" && s.year !== year) return false;
-    return true;
-  });
+  };
+
+  const { departments: deptOptions, years: yearOptions, classes: classOptions } = filterOptions;
 
   const activeFilters = [classOf, department, year].filter(v => v !== "All").length;
   const clearFilters = () => { setClassOf("All"); setDepartment("All"); setYear("All"); setSearch(""); };
@@ -87,7 +97,7 @@ export default function StudentProfiles() {
             Student Profiles
           </h2>
           <p className={`${theme === "dark" ? "text-slate-400" : "text-slate-500"} text-sm mt-1`}>
-            {loading ? "Loading…" : `${filtered.length} of ${students.length} students`}
+            {loading ? "Loading…" : `Showing ${students.length} of ${total} students`}
           </p>
         </div>
         {(activeFilters > 0 || search) && (
@@ -107,7 +117,7 @@ export default function StudentProfiles() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search students by name or department…"
+              placeholder="Search students by name, email or department…"
               className={`w-full pl-9 pr-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 ${theme === "dark"
                   ? "bg-slate-800 border-white/[0.07] text-slate-200 placeholder-slate-500"
                   : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400"
@@ -146,7 +156,7 @@ export default function StudentProfiles() {
         <div className="min-h-64 flex items-center justify-center">
           <div className="w-8 h-8 rounded-full border-2 border-rose-500 border-t-transparent animate-spin" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : students.length === 0 ? (
         <div className={`min-h-64 flex flex-col items-center justify-center text-center rounded-xl border ${theme === "dark" ? "bg-slate-900 border-white/[0.07]" : "bg-white border-slate-200"}`}>
           <PiUsersThree size={40} className="text-slate-600 mb-3" />
           <p className={`${theme === "dark" ? "text-slate-300" : "text-slate-700"} font-medium`}>No students found</p>
@@ -165,7 +175,7 @@ export default function StudentProfiles() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-white/[0.06]">
-                {filtered.map((s) => (
+                {students.map((s) => (
                   <tr
                     key={s._id}
                     onClick={() => setSelected(s)}
@@ -215,6 +225,17 @@ export default function StudentProfiles() {
               </tbody>
             </table>
           </div>
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className={`w-full py-3 text-sm font-medium border-t transition disabled:opacity-60 ${
+                theme === "dark" ? "border-white/[0.06] text-slate-300 hover:bg-white/[0.03]" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {loadingMore ? "Loading…" : `Load more (${students.length} of ${total})`}
+            </button>
+          )}
         </div>
       )}
 

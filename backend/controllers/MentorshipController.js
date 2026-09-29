@@ -21,6 +21,9 @@ import {
   getNextSlotISO,
 } from "../utils/googleCalendar.js";
 import { containsProfanity } from "../utils/ProfanityFilter.js";
+import { searchRegex } from "../utils/escapeRegex.js";
+import { invalidateCache, invalidateUserListings } from "../middlewares/cache.js";
+import { fetchChatPage } from "../utils/chatHistory.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getMentorModel(role) {
@@ -205,6 +208,7 @@ export const updateMentorshipAvailability = catchAsyncError(async (req, res, nex
   }
 
   await user.save({ validateModifiedOnly: true });
+  await invalidateUserListings();
 
   res.status(200).json({
     success: true,
@@ -228,6 +232,7 @@ export const updateWeeklyLimit = catchAsyncError(async (req, res, next) => {
   }
   user.weeklyLimit = weeklyLimit;
   await user.save({ validateModifiedOnly: true });
+  await invalidateCache("mentors");
   res.status(200).json({ success: true, weeklyLimit: user.weeklyLimit });
 });
 
@@ -238,7 +243,7 @@ export const updateWeeklyLimit = catchAsyncError(async (req, res, next) => {
 export const getMentors = catchAsyncError(async (req, res) => {
   const { search, filterRole, department } = req.query;
   const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = Math.min(50, parseInt(req.query.limit) || 12);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 12));
   const skip = (page - 1) * limit;
 
   const roles = filterRole && filterRole !== "All" ? [filterRole] : ["Alumni", "Teacher"];
@@ -253,8 +258,8 @@ export const getMentors = catchAsyncError(async (req, res) => {
 
     if (department && department !== "All") filter.department = department;
 
-    if (search) {
-      const re = { $regex: search, $options: "i" };
+    const re = searchRegex(search);
+    if (re) {
       filter.$or = [
         { name: re },
         { department: re },
@@ -394,6 +399,8 @@ export const createMentorshipRequest = catchAsyncError(async (req, res, next) =>
   res.status(201).json({ success: true, request });
 });
 
+const MAX_REQUESTS = 200;
+
 export const getMentorshipRequests = catchAsyncError(async (req, res) => {
   const user = req.user;
   const role = user.constructor.modelName;
@@ -407,7 +414,21 @@ export const getMentorshipRequests = catchAsyncError(async (req, res) => {
     return res.status(200).json({ success: true, requests: [] });
   }
 
-  const requests = await MentorshipRequest.find(query).sort({ createdAt: -1 }).lean();
+  // ?status=Pending or ?status=Accepted,Completed narrows the list
+  if (req.query.status) {
+    const statuses = String(req.query.status).split(",").map((s) => s.trim()).filter(Boolean);
+    query.status = { $in: statuses };
+  }
+
+  // ?countOnly=true — badges and dashboard stats only need the number
+  if (req.query.countOnly === "true") {
+    const count = await MentorshipRequest.countDocuments(query);
+    return res.status(200).json({ success: true, count });
+  }
+
+  // Newest first, capped so one account's long history can't produce a huge response
+  const limit = Math.min(MAX_REQUESTS, Math.max(1, parseInt(req.query.limit) || MAX_REQUESTS));
+  const requests = await MentorshipRequest.find(query).sort({ createdAt: -1 }).limit(limit).lean();
   res.status(200).json({ success: true, count: requests.length, requests });
 });
 
@@ -449,6 +470,7 @@ export const respondToMentorshipRequest = catchAsyncError(async (req, res, next)
     if (!updatedMentor) {
       return next(new ErrorHandler("This slot was just booked. Please reject this request.", 409));
     }
+    await invalidateCache("mentors"); // the slot no longer shows as free
 
     // 2. Weekly limit check
     const weekStart = new Date();
@@ -737,6 +759,7 @@ export const completeMentorshipSession = catchAsyncError(async (req, res, next) 
     },
     { $set: { "mentorshipSlots.$.booked": false } }
   );
+  await invalidateCache("mentors");
 
   emitToUser(mentorship.student.id, "mentorship:completed", {
     requestId: mentorship._id,
@@ -801,14 +824,17 @@ export const getChatMessages = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Chat is only available for accepted or completed sessions.", 403));
   }
 
-  const messages = await ChatMessage.find({ mentorshipId }).sort({ createdAt: 1 }).lean();
+  const { messages, hasMore } = await fetchChatPage({ mentorshipId }, req.query);
 
-  await ChatMessage.updateMany(
-    { mentorshipId, "sender.id": { $ne: user._id }, readBy: { $ne: user._id } },
-    { $addToSet: { readBy: user._id } }
-  );
+  // Opening the chat (first page) marks everything as read; older pages don't need to
+  if (!req.query.before) {
+    await ChatMessage.updateMany(
+      { mentorshipId, "sender.id": { $ne: user._id }, readBy: { $ne: user._id } },
+      { $addToSet: { readBy: user._id } }
+    );
+  }
 
-  res.status(200).json({ success: true, messages });
+  res.status(200).json({ success: true, messages, hasMore });
 });
 
 export const sendChatMessage = catchAsyncError(async (req, res, next) => {

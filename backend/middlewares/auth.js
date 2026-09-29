@@ -30,7 +30,7 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
   }
 
   if (!token) {
-    return next(new ErrorHandler("User is not authenticated.", 400));
+    return next(new ErrorHandler("User is not authenticated.", 401));
   }
 
   // ✅ JWT now contains both id AND role (set in each model's generateToken)
@@ -43,7 +43,7 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
 
   const Model = getModelByRole(decoded.role);
   if (!Model) {
-    return next(new ErrorHandler("Invalid role in token.", 400));
+    return next(new ErrorHandler("Invalid role in token.", 401));
   }
 
   // ✅ Find user in the correct collection using role from token

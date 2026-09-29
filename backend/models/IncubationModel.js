@@ -66,4 +66,8 @@ incubationSchema.pre("save", function (next) {
   next();
 });
 
+// Feed (newest active ideas) and "My Ideas"
+incubationSchema.index({ active: 1, createdAt: -1 });
+incubationSchema.index({ authorId: 1, createdAt: -1 });
+
 export const Incubation = mongoose.model("Incubation", incubationSchema);

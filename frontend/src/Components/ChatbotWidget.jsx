@@ -2,14 +2,13 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import * as htmlToImage from "html-to-image";
 import {
   PiChatTeardropText, PiX, PiPaperPlaneRight,
   PiRobot, PiUser, PiHeadset, PiShieldCheck,
   PiCheckCircle, PiCircleNotch
 } from "react-icons/pi";
-import { Context } from "../main";
-import { useSocket } from "../SocketContext.jsx";
+import { Context } from "../context";
+import { useSocket } from "../useSocket";
 
 const ChatbotWidget = () => {
   const { user } = useContext(Context);
@@ -20,7 +19,6 @@ const ChatbotWidget = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("AI_Handling");
-  const [ticketId, setTicketId] = useState(null);
   const [choosingEscalation, setChoosingEscalation] = useState(false);
   const [startChoicePending, setStartChoicePending] = useState(false);
   const messagesEndRef = useRef(null);
@@ -34,22 +32,22 @@ const ChatbotWidget = () => {
   }, [isOpen]);
 
   useEffect(() => {
-    if (socket) {
-      socket.on("support:reply", (data) => {
-        if (data.message) {
-          setMessages((prev) => [...prev, data.message]);
-        }
-        if (data.resolved) {
-          setStatus("Resolved");
-          setMessages((prev) => [
-            ...prev,
-            { sender: "System", text: "Your ticket has been resolved by the Admin." }
-          ]);
-        }
-      });
-    }
+    if (!socket) return;
+    const onSupportReply = (data) => {
+      if (data.message) {
+        setMessages((prev) => [...prev, data.message]);
+      }
+      if (data.resolved) {
+        setStatus("Resolved");
+        setMessages((prev) => [
+          ...prev,
+          { sender: "System", text: "Your ticket has been resolved by the Admin." }
+        ]);
+      }
+    };
+    socket.on("support:reply", onSupportReply);
     return () => {
-      if (socket) socket.off("support:reply");
+      socket.off("support:reply", onSupportReply);
     };
   }, [socket]);
 
@@ -65,7 +63,6 @@ const ChatbotWidget = () => {
       if (res.data.ticket) {
         setMessages(res.data.ticket.messages);
         setStatus(res.data.ticket.status);
-        setTicketId(res.data.ticket._id);
         setStartChoicePending(false);
         // If escalation is offered, show choice buttons
         if (res.data.ticket.status === "Escalation_Offered") {
@@ -93,7 +90,6 @@ const ChatbotWidget = () => {
       );
 
       setStatus(res.data.ticket.status);
-      setTicketId(res.data.ticket._id);
       if (res.data.reply) {
         setMessages((prev) => [...prev, { sender: "AI", text: res.data.reply }]);
       }
@@ -169,7 +165,6 @@ const ChatbotWidget = () => {
       );
 
       setStatus(res.data.ticket.status);
-      setTicketId(res.data.ticket._id);
       setStartChoicePending(false);
 
       if (res.data.reply) {
@@ -260,11 +255,11 @@ const ChatbotWidget = () => {
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    p: ({ node, ...props }) => <p className="mb-1 last:mb-0" {...props} />,
-                    ul: ({ node, ...props }) => <ul className="list-disc ml-4 mb-2" {...props} />,
-                    ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mb-2" {...props} />,
-                    li: ({ node, ...props }) => <li className="mb-0.5" {...props} />,
-                    strong: ({ node, ...props }) => <strong className="font-bold" {...props} />,
+                    p: ({ node: _node, ...props }) => <p className="mb-1 last:mb-0" {...props} />,
+                    ul: ({ node: _node, ...props }) => <ul className="list-disc ml-4 mb-2" {...props} />,
+                    ol: ({ node: _node, ...props }) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+                    li: ({ node: _node, ...props }) => <li className="mb-0.5" {...props} />,
+                    strong: ({ node: _node, ...props }) => <strong className="font-bold" {...props} />,
                   }}
                 >
                   {msg.text}

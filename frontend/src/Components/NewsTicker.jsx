@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../main";
+import { Context } from "../context";
 import { PiMegaphone, PiX, PiPlus, PiTrash, PiCaretRight } from "react-icons/pi";
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/announcements`;
@@ -29,7 +29,7 @@ function AdminPanel({ onClose, onRefresh }) {
     try {
       const res = await axios.get(API, { withCredentials: true });
       setList(res.data.announcements || []);
-    } catch {}
+    } catch { /* non-critical: keep current state */ }
   };
 
   useEffect(() => { load(); }, []);
@@ -133,14 +133,14 @@ export default function NewsTicker() {
   const tickerRef                   = useRef(null);
   const isAdmin = user?.role === "Admin" || user?.constructor?.name === "Admin";
 
-  const load = async () => {
-    try {
-      const res = await axios.get(API, { withCredentials: true });
-      const list = res.data.announcements || [];
-      setAnn(list);
-      if (list.length > 0) setDismissed(false);
-    } catch {}
-  };
+  const load = () =>
+    axios.get(API, { withCredentials: true })
+      .then((res) => {
+        const list = res.data.announcements || [];
+        setAnn(list);
+        if (list.length > 0) setDismissed(false);
+      })
+      .catch(() => { /* non-critical: keep current state */ });
 
   useEffect(() => { load(); }, []);
 

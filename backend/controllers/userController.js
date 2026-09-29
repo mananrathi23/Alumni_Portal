@@ -9,6 +9,7 @@ import { generateEmailTemplate } from "../utils/emailTemplate.js";
 import { sendToken } from "../utils/sendToken.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { blacklistToken } from "../utils/tokenBlacklist.js";
+import { invalidateUserListings } from "../middlewares/cache.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
@@ -373,6 +374,7 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
   });
 
   await user.save({ validateModifiedOnly: true });
+  await invalidateUserListings();
 
   res.status(200).json({
     success: true,
@@ -395,6 +397,7 @@ export const uploadProfilePhoto = catchAsyncError(async (req, res, next) => {
   const uploaded = await uploadToCloudinary(photo);
   user.profilePhoto = { public_id: uploaded.public_id, url: uploaded.url };
   await user.save({ validateModifiedOnly: true });
+  await invalidateUserListings();
 
   res.status(200).json({
     success: true,

@@ -7,8 +7,8 @@ import {
   PiUsersThree, PiHandshake, PiBriefcase, PiCalendarCheck,
   PiUserCircle, PiCaretDown, PiBell,
 } from "react-icons/pi";
-import { Context } from "../../main";
-import { useSocket } from "../../SocketContext";
+import { Context } from "../../context";
+import { useSocket } from "../../useSocket";
 
 const NAV_LINKS = [
   { label: "Dashboard",   path: "/teacher/dashboard",  icon: PiHouseLine },

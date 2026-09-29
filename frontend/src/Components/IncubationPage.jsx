@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useContext } from "react";
+import { useState, useEffect, useCallback, useContext, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../main";
-import { useSocket } from "../SocketContext";
+import { Context } from "../context";
+import { useSocket } from "../useSocket";
 import {
   PiRocketLaunch, PiPlus, PiX, PiArrowUp, PiChatCircle,
   PiHandshake, PiMagnifyingGlass, PiTrash, PiTag,
@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useFeedRefresh } from "../utils/useFeedRefresh";
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/incubation`;
+const PAGE_SIZE = 20;
 
 const STAGES = [
   { key: "all",       label: "All Stages",  icon: PiSparkle },
@@ -40,19 +41,13 @@ const ROLE_COLORS = {
 };
 
 // ── Idea Card ─────────────────────────────────────────────────────────────────
-const IdeaCard = ({ idea, currentUserId, currentUserRole, connections, accentColor, onRefresh }) => {
+const IdeaCard = ({ idea, currentUserId, currentUserRole, connections, onRefresh }) => {
   const [expanded,     setExpanded]     = useState(false);
   const [commentText,  setCommentText]  = useState("");
   const [loading,      setLoading]      = useState(false);
   // Real-time comments state (null = not loaded yet, [] = loaded)
   const [comments,     setComments]     = useState(null);
   const navigate = useNavigate();
-
-  const ac = {
-    sky:    "text-sky-400 border-sky-500/30",
-    emerald:"text-emerald-400 border-emerald-500/30",
-    violet: "text-violet-400 border-violet-500/30",
-  }[accentColor] || "text-sky-400 border-sky-500/30";
 
   const isOwn      = idea.authorId === currentUserId;
   const hasUpvoted = idea.upvotes?.includes(currentUserId);
@@ -300,7 +295,7 @@ const IdeaCard = ({ idea, currentUserId, currentUserRole, connections, accentCol
 };
 
 // ── Post Idea Modal ───────────────────────────────────────────────────────────
-const PostIdeaModal = ({ onClose, onPosted, accentColor }) => {
+const PostIdeaModal = ({ onClose, onPosted }) => {
   const [form, setForm] = useState({
     title: "", description: "", problemStatement: "",
     targetAudience: "", stage: "idea", tags: [], lookingFor: [],
@@ -493,6 +488,9 @@ const PostIdeaModal = ({ onClose, onPosted, accentColor }) => {
 const IncubationPage = ({ accentColor = "sky" }) => {
   const { user } = useContext(Context);
   const [ideas,      setIdeas]      = useState([]);
+  const [total,      setTotal]      = useState(0);
+  const [hasMore,    setHasMore]    = useState(false);
+  const [loadingMore,setLoadingMore]= useState(false);
   const [loading,    setLoading]    = useState(true);
   const [showModal,  setShowModal]  = useState(false);
   const [search,     setSearch]     = useState("");
@@ -500,33 +498,62 @@ const IncubationPage = ({ accentColor = "sky" }) => {
   const [myOnly,     setMyOnly]     = useState(false);
   const [connections,setConnections]= useState([]);
 
+  const ideasCountRef = useRef(0);
+  ideasCountRef.current = ideas.length;
+
   useEffect(() => {
     axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/connections`, { withCredentials: true })
       .then(res => setConnections(res.data.connections || []))
       .catch(() => {});
   }, []);
 
+  const buildParams = useCallback(() => {
+    const params = {};
+    if (search.trim()) params.search = search.trim();
+    if (stage !== "all")  params.stage  = stage;
+    if (myOnly)           params.mine   = "true";
+    return params;
+  }, [search, stage, myOnly]);
+
+  // Attach comment count to each idea (from comments array length)
+  const withCounts = (list) => (list || []).map((i) => ({ ...i, commentCount: i.commentCount ?? 0 }));
+
+  // Refetches from the top. A background refresh keeps as many ideas as are
+  // already on screen so "Load more" progress isn't lost.
   const fetchIdeas = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
     try {
-      const params = {};
-      if (search.trim()) params.search = search.trim();
-      if (stage !== "all")  params.stage  = stage;
-      if (myOnly)           params.mine   = "true";
-
-      const res = await axios.get(API, { params, withCredentials: true });
-      // Attach comment count to each idea (from comments array length)
-      const ideas = (res.data.ideas || []).map((i) => ({
-        ...i,
-        commentCount: i.commentCount ?? 0,
-      }));
-      setIdeas(ideas);
+      const limit = showSpinner ? PAGE_SIZE : Math.min(100, Math.max(PAGE_SIZE, ideasCountRef.current));
+      const res = await axios.get(API, { params: { ...buildParams(), limit }, withCredentials: true });
+      setIdeas(withCounts(res.data.ideas));
+      setTotal(res.data.total ?? 0);
+      setHasMore(!!res.data.hasMore);
     } catch {
       setIdeas([]);
+      setHasMore(false);
     } finally {
       if (showSpinner) setLoading(false);
     }
-  }, [search, stage, myOnly]);
+  }, [buildParams]);
+
+  const loadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const page = Math.floor(ideas.length / PAGE_SIZE) + 1;
+      const res = await axios.get(API, { params: { ...buildParams(), page, limit: PAGE_SIZE }, withCredentials: true });
+      setIdeas((prev) => {
+        const ids = new Set(prev.map((i) => i._id));
+        return [...prev, ...withCounts(res.data.ideas).filter((i) => !ids.has(i._id))];
+      });
+      setTotal(res.data.total ?? 0);
+      setHasMore(!!res.data.hasMore);
+    } catch {
+      toast.error("Failed to load more ideas.");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const t = setTimeout(() => fetchIdeas(true), 300);
@@ -601,7 +628,7 @@ const IncubationPage = ({ accentColor = "sky" }) => {
       {/* Count */}
       {!loading && (
         <p className="text-xs text-slate-500">
-          {ideas.length} idea{ideas.length !== 1 ? "s" : ""}
+          {total} idea{total !== 1 ? "s" : ""}
           {search ? ` matching "${search}"` : ""}
           {myOnly ? " (yours)" : ""}
         </p>
@@ -630,6 +657,15 @@ const IncubationPage = ({ accentColor = "sky" }) => {
               onRefresh={() => fetchIdeas(false)}
             />
           ))}
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full py-2.5 rounded-lg text-sm text-slate-400 hover:text-white border border-white/[0.06] bg-slate-800/60 hover:bg-slate-800 transition-all disabled:opacity-60"
+            >
+              {loadingMore ? "Loading…" : `Load more ideas (${ideas.length} of ${total})`}
+            </button>
+          )}
         </div>
       )}
 

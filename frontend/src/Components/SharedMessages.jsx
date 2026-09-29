@@ -6,8 +6,8 @@
 import { useState, useEffect, useContext } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
-import { Context } from "../main";
-import { useSocket } from "../SocketContext";
+import { Context } from "../context";
+import { useSocket } from "../useSocket";
 import MentorshipChat from "./MentorshipChat";
 import {
   PiMagnifyingGlass, PiEnvelope, PiChatsCircle,
@@ -50,49 +50,46 @@ export default function SharedMessages({ role, accentColor }) {
   const theme = THEME[role] || THEME.Student;
   const color = accentColor || (role === "Alumni" ? "emerald" : role === "Teacher" ? "violet" : "sky");
 
-  // Fetch accepted + completed mentorship sessions
-  const fetchMentorship = async () => {
-    try {
-      const res = await axios.get(`${MENTORSHIP_API}/requests`, { withCredentials: true });
-      const all = res.data.requests || [];
-      const active = all.filter(r => ["Accepted", "Completed"].includes(r.status));
-      setMentorshipSessions(active);
-    } catch { setMentorshipSessions([]); }
-  };
+  // Fetch accepted + completed mentorship sessions.
+  // (Promise callbacks rather than async/await: state is set only once the request settles.)
+  const fetchMentorship = () =>
+    axios.get(`${MENTORSHIP_API}/requests`, {
+      params: { status: "Accepted,Completed" },
+      withCredentials: true,
+    })
+      .then((res) => setMentorshipSessions(res.data.requests || []))
+      .catch(() => setMentorshipSessions([]));
 
-  const fetchConnections = async () => {
-    try {
-      const res = await axios.get(`${CONNECTIONS_API}`, { withCredentials: true });
-      setConnectionSessions(res.data.connections || []);
-    } catch { setConnectionSessions([]); }
-  };
+  const fetchConnections = () =>
+    axios.get(`${CONNECTIONS_API}`, { withCredentials: true })
+      .then((res) => setConnectionSessions(res.data.connections || []))
+      .catch(() => setConnectionSessions([]));
 
-  const fetchAllSessions = async () => {
-    setLoading(true);
-    await Promise.all([fetchMentorship(), fetchConnections()]);
-    setLoading(false);
-  }
-
-  const fetchUnread = async () => {
-    try {
-      const [mRes, cRes] = await Promise.all([
-        axios.get(`${MENTORSHIP_API}/chat/unread-counts`, { withCredentials: true }),
-        axios.get(`${CONNECTIONS_API}/chat/unread-counts`, { withCredentials: true })  // /api/v1/connections/...
-      ]);
-      setMentorshipUnread(mRes.data.unread || {});
-      setConnectionUnread(cRes.data.unread || {});
-    } catch {}
-  };
+  const fetchUnread = () =>
+    Promise.all([
+      axios.get(`${MENTORSHIP_API}/chat/unread-counts`, { withCredentials: true }),
+      axios.get(`${CONNECTIONS_API}/chat/unread-counts`, { withCredentials: true })  // /api/v1/connections/...
+    ])
+      .then(([mRes, cRes]) => {
+        setMentorshipUnread(mRes.data.unread || {});
+        setConnectionUnread(cRes.data.unread || {});
+      })
+      .catch(() => { /* non-critical: keep current state */ });
 
   useEffect(() => {
-    fetchAllSessions();
+    // `loading` starts true; it flips once both session lists have arrived
+    Promise.all([fetchMentorship(), fetchConnections()]).then(() => setLoading(false));
     fetchUnread();
   }, []);
 
-  // Auto-open from deep link
-  useEffect(() => {
-    if (deepLinkId) { setSelectedId(deepLinkId); setMobileShowChat(true); }
-  }, [deepLinkId]);
+  // Auto-open from deep link (also when ?session= changes while mounted).
+  // Adjusting state during render avoids an extra effect-triggered render.
+  const [openedDeepLink, setOpenedDeepLink] = useState(deepLinkId);
+  if (deepLinkId && deepLinkId !== openedDeepLink) {
+    setOpenedDeepLink(deepLinkId);
+    setSelectedId(deepLinkId);
+    setMobileShowChat(true);
+  }
 
   // Socket: refresh unread counts when new message arrives
   useEffect(() => {
@@ -103,23 +100,23 @@ export default function SharedMessages({ role, accentColor }) {
     return () => socket.off("chat:new_message", handler);
   }, [isSocketReady]);
 
-  // Clear unread for selected session
-  useEffect(() => {
-    if (selectedId) {
-      if (activeTab === "mentorship") {
-        setMentorshipUnread(prev => ({ ...prev, [selectedId]: 0 }));
-      } else {
-        setConnectionUnread(prev => ({ ...prev, [selectedId]: 0 }));
-      }
-    }
-  }, [selectedId, activeTab]);
+  // The open chat is being read, so it never shows an unread badge; opening one
+  // also clears its stored count so the badge stays gone after switching away
+  const withOpenChatRead = (counts) =>
+    selectedId && counts[selectedId] ? { ...counts, [selectedId]: 0 } : counts;
+  const openChat = (id) => {
+    setSelectedId(id);
+    setMobileShowChat(true);
+    const setUnread = activeTab === "mentorship" ? setMentorshipUnread : setConnectionUnread;
+    setUnread(prev => ({ ...prev, [id]: 0 }));
+  };
 
   const getOtherMentorship = (s) => role === "Student"
     ? { name: s.mentor?.name,  role: s.mentor?.role  }
     : { name: s.student?.name, role: "Student" };
     
   const currentSessions = activeTab === "mentorship" ? mentorshipSessions : connectionSessions;
-  const currentUnread = activeTab === "mentorship" ? mentorshipUnread : connectionUnread;
+  const currentUnread = withOpenChatRead(activeTab === "mentorship" ? mentorshipUnread : connectionUnread);
 
   const filtered = currentSessions.filter(s => {
     const q = search.toLowerCase();
@@ -136,8 +133,8 @@ export default function SharedMessages({ role, accentColor }) {
 
   const getInitial = (name) => (name || "?").charAt(0).toUpperCase();
 
-  const totalUnreadMentorship = Object.values(mentorshipUnread).reduce((a, b) => a + b, 0);
-  const totalUnreadConnection = Object.values(connectionUnread).reduce((a, b) => a + b, 0);
+  const totalUnreadMentorship = Object.values(withOpenChatRead(mentorshipUnread)).reduce((a, b) => a + b, 0);
+  const totalUnreadConnection = Object.values(withOpenChatRead(connectionUnread)).reduce((a, b) => a + b, 0);
   const totalUnread = totalUnreadMentorship + totalUnreadConnection;
 
   return (
@@ -223,7 +220,7 @@ export default function SharedMessages({ role, accentColor }) {
                   const isActive = selectedId === id;
                   return (
                     <button key={id}
-                      onClick={() => { setSelectedId(id); setMobileShowChat(true); }}
+                      onClick={() => openChat(id)}
                       className={`w-full flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] text-left transition-all ${
                         isActive ? `bg-slate-800 ${theme.border} border-l-2` : "hover:bg-slate-800/50"
                       }`}>

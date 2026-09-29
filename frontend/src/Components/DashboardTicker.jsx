@@ -11,14 +11,12 @@
  *   jobsPath     — e.g. "/student/jobs"
  */
 import { useState, useEffect } from "react";
-import { useNavigate }         from "react-router-dom";
 import axios                   from "axios";
 
 const BASE = `${import.meta.env.VITE_BACKEND_URL}/api/v1`;
 
 const DashboardTicker = ({ accentColor = "sky", forumPath, eventsPath, jobsPath }) => {
   const [items,   setItems]   = useState([]);
-  const navigate = useNavigate();
 
   const COLOR = {
     sky:    { bar: "bg-sky-900/80 border-sky-700/40",    tag: "bg-sky-800 text-sky-300",    sep: "text-sky-500" },

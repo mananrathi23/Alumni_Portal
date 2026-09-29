@@ -96,6 +96,11 @@ const alumniSchema = new mongoose.Schema({
 alumniSchema.index({ email: 1, accountVerified: 1 });
 alumniSchema.index({ resetPasswordToken: 1 }, { sparse: true });
 alumniSchema.index({ accountVerified: 1, createdAt: 1 });
+// People / Batchmates listings filter on these flags on every request
+alumniSchema.index({ accountVerified: 1, adminVerified: 1, isBlocked: 1, name: 1 });
+// Mentor browse and smart-match
+alumniSchema.index({ availableForMentorship: 1, accountVerified: 1 });
+alumniSchema.index({ enrollmentYear: 1, name: 1 });
 
 alumniSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();

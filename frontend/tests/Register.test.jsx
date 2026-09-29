@@ -8,8 +8,6 @@ import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import Register from '../src/Components/Authentication/Register';
 
-vi.mock('../src/main', () => ({ Context: { _currentValue: {} } }));
-vi.mock('../src/main.jsx', () => ({ Context: { _currentValue: {} } }));
 vi.mock('react', async (i) => { const a = await i(); return { ...a, useContext: () => ({ isAuthenticated: false }) }; });
 vi.mock('axios');
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));

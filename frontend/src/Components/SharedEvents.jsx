@@ -4,7 +4,7 @@
 import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../main";
+import { Context } from "../context";
 import {
   PiCalendarCheck, PiPlus, PiX, PiMapPin, PiLink, PiCircleNotch,
   PiClock, PiUser, PiCalendarBlank, PiCheck, PiTrash, PiPencilSimple,
@@ -331,7 +331,7 @@ function EventDetailModal({ event, currentUser, onClose, onToggleRegister, isReg
 }
 
 // ── Event Card ────────────────────────────────────────────────────────────────
-function EventCard({ event, currentUser, canPost, onEdit, onDelete, onToggleRegister, isRegistered, onViewDetails }) {
+function EventCard({ event, currentUser, onEdit, onDelete, onToggleRegister, isRegistered, onViewDetails }) {
   const now         = new Date();
   const isPast      = new Date(event.date) < now;
   const isOrganizer = event.organizer?.id === currentUser?._id?.toString()

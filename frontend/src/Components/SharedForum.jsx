@@ -4,7 +4,7 @@
 import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../main";
+import { Context } from "../context";
 import {
   PiPlus, PiMagnifyingGlass, PiChatsCircle, PiCaretUp,
   PiArrowLeft, PiX, PiCircleNotch, PiTag, PiEye,
@@ -345,7 +345,7 @@ function QuestionCard({ q, onClick }) {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function SharedForum({ role, accentColor = "sky" }) {
+export default function SharedForum({ accentColor = "sky" }) {
   const { user }               = useContext(Context);
   const [questions, setQs]     = useState([]);
   const [loading, setLoading]  = useState(true);

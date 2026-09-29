@@ -63,6 +63,10 @@ const studentSchema = new mongoose.Schema({
 studentSchema.index({ email: 1, accountVerified: 1 });
 studentSchema.index({ resetPasswordToken: 1 }, { sparse: true });
 studentSchema.index({ accountVerified: 1, createdAt: 1 });
+// People / Batchmates listings filter on these flags on every request
+studentSchema.index({ accountVerified: 1, adminVerified: 1, isBlocked: 1, name: 1 });
+// Batchmates groups by class year
+studentSchema.index({ enrollmentYear: 1, name: 1 });
 
 studentSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();

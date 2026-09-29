@@ -56,9 +56,9 @@ async function seedVerifiedStudent(email = 'forum@test.com', phone = '+919876543
 describe('Forum API', () => {
 
   // ── Unauthenticated ──────────────────────────────────────────────────────────
-  it('GET /questions — returns 400 without auth token', async () => {
+  it('GET /questions — returns 401 without auth token', async () => {
     const res = await request(testApp).get('/api/v1/forum/questions');
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
   });
 
   // ── Create question ──────────────────────────────────────────────────────────

@@ -1,8 +1,8 @@
-import { useEffect, useState, useContext } from "react";
+import { useState, useContext } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import ThemeToggle from "../ThemeToggle.jsx";
 import {
   PiGraduationCap, PiHouseLine, PiNewspaper, PiUsersThree,
@@ -21,30 +21,15 @@ const NAV = [
 ];
 
 const AdminLayout = () => {
-  const [admin, setAdmin]       = useState(null);
-  const [mobileOpen, setMobile] = useState(false);
   const navigate = useNavigate();
-  const { setIsAuthenticated, setUser, theme } = useContext(Context);
-
-  useEffect(() => {
-    axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true })
-      .then((res) => {
-        setIsAuthenticated(true);
-        setUser(res.data.user);
-        setAdmin(res.data.user);
-      })
-      .catch(() => {
-        setIsAuthenticated(false);
-        setUser(null);
-        navigate("/login");
-      });
-  }, [navigate, setIsAuthenticated, setUser]);
+  // ProtectedRoute has already loaded /user/me into Context before rendering this layout
+  const { user: admin, setIsAuthenticated, setUser, theme } = useContext(Context);
+  const [mobileOpen, setMobile] = useState(false);
 
   const handleLogout = async () => {
     try {
       await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true });
-    } catch {}
+    } catch { /* non-critical: keep current state */ }
     localStorage.removeItem("alumniToken");
     setIsAuthenticated(false);
     setUser(null);

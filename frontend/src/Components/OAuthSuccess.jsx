@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useContext } from "react";
 import { toast } from "react-toastify";
-import { Context } from "../main";
+import { Context } from "../context";
 
 /**
  * OAuthSuccess

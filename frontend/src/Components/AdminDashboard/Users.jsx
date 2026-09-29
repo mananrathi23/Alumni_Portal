@@ -1,31 +1,67 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import { PiUserCircle, PiCheckCircle, PiWarningCircle, PiShieldSlash, PiWifiHigh } from "react-icons/pi";
+
+const PAGE_SIZE = 50;
 
 const Users = () => {
   const { theme } = useContext(Context);
   const [users, setUsers] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filterRole, setFilterRole] = useState("All");
+  const [search, setSearch] = useState("");
 
-  const fetchUsers = async () => {
+  // Role filter and search run on the server; results arrive PAGE_SIZE at a time
+  const fetchUsers = useCallback(async (pageToLoad) => {
+    const params = { page: pageToLoad, limit: PAGE_SIZE };
+    if (filterRole !== "All") params.role = filterRole;
+    if (search.trim()) params.search = search.trim();
+    const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users`, {
+      params,
+      withCredentials: true,
+    });
+    setTotal(res.data.total ?? 0);
+    setHasMore(!!res.data.hasMore);
+    setPage(pageToLoad);
+    return res.data.users || [];
+  }, [filterRole, search]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const first = await fetchUsers(1);
+        if (!cancelled) setUsers(first);
+      } catch (err) {
+        if (!cancelled) toast.error(err.response?.data?.message || "Failed to fetch users");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [fetchUsers]);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/users`, {
-        withCredentials: true,
+      const next = await fetchUsers(page + 1);
+      setUsers((prev) => {
+        const ids = new Set(prev.map((u) => u._id));
+        return [...prev, ...next.filter((u) => !ids.has(u._id))];
       });
-      setUsers(res.data.users || []);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to fetch users");
     } finally {
-      setLoading(false);
+      setLoadingMore(false);
     }
   };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const toggleVerify = async (userId, role) => {
     try {
@@ -38,7 +74,7 @@ const Users = () => {
       setUsers((prev) =>
         prev.map((u) => (u._id === userId ? { ...u, adminVerified: res.data.user.adminVerified } : u))
       );
-    } catch (err) {
+    } catch {
       toast.error("Failed to update verification status.");
     }
   };
@@ -54,41 +90,50 @@ const Users = () => {
       setUsers((prev) =>
         prev.map((u) => (u._id === userId ? { ...u, isBlocked: res.data.user.isBlocked } : u))
       );
-    } catch (err) {
+    } catch {
       toast.error("Failed to block/unblock user.");
     }
   };
 
-  const filteredUsers = filterRole === "All" ? users : users.filter((u) => u.role === filterRole);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-8 h-8 rounded-full border-4 border-sky-500 border-t-transparent animate-spin"></div>
-      </div>
-    );
-  }
+  const inputCls = `px-3 py-1.5 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+    theme === "dark"
+      ? "bg-slate-800 border-white/10 text-white placeholder-slate-500"
+      : "bg-white border-slate-200 text-slate-800 placeholder-slate-400"
+  }`;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-10">
-      <div className="flex items-center justify-between">
-        <h2 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
-          User Management
-        </h2>
-        <select
-          value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value)}
-          className={`px-3 py-1.5 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-            theme === "dark"
-              ? "bg-slate-800 border-white/10 text-white"
-              : "bg-white border-slate-200 text-slate-800"
-          }`}
-        >
-          <option value="All">All Roles</option>
-          <option value="Student">Students</option>
-          <option value="Alumni">Alumni</option>
-          <option value="Teacher">Teachers</option>
-        </select>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+            User Management
+          </h2>
+          {!loading && (
+            <p className="text-xs text-slate-500 mt-1">Showing {users.length} of {total}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, email, department…"
+            className={`${inputCls} w-56`}
+          />
+          <select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            className={`px-3 py-1.5 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+              theme === "dark"
+                ? "bg-slate-800 border-white/10 text-white"
+                : "bg-white border-slate-200 text-slate-800"
+            }`}
+          >
+            <option value="All">All Roles</option>
+            <option value="Student">Students</option>
+            <option value="Alumni">Alumni</option>
+            <option value="Teacher">Teachers</option>
+          </select>
+        </div>
       </div>
 
       <div className={`rounded-xl border overflow-hidden ${theme === "dark" ? "border-white/10 bg-slate-900/50" : "border-slate-200 bg-white shadow-sm"}`}>
@@ -104,12 +149,18 @@ const Users = () => {
               </tr>
             </thead>
             <tbody className={`divide-y ${theme === "dark" ? "divide-white/5" : "divide-slate-100"}`}>
-              {filteredUsers.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="px-6 py-10">
+                    <div className="w-8 h-8 mx-auto rounded-full border-4 border-sky-500 border-t-transparent animate-spin"></div>
+                  </td>
+                </tr>
+              ) : users.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="px-6 py-10 text-center text-slate-500">No users found.</td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => (
+                users.map((user) => (
                   <tr key={user._id} className={`transition-colors ${theme === "dark" ? "hover:bg-white/[0.02]" : "hover:bg-slate-50"}`}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -209,6 +260,17 @@ const Users = () => {
             </tbody>
           </table>
         </div>
+        {!loading && hasMore && (
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className={`w-full py-3 text-sm font-medium border-t transition disabled:opacity-60 ${
+              theme === "dark" ? "border-white/10 text-slate-300 hover:bg-white/[0.03]" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {loadingMore ? "Loading…" : `Load more (${users.length} of ${total})`}
+          </button>
+        )}
       </div>
     </div>
   );

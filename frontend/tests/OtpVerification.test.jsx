@@ -16,14 +16,6 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import OtpVerification from '../src/Components/Authentication/OtpVerification';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
-// Stop main.jsx from executing createRoot when the component is imported
-vi.mock('../src/main', () => ({
-  Context: { _currentValue: { setIsAuthenticated: vi.fn(), setUser: vi.fn() } },
-}));
-vi.mock('../src/main.jsx', () => ({
-  Context: { _currentValue: { setIsAuthenticated: vi.fn(), setUser: vi.fn() } },
-}));
-
 vi.mock('react', async (importOriginal) => {
   const actual = await importOriginal();
   return {

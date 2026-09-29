@@ -1,8 +1,8 @@
 /**
  * auth-flow.spec.js — End-to-End tests for Alumni Portal authentication
  *
- * Tests run against the LIVE deployed Vercel app.
- * URL: https://alumni-portal-gamma-eosin.vercel.app/login
+ * Runs against a local build by default (see playwright.config.js);
+ * set E2E_BASE_URL to test the deployed Vercel app instead.
  *
  * Page structure:
  *  - Left panel: "Your campus network, extended for life."
@@ -17,7 +17,7 @@
 
 const { test, expect } = require('@playwright/test');
 
-const LOGIN_URL = 'https://alumni-portal-gamma-eosin.vercel.app/login';
+const LOGIN_URL = '/login'; // relative to baseURL in playwright.config.js
 const PAGE_TIMEOUT = 20000;
 
 test.describe('Alumni Portal — Authentication Flow', () => {
@@ -79,6 +79,12 @@ test.describe('Alumni Portal — Authentication Flow', () => {
   });
 
   test('Login with wrong credentials shows an error from the server', async ({ page }) => {
+    // Same response the real /user/login sends for unknown credentials
+    await page.route('**/api/v1/user/login', route => route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: false, message: 'Invalid email or Password.' }),
+    }));
     await page.goto(LOGIN_URL);
     await page.waitForSelector('text=Welcome back', { timeout: PAGE_TIMEOUT });
     await page.getByPlaceholder('Enter your email').fill('fake@notexist.com');

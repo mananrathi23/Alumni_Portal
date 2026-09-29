@@ -84,3 +84,11 @@ export const invalidateCache = async (prefix) => {
     console.error(`[Redis Cache Invalidation Error] Prefix ${prefix}:`, err.message);
   }
 };
+
+/**
+ * Invalidate every cached list built from user profiles: People and Batchmates
+ * ("directory") and the mentor lists ("mentors"). Call after a profile, verification,
+ * block, or mentorship-slot change.
+ */
+export const invalidateUserListings = () =>
+  Promise.all([invalidateCache("directory"), invalidateCache("mentors")]);

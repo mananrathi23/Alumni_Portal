@@ -1,11 +1,11 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
-import { useSocket } from "../../SocketContext";
+import { useSocket } from "../../useSocket";
 import { toast } from "react-toastify";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import ProfileIncompleteModal from "./ProfileIncompleteModal";
-import { isTeacherProfileComplete } from "./Profile";
+import { isTeacherProfileComplete } from "../../utils/profileCompletion";
 import DashboardShell from "../DashboardShell";
 import {
   PiHouseLine, PiChatsCircle, PiEnvelope, PiUsersThree,
@@ -14,30 +14,19 @@ import {
 } from "react-icons/pi";
 
 const TeacherLayout = () => {
-  const [teacher, setTeacher] = useState(null);
-  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  // ProtectedRoute has already loaded /user/me into Context before rendering this layout
+  const { user: sessionUser } = useContext(Context);
+  const [teacher, setTeacher] = useState(sessionUser);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(() => !!sessionUser && !isTeacherProfileComplete(sessionUser));
   const [pendingMentorship, setPendingMentorship] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
   const { setIsAuthenticated, setUser } = useContext(Context);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true })
-      .then((res) => {
-        setIsAuthenticated(true);
-        setUser(res.data.user);
-        setTeacher(res.data.user);
-        if (!isTeacherProfileComplete(res.data.user)) setShowIncompleteModal(true);
-      })
-      .catch(() => { setIsAuthenticated(false); navigate("/login"); });
-  }, []);
-
-  useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { withCredentials: true })
-      .then((res) => {
-        const pending = (res.data.requests || []).filter(r => r.status === "Pending").length;
-        setPendingMentorship(pending);
-      }).catch(() => {});
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { params: { status: "Pending", countOnly: "true" }, withCredentials: true })
+      .then((res) => setPendingMentorship(res.data.count || 0))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -70,11 +59,9 @@ const TeacherLayout = () => {
     const onNewMentorshipRequest = () => setPendingMentorship(prev => prev + 1);
     // Mentorship request responded/cancelled — re-fetch accurate count
     const onMentorshipUpdate = () => {
-      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { withCredentials: true })
-        .then((res) => {
-          const pending = (res.data.requests || []).filter(r => r.status === "Pending").length;
-          setPendingMentorship(pending);
-        }).catch(() => {});
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { params: { status: "Pending", countOnly: "true" }, withCredentials: true })
+        .then((res) => setPendingMentorship(res.data.count || 0))
+        .catch(() => {});
     };
     // New chat message → bump Messages badge
     const onNewChat = () => setUnreadMessages(prev => prev + 1);
@@ -105,7 +92,7 @@ const TeacherLayout = () => {
   }, [isSocketReady]);
 
   const handleLogout = async () => {
-    try { await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true }); } catch {}
+    try { await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true }); } catch { /* non-critical: keep current state */ }
     localStorage.removeItem("alumniToken");
     setIsAuthenticated(false);
     setUser(null);

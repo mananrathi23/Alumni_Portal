@@ -2,8 +2,8 @@ import { useState, useEffect, useContext } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { useSocket } from "../../SocketContext";
-import { Context } from "../../main";
+import { useSocket } from "../../useSocket";
+import { Context } from "../../context";
 import {
   PiHandshake, PiClock, PiPlus, PiCheck, PiX, PiChatCircleText,
   PiStar, PiStarFill, PiClockCountdown, PiToggleLeft, PiToggleRight,
@@ -17,7 +17,7 @@ const API = `${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship`;
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ── Mentor Score & Badge component ────────────────────────────────────────────
-const MentorScoreBadge = ({ score = 0, stats = {}, accentColor = "violet" }) => {
+const MentorScoreBadge = ({ score = 0, stats = {} }) => {
   const badge =
     score >= 8.5 ? { label: "🏆 Elite Mentor", cls: "bg-amber-500/15 text-amber-300 border-amber-500/30" } :
       score >= 6.5 ? { label: "⭐ Expert Mentor", cls: "bg-orange-500/15 text-orange-300 border-orange-500/30" } :
@@ -155,7 +155,6 @@ const Mentorship = () => {
   const [respondingId, setRespondingId] = useState(null);
   const [weeklyLimit, setWeeklyLimit] = useState(teacher?.weeklyLimit || 5);
   const [mentorStats, setMentorStats] = useState(teacher?.mentorStats || null);
-  const [weeklyStats, setWeeklyStats] = useState(null);
 
   // Google Calendar link state
   const [googleLinked, setGoogleLinked] = useState(false);
@@ -183,7 +182,7 @@ const Mentorship = () => {
       if (Array.isArray(s.mentorshipSlots)) {
         setSlots(s.mentorshipSlots.map(sl => ({ ...sl, id: sl.id || `${sl.day}-${sl.time}` })));
       }
-    } catch { }
+    } catch { /* non-critical: keep current state */ }
   };
 
   // Check if this mentor has already linked Google Calendar
@@ -197,9 +196,8 @@ const Mentorship = () => {
   const fetchStats = async () => {
     try {
       const r = await axios.get(`${API}/my-stats`, { withCredentials: true });
-      setWeeklyStats(r.data.weeklyCount ?? 0);
       setMentorStats(r.data.stats);
-    } catch { }
+    } catch { /* non-critical: keep current state */ }
   };
 
   const displayStats = mentorStats || teacher?.mentorStats || {};

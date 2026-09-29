@@ -1,67 +1,78 @@
 import './App.css'
 import MainPage from './Components/MainPage.jsx'
-import { useContext, useMemo } from 'react'
+import { lazy, Suspense, useContext, useMemo } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Auth from './Components/Authentication/Auth.jsx'
 import OtpVerification from './Components/Authentication/OtpVerification.jsx'
 import ResetPassword from './Components/Authentication/ResetPassword.jsx'
 import ProtectedRoute from './Components/ProtectedRoute.jsx'
 import { ToastContainer } from 'react-toastify'
-import { Context } from './main'
-import ChatbotWidget from './Components/ChatbotWidget.jsx'
+import { Context } from './context'
+const ChatbotWidget = lazy(() => import('./Components/ChatbotWidget.jsx'))
 
 // ─── STUDENT ──────────────────────────────────────────────────────────────────
-import StudentLayout from './Components/StudentDashboard/StudentLayout.jsx'
-import StudentDashboardHome from './Components/StudentDashboard/DashboardHome.jsx'
-import StudentForum from './Components/StudentDashboard/Forum.jsx'
-import StudentAlumni from './Components/StudentDashboard/Alumni.jsx'
-import StudentJobs from './Components/StudentDashboard/Jobs.jsx'
-import StudentEvents from './Components/StudentDashboard/Events.jsx'
-import StudentMessages from './Components/StudentDashboard/Messages.jsx'
-import StudentRequests from './Components/StudentDashboard/Requests.jsx'
-import StudentProfile from './Components/StudentDashboard/Profile.jsx'
-import StudentMentorship from './Components/StudentDashboard/Mentorship.jsx'
-import StudentBatchmates from './Components/StudentDashboard/Batchmates.jsx'
-import StudentIncubation from './Components/StudentDashboard/Incubation.jsx'
+const StudentLayout = lazy(() => import('./Components/StudentDashboard/StudentLayout.jsx'))
+const StudentDashboardHome = lazy(() => import('./Components/StudentDashboard/DashboardHome.jsx'))
+const StudentForum = lazy(() => import('./Components/StudentDashboard/Forum.jsx'))
+const StudentAlumni = lazy(() => import('./Components/StudentDashboard/Alumni.jsx'))
+const StudentJobs = lazy(() => import('./Components/StudentDashboard/Jobs.jsx'))
+const StudentEvents = lazy(() => import('./Components/StudentDashboard/Events.jsx'))
+const StudentMessages = lazy(() => import('./Components/StudentDashboard/Messages.jsx'))
+const StudentRequests = lazy(() => import('./Components/StudentDashboard/Requests.jsx'))
+const StudentProfile = lazy(() => import('./Components/StudentDashboard/Profile.jsx'))
+const StudentMentorship = lazy(() => import('./Components/StudentDashboard/Mentorship.jsx'))
+const StudentBatchmates = lazy(() => import('./Components/StudentDashboard/Batchmates.jsx'))
+const StudentIncubation = lazy(() => import('./Components/StudentDashboard/Incubation.jsx'))
 
 // ─── TEACHER ──────────────────────────────────────────────────────────────────
-import TeacherLayout from './Components/TeacherDashboard/TeacherLayout.jsx'
-import TeacherDashboardHome from './Components/TeacherDashboard/DashboardHome.jsx'
-import TeacherForum from './Components/TeacherDashboard/Forum.jsx'
-import TeacherStudents from './Components/TeacherDashboard/Students.jsx'
-import TeacherJobs from './Components/TeacherDashboard/Jobs.jsx'
-import TeacherEvents from './Components/TeacherDashboard/Events.jsx'
-import TeacherMessages from './Components/TeacherDashboard/Messages.jsx'
-import TeacherMentorship from './Components/TeacherDashboard/Mentorship.jsx'
-import TeacherProfile from './Components/TeacherDashboard/Profile.jsx'
-import TeacherBatchmates from './Components/TeacherDashboard/Batchmates.jsx'
-import TeacherIncubation from './Components/TeacherDashboard/Incubation.jsx'
+const TeacherLayout = lazy(() => import('./Components/TeacherDashboard/TeacherLayout.jsx'))
+const TeacherDashboardHome = lazy(() => import('./Components/TeacherDashboard/DashboardHome.jsx'))
+const TeacherForum = lazy(() => import('./Components/TeacherDashboard/Forum.jsx'))
+const TeacherStudents = lazy(() => import('./Components/TeacherDashboard/Students.jsx'))
+const TeacherJobs = lazy(() => import('./Components/TeacherDashboard/Jobs.jsx'))
+const TeacherEvents = lazy(() => import('./Components/TeacherDashboard/Events.jsx'))
+const TeacherMessages = lazy(() => import('./Components/TeacherDashboard/Messages.jsx'))
+const TeacherMentorship = lazy(() => import('./Components/TeacherDashboard/Mentorship.jsx'))
+const TeacherProfile = lazy(() => import('./Components/TeacherDashboard/Profile.jsx'))
+const TeacherBatchmates = lazy(() => import('./Components/TeacherDashboard/Batchmates.jsx'))
+const TeacherIncubation = lazy(() => import('./Components/TeacherDashboard/Incubation.jsx'))
 
 // ─── ALUMNI ───────────────────────────────────────────────────────────────────
-import AlumniLayout from './Components/AlumniDashboard/AlumniLayout.jsx'
-import AlumniDashboardHome from './Components/AlumniDashboard/DashboardHome.jsx'
-import AlumniForum from './Components/AlumniDashboard/Forum.jsx'
-import AlumniStudents from './Components/AlumniDashboard/Students.jsx'
-import AlumniJobs from './Components/AlumniDashboard/Jobs.jsx'
-import AlumniEvents from './Components/AlumniDashboard/Events.jsx'
-import AlumniMessages from './Components/AlumniDashboard/Messages.jsx'
-import AlumniMentorship from './Components/AlumniDashboard/Mentorship.jsx'
-import AlumniProfile from './Components/AlumniDashboard/Profile.jsx'
-import AlumniBatchmates from './Components/AlumniDashboard/Batchmates.jsx'
-import AlumniIncubation from './Components/AlumniDashboard/Incubation.jsx'
+const AlumniLayout = lazy(() => import('./Components/AlumniDashboard/AlumniLayout.jsx'))
+const AlumniDashboardHome = lazy(() => import('./Components/AlumniDashboard/DashboardHome.jsx'))
+const AlumniForum = lazy(() => import('./Components/AlumniDashboard/Forum.jsx'))
+const AlumniStudents = lazy(() => import('./Components/AlumniDashboard/Students.jsx'))
+const AlumniJobs = lazy(() => import('./Components/AlumniDashboard/Jobs.jsx'))
+const AlumniEvents = lazy(() => import('./Components/AlumniDashboard/Events.jsx'))
+const AlumniMessages = lazy(() => import('./Components/AlumniDashboard/Messages.jsx'))
+const AlumniMentorship = lazy(() => import('./Components/AlumniDashboard/Mentorship.jsx'))
+const AlumniProfile = lazy(() => import('./Components/AlumniDashboard/Profile.jsx'))
+const AlumniBatchmates = lazy(() => import('./Components/AlumniDashboard/Batchmates.jsx'))
+const AlumniIncubation = lazy(() => import('./Components/AlumniDashboard/Incubation.jsx'))
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
-import AdminLayout from './Components/AdminDashboard/AdminLayout.jsx'
-import AdminDashboardHome from './Components/AdminDashboard/DashboardHome.jsx'
-import AdminNews from './Components/AdminDashboard/News.jsx'
-import AdminEvents from './Components/AdminDashboard/Events.jsx'
-import AdminJobs from './Components/AdminDashboard/Jobs.jsx'
-import AdminUsers from './Components/AdminDashboard/Users.jsx'
-import AdminSupportTickets from './Components/AdminDashboard/SupportTickets.jsx'
-import AdminStudentProfiles from './Components/AdminDashboard/StudentProfiles.jsx'
+const AdminLayout = lazy(() => import('./Components/AdminDashboard/AdminLayout.jsx'))
+const AdminDashboardHome = lazy(() => import('./Components/AdminDashboard/DashboardHome.jsx'))
+const AdminNews = lazy(() => import('./Components/AdminDashboard/News.jsx'))
+const AdminEvents = lazy(() => import('./Components/AdminDashboard/Events.jsx'))
+const AdminJobs = lazy(() => import('./Components/AdminDashboard/Jobs.jsx'))
+const AdminUsers = lazy(() => import('./Components/AdminDashboard/Users.jsx'))
+const AdminSupportTickets = lazy(() => import('./Components/AdminDashboard/SupportTickets.jsx'))
+const AdminStudentProfiles = lazy(() => import('./Components/AdminDashboard/StudentProfiles.jsx'))
 
-import GoogleLinked from './Components/GoogleLinked.jsx'
-import OAuthSuccess from './Components/OAuthSuccess.jsx'
+const GoogleLinked = lazy(() => import('./Components/GoogleLinked.jsx'))
+const OAuthSuccess = lazy(() => import('./Components/OAuthSuccess.jsx'))
+
+// Each role's pages are split into their own chunks and downloaded on first
+// visit, so a student never downloads the admin, teacher or alumni screens.
+const PageFallback = () => (
+  <div className="flex justify-center items-center min-h-[40vh]">
+    <div className="w-8 h-8 rounded-full border-4 border-sky-500 border-t-transparent animate-spin" />
+  </div>
+)
+const page = (element) => (
+  <Suspense fallback={<PageFallback />}>{element}</Suspense>
+)
 
 function App() {
   const { theme } = useContext(Context);
@@ -70,76 +81,76 @@ function App() {
     { path: '/login', element: <Auth /> },
     { path: '/otp-verification/:email/:role', element: <OtpVerification /> },
     { path: '/password/reset/:token', element: <ResetPassword /> },
-    { path: '/google-linked',  element: <GoogleLinked /> },
-    { path: '/oauth-success',  element: <OAuthSuccess /> },
+    { path: '/google-linked',  element: page(<GoogleLinked />) },
+    { path: '/oauth-success',  element: page(<OAuthSuccess />) },
 
     // ─── STUDENT ──────────────────────────────────────────────────────────────
     {
       path: '/student',
-      element: <ProtectedRoute allowedRole="Student"><StudentLayout /></ProtectedRoute>,
+      element: <ProtectedRoute allowedRole="Student">{page(<StudentLayout />)}</ProtectedRoute>,
       children: [
-        { path: 'dashboard',  element: <StudentDashboardHome /> },
-        { path: 'forum',      element: <StudentForum /> },
-        { path: 'alumni',     element: <StudentAlumni /> },
-        { path: 'jobs',       element: <StudentJobs /> },
-        { path: 'events',     element: <StudentEvents /> },
-        { path: 'messages',   element: <StudentMessages /> },
-        { path: 'requests',   element: <StudentRequests /> },
-        { path: 'profile',    element: <StudentProfile /> },
-        { path: 'mentorship', element: <StudentMentorship /> },
-        { path: 'batchmates', element: <StudentBatchmates /> },
-        { path: 'incubation', element: <StudentIncubation /> },
+        { path: 'dashboard',  element: page(<StudentDashboardHome />) },
+        { path: 'forum',      element: page(<StudentForum />) },
+        { path: 'alumni',     element: page(<StudentAlumni />) },
+        { path: 'jobs',       element: page(<StudentJobs />) },
+        { path: 'events',     element: page(<StudentEvents />) },
+        { path: 'messages',   element: page(<StudentMessages />) },
+        { path: 'requests',   element: page(<StudentRequests />) },
+        { path: 'profile',    element: page(<StudentProfile />) },
+        { path: 'mentorship', element: page(<StudentMentorship />) },
+        { path: 'batchmates', element: page(<StudentBatchmates />) },
+        { path: 'incubation', element: page(<StudentIncubation />) },
       ],
     },
 
     // ─── TEACHER ──────────────────────────────────────────────────────────────
     {
       path: '/teacher',
-      element: <ProtectedRoute allowedRole="Teacher"><TeacherLayout /></ProtectedRoute>,
+      element: <ProtectedRoute allowedRole="Teacher">{page(<TeacherLayout />)}</ProtectedRoute>,
       children: [
-        { path: 'dashboard',  element: <TeacherDashboardHome /> },
-        { path: 'forum',      element: <TeacherForum /> },
-        { path: 'students',   element: <TeacherStudents /> },
-        { path: 'jobs',       element: <TeacherJobs /> },
-        { path: 'events',     element: <TeacherEvents /> },
-        { path: 'messages',   element: <TeacherMessages /> },
-        { path: 'mentorship', element: <TeacherMentorship /> },
-        { path: 'profile',    element: <TeacherProfile /> },
-        { path: 'batchmates', element: <TeacherBatchmates /> },
-        { path: 'incubation', element: <TeacherIncubation /> },
+        { path: 'dashboard',  element: page(<TeacherDashboardHome />) },
+        { path: 'forum',      element: page(<TeacherForum />) },
+        { path: 'students',   element: page(<TeacherStudents />) },
+        { path: 'jobs',       element: page(<TeacherJobs />) },
+        { path: 'events',     element: page(<TeacherEvents />) },
+        { path: 'messages',   element: page(<TeacherMessages />) },
+        { path: 'mentorship', element: page(<TeacherMentorship />) },
+        { path: 'profile',    element: page(<TeacherProfile />) },
+        { path: 'batchmates', element: page(<TeacherBatchmates />) },
+        { path: 'incubation', element: page(<TeacherIncubation />) },
       ],
     },
 
     // ─── ALUMNI ───────────────────────────────────────────────────────────────
     {
       path: '/alumni',
-      element: <ProtectedRoute allowedRole="Alumni"><AlumniLayout /></ProtectedRoute>,
+      element: <ProtectedRoute allowedRole="Alumni">{page(<AlumniLayout />)}</ProtectedRoute>,
       children: [
-        { path: 'dashboard',  element: <AlumniDashboardHome /> },
-        { path: 'forum',      element: <AlumniForum /> },
-        { path: 'students',   element: <AlumniStudents /> },
-        { path: 'jobs',       element: <AlumniJobs /> },
-        { path: 'events',     element: <AlumniEvents /> },
-        { path: 'messages',   element: <AlumniMessages /> },
-        { path: 'mentorship', element: <AlumniMentorship /> },
-        { path: 'profile',    element: <AlumniProfile /> },
-        { path: 'batchmates', element: <AlumniBatchmates /> },
-        { path: 'incubation', element: <AlumniIncubation /> },
+        { path: 'dashboard',  element: page(<AlumniDashboardHome />) },
+        { path: 'forum',      element: page(<AlumniForum />) },
+        { path: 'students',   element: page(<AlumniStudents />) },
+        { path: 'jobs',       element: page(<AlumniJobs />) },
+        { path: 'events',     element: page(<AlumniEvents />) },
+        { path: 'messages',   element: page(<AlumniMessages />) },
+        { path: 'mentorship', element: page(<AlumniMentorship />) },
+        { path: 'profile',    element: page(<AlumniProfile />) },
+        { path: 'batchmates', element: page(<AlumniBatchmates />) },
+        { path: 'incubation', element: page(<AlumniIncubation />) },
       ],
     },
 
     // ─── ADMIN ────────────────────────────────────────────────────────────────
     {
       path: '/admin',
-      element: <ProtectedRoute allowedRole="Admin"><AdminLayout /></ProtectedRoute>,
+      element: <ProtectedRoute allowedRole="Admin">{page(<AdminLayout />)}</ProtectedRoute>,
       children: [
-        { path: 'dashboard', element: <AdminDashboardHome /> },
-        { path: 'news',      element: <AdminNews /> },
-        { path: 'events',    element: <AdminEvents /> },
-        { path: 'jobs',      element: <AdminJobs /> },
-        { path: 'students',  element: <AdminStudentProfiles /> },
-        { path: 'users',     element: <AdminUsers /> },
-        { path: 'support',   element: <AdminSupportTickets /> },
+        { path: 'dashboard', element: page(<AdminDashboardHome />) },
+        { path: 'news',      element: page(<AdminNews />) },
+        { path: 'events',    element: page(<AdminEvents />) },
+        { path: 'jobs',      element: page(<AdminJobs />) },
+        { path: 'students',  element: page(<AdminStudentProfiles />) },
+        { path: 'users',     element: page(<AdminUsers />) },
+        { path: 'support',   element: page(<AdminSupportTickets />) },
       ],
     },
   ]), []);
@@ -148,7 +159,9 @@ function App() {
     <>
       <RouterProvider router={router} />
       <ToastContainer position="top-right" theme={theme === "dark" ? "dark" : "light"} />
-      <ChatbotWidget />
+      <Suspense fallback={null}>
+        <ChatbotWidget />
+      </Suspense>
     </>
   )
 }

@@ -1,11 +1,11 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
-import { useSocket } from "../../SocketContext";
+import { useSocket } from "../../useSocket";
 import { toast } from "react-toastify";
-import { Context } from "../../main";
+import { Context } from "../../context";
 import ProfileIncompleteModal from "./ProfileIncompleteModal";
-import { isAlumniProfileComplete } from "./Profile";
+import { isAlumniProfileComplete } from "../../utils/profileCompletion";
 import DashboardShell from "../DashboardShell";
 import {
   PiHouseLine, PiChatsCircle, PiEnvelope, PiUsersThree,
@@ -14,30 +14,19 @@ import {
 } from "react-icons/pi";
 
 const AlumniLayout = () => {
-  const [alumni, setAlumni] = useState(null);
-  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  // ProtectedRoute has already loaded /user/me into Context before rendering this layout
+  const { user: sessionUser } = useContext(Context);
+  const [alumni, setAlumni] = useState(sessionUser);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(() => !!sessionUser && !isAlumniProfileComplete(sessionUser));
   const [pendingMentorship, setPendingMentorship] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
   const { setIsAuthenticated, setUser } = useContext(Context);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true })
-      .then((res) => {
-        setIsAuthenticated(true);
-        setUser(res.data.user);
-        setAlumni(res.data.user);
-        if (!isAlumniProfileComplete(res.data.user)) setShowIncompleteModal(true);
-      })
-      .catch(() => { setIsAuthenticated(false); navigate("/login"); });
-  }, []);
-
-  useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { withCredentials: true })
-      .then((res) => {
-        const pending = (res.data.requests || []).filter(r => r.status === "Pending").length;
-        setPendingMentorship(pending);
-      }).catch(() => {});
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { params: { status: "Pending", countOnly: "true" }, withCredentials: true })
+      .then((res) => setPendingMentorship(res.data.count || 0))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -54,7 +43,7 @@ const AlumniLayout = () => {
       const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/me`, { withCredentials: true });
       setUser(res.data.user);
       setAlumni(res.data.user);
-    } catch {}
+    } catch { /* non-critical: keep current state */ }
   };
 
   const { socketRef, isSocketReady } = useSocket();
@@ -80,11 +69,9 @@ const AlumniLayout = () => {
     // New mentorship request from a student
     const onNewMentorshipRequest = () => setPendingMentorship(prev => prev + 1);
     const onMentorshipUpdate = () => {
-      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { withCredentials: true })
-        .then((res) => {
-          const pending = (res.data.requests || []).filter(r => r.status === "Pending").length;
-          setPendingMentorship(pending);
-        }).catch(() => {});
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/mentorship/requests`, { params: { status: "Pending", countOnly: "true" }, withCredentials: true })
+        .then((res) => setPendingMentorship(res.data.count || 0))
+        .catch(() => {});
     };
     // New chat message → re-fetch actual count (avoids stale +1 bugs)
     const refreshUnread = () => {
@@ -117,7 +104,7 @@ const AlumniLayout = () => {
   }, [isSocketReady]);
 
   const handleLogout = async () => {
-    try { await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true }); } catch {}
+    try { await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true }); } catch { /* non-critical: keep current state */ }
     localStorage.removeItem("alumniToken");
     setIsAuthenticated(false);
     setUser(null);

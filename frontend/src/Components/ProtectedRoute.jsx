@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import { Navigate } from "react-router-dom";
 import axios from "axios";
-import { Context } from "../main";
+import { Context } from "../context";
 
 /**
  * ProtectedRoute

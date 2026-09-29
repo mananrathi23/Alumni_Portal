@@ -18,15 +18,6 @@ import React from 'react';
 import Login from '../src/Components/Authentication/Login';
 
 // ── Mock dependencies that need a full app context ────────────────────────────
-vi.mock('../src/main', () => ({
-  Context: { _currentValue: { setIsAuthenticated: vi.fn(), setUser: vi.fn() } },
-}));
-
-// Stop main.jsx from executing createRoot on import
-vi.mock('../src/main.jsx', () => ({
-  Context: { _currentValue: { setIsAuthenticated: vi.fn(), setUser: vi.fn() } },
-}));
-
 // Mock useContext to avoid needing a real Context Provider
 vi.mock('react', async (importOriginal) => {
   const actual = await importOriginal();

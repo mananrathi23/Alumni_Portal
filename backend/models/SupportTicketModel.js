@@ -47,4 +47,9 @@ const supportTicketSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// A user's open ticket is looked up on every support-chat message
+supportTicketSchema.index({ userId: 1, status: 1 });
+// Admin queue: open tickets, most recently updated first
+supportTicketSchema.index({ status: 1, updatedAt: -1 });
+
 export const SupportTicket = mongoose.model("SupportTicket", supportTicketSchema);

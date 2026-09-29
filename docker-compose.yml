@@ -1,0 +1,129 @@
+# =============================================================================
+# Alumni Portal — Docker Compose (production backend, e.g. Oracle Cloud Free VM)
+# =============================================================================
+# Services:
+#   redis    — Redis 7 (caching, rate limiting, Socket.io pub/sub, cron locks)
+#   backend  — Node.js API (2 replicas, load-balanced by Nginx)
+#   nginx    — Reverse proxy + load balancer + TLS termination
+#   certbot  — Renews the Let's Encrypt certificate every 12 hours
+#
+# Frontend: deployed separately on Vercel (not part of this stack).
+# MongoDB:  external Atlas cluster (MONGO_URI in backend/.env).
+#
+# Secrets live in two git-ignored files, never in this file:
+#   .env          — REDIS_PASSWORD (read by Compose for variable substitution)
+#   backend/.env  — everything the API needs (see backend/.env.example)
+#
+# First-time HTTPS setup: ./deploy/init-letsencrypt.sh (see deploy/ORACLE_FREE_TIER.md)
+# =============================================================================
+
+name: alumni-portal
+
+services:
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  # Not published to the host: only reachable by the backend on the internal network.
+  redis:
+    image: redis:7-alpine
+    container_name: alumni-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"
+    command: >
+      sh -c 'redis-server
+      --appendonly yes
+      --requirepass "$$REDIS_PASSWORD"
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - portal-network
+
+  # ── Backend API (2 replicas) ───────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: alumni-portal-backend:latest
+    restart: unless-stopped
+    deploy:
+      replicas: 2                          # Two API instances — Nginx load-balances between them
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # Point at the internal Redis service. REDIS_URL is blanked so a local
+      # REDIS_URL in backend/.env can't override it; redisClient.js builds the
+      # URL from these parts (and URL-encodes the password).
+      REDIS_URL: ""
+      REDIS_ENABLED: "true"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"
+    expose:
+      - "4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    networks:
+      - portal-network
+
+  # ── Nginx (reverse proxy + load balancer + HTTPS) ─────────────────────────
+  # Reloads every 6h so renewed certificates are picked up.
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: alumni-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"       # HTTP → redirects to HTTPS (+ Let's Encrypt challenges)
+      - "443:443"     # HTTPS
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    command: >
+      sh -c 'while :; do sleep 6h & wait $$!; nginx -s reload; done &
+      exec nginx -g "daemon off;"'
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portal-network
+
+  # ── Certbot (Let's Encrypt renewal) ───────────────────────────────────────
+  certbot:
+    image: certbot/certbot:latest
+    container_name: alumni-certbot
+    restart: unless-stopped
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: >
+      sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $$!; done'
+
+# ── Volumes ────────────────────────────────────────────────────────────────────
+volumes:
+  redis_data:
+    driver: local
+
+# ── Network ────────────────────────────────────────────────────────────────────
+networks:
+  portal-network:
+    driver: bridge

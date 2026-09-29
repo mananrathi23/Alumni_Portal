@@ -1,0 +1,26 @@
+# Ignore backend dependencies and environment
+/backend/.env
+/frontend/node_modules
+/backend/node_modules
+
+# Root-level (Playwright / E2E) artifacts
+/node_modules
+/playwright-report
+/test-results
+
+# Ignore local system files
+.DS_Store
+
+# Ignore logs
+/logs
+coverage/
+backend/coverage/
+frontend/coverage/
+
+# Docker / Nginx secrets — never commit real certs or root .env
+.env
+nginx/certs/
+certbot/
+
+# Build output
+frontend/dist/

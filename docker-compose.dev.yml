@@ -1,0 +1,25 @@
+# =============================================================================
+# Local development only: Redis on 127.0.0.1:6380 for `npm run dev` in backend/.
+# Uses REDIS_PASSWORD from backend/.env (backend/.env's REDIS_URL should point
+# at redis://:<password>@127.0.0.1:6380).
+#
+#   cd backend && npm run docker:redis
+# =============================================================================
+
+name: alumni-portal-dev
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: alumni-redis-dev
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    command: sh -c 'redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"'
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "127.0.0.1:6380:6379"
+
+volumes:
+  redis_dev_data:
